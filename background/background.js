@@ -120,13 +120,6 @@ checkForUpdates();
 // Change badge color, the default red is ugh.
 chrome.browserAction.setBadgeBackgroundColor({ color: [0, 0, 255, 192] });
 
-// If the tab that was opened for a video is closed, note it.
-chrome.tabs.onRemoved.addListener(function(tabId) {
-  if (localStorage.getItem('tabID') === '' + tabId) {
-    localStorage.removeItem('tabID');
-  }
-});
-
 // Keep track of watched videos in storage so that this extension
 // works across computers.
 chrome.storage.sync.get('watched', function(items) {
@@ -154,5 +147,16 @@ chrome.storage.onChanged.addListener(function(changes) {
     watchedVideos = changes.watched.newValue;
     makeWatchedMap();
     updateMaxVideos();
+  }
+});
+
+// Clear the tabs that have been opened when the extension starts.
+localStorage.removeItem('tabs');
+
+chrome.tabs.onAttached.addListener(function(tabId, attachInfo) {
+  var tabs = JSON.parse(localStorage.getItem('tabs'));
+  if (tabs && tabs[tabId]) {
+    tabs[tabId] = attachInfo.newWindowId;
+    localStorage.setItem('tabs', JSON.stringify(tabs));
   }
 });

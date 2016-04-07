@@ -66,24 +66,41 @@ function goToLink(e) {
   chrome.tabs.create({ url: e.target.href || e.target.parentNode.href });
 }
 
+// See if there's another video opened in this window.
+var tabs = {}, tabID, winID;
+chrome.windows.getCurrent({}, function(win) {
+  winID = win.id;
+  var mytabs = JSON.parse(localStorage.getItem('tabs'));
+  if (mytabs) {
+    for (var id in mytabs) {
+      if (mytabs[id] === winID) {
+        tabID = id;
+        break;
+      }
+    }
+    tabs = mytabs;
+  }
+});
+
 var videos = JSON.parse(localStorage.getItem('videos')) || [];
 var $videos = m('ul', videos.map(function(video) {
   function openNewTab() {
     chrome.tabs.create({ url: video.url }, function(tab) {
-      localStorage.setItem('tabID', tab.id);
+      tabs[tab.id] = winID;
+      localStorage.setItem('tabs', JSON.stringify(tabs));
     });
   }
 
   function open() {
     chrome.runtime.sendMessage({ watched: video.url });
-    var tabID = localStorage.getItem('tabID');
     if (tabID) {
       chrome.tabs.update(parseInt(tabID), {
         url: video.url,
         active: true
       }, function(tab) {
         if (!tab) {
-          localStorage.removeItem('tabID');
+          delete tabs[tabID];
+          localStorage.setItem('tabs', JSON.stringify(tabs));
           openNewTab();
         } else {
           window.close();
