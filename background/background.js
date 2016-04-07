@@ -2,6 +2,8 @@
 
 var options = {
   max_videos: 50,
+  interval: 15,
+  use_same_tab: true,
 };
 
 var sources = {};
@@ -114,8 +116,15 @@ function updateMaxVideos() {
   localStorage.setItem('videos', JSON.stringify(results));
 }
 
+// Check every now and then for new videos.
+var timeoutID;
+function checkEveryNowAndThen() {
+  checkForUpdates();
+  timeoutID = setTimeout(checkEveryNowAndThen, options.interval * 1000 * 60);
+}
+
 // Check for videos when Chrome opens.
-checkForUpdates();
+checkEveryNowAndThen();
 
 // Change badge color, the default red is ugh.
 chrome.browserAction.setBadgeBackgroundColor({ color: [0, 0, 255, 192] });
