@@ -1,0 +1,184 @@
+body {
+  font-family: Roboto,arial,sans-serif;
+}
+
+ul {
+  padding: 0;
+}
+
+a {
+  text-decoration: none;
+}
+
+a:hover {
+  color: #6294df !important;
+}
+
+.video {
+  display: flex;
+  border-bottom: 1px solid grey;
+  margin-right: 4px;
+  overflow: hidden;
+  height: 118px;
+  transition: height 250ms ease-out;
+}
+
+.video:last-child {
+  border-bottom: none;
+}
+
+.left-side {
+  position: relative;
+  height: 110px;
+  margin: 4px 0;
+  margin-right: 8px;
+}
+
+.left-side:hover {
+  outline: 2px solid #6294df;
+}
+
+.left-side img {
+  width: 196px;
+  height: 110px;
+}
+
+.left-side .length {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  padding: 0 4px;
+  background-color: #000;
+  color: #fff;
+  height: 14px;
+  line-height: 14px;
+  font-size: 11px;
+  font-weight: 500;
+  vertical-align: top;
+  opacity: 0.75;
+}
+
+.source-twitch .left-side .length {
+  top: 4px;
+  bottom: auto;
+}
+
+.left-side .game {
+  position: absolute;
+  width: 42px;
+  height: 57px;
+  border: 2px solid #fff;
+  border-right: none;
+  border-bottom: none;
+  right: 0;
+  bottom: 0;
+}
+
+.left-side .game:hover {
+  border-color: #6294df;
+}
+
+.left-side .game img {
+  width: 40px;
+  height: 55px;
+}
+
+.right-side {
+  position: relative;
+  width: 392px;
+  height: 110px;
+  margin: 4px 0;
+  overflow: hidden;
+}
+
+.close {
+  position: absolute;
+  right: 3px;
+  top: 3px;
+  width: 16px;
+  height: 16px;
+  line-height: 16px;
+  font-size: 14px;
+  text-align: center;
+  opacity: 0.5;
+  transition: opacity 100ms;
+}
+
+.close:hover {
+  opacity: 1;
+  color: #999 !important;
+}
+
+.title {
+  margin-right: 24px;
+  display: inline-block;
+  color: #000;
+  font-size: 14px;
+  line-height: 1.3em;
+  text-overflow: ellipsis;
+  font-weight: 500;
+  margin-bottom: 3px;
+}
+
+.user {}
+
+.user img {
+  width: 12px;
+  height: 12px;
+  margin-right: 4px;
+}
+
+.user .name {
+  color: #999;
+  font-size: 100%;
+  vertical-align: top;
+  margin-bottom: 3px;
+}
+
+.user .verified {
+  display: inline-block;
+  margin-left: 4px;
+  width: 12px;
+  height: 9px;
+  margin-bottom: 2px;
+  background: no-repeat url(https://s.ytimg.com/yts/imgbin/www-hitchhiker-vflsIkBw3.webp) -136px -1116px;
+  background-size: auto;
+  cursor: pointer;
+  position: relative;
+}
+
+[data-title]:hover:after {
+  background-color: #000;
+  color: #fff;
+  padding: 2px 5px;
+  border-radius: 2px;
+  content: attr(data-title);
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  transform: translate3d(-50%, -100%, 0);
+  white-space: pre;
+}
+
+.time {
+  line-height: 1.3em;
+  font-size: 100%;
+  color: #999;
+}
+
+.views:before {
+  content: '\002022';
+  margin: 0 5px;
+}
+
+.views {
+  line-height: 1.3em;
+  font-size: 100%;
+  color: #999;
+}
+
+.views:after {
+  content: " views";
+}
+
+.desc {}
