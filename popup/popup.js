@@ -145,6 +145,7 @@ var $videos = m('ul', videos.map(function(video) {
             $video.parentNode.removeChild($video);
             processScroll();
           }, 250);
+          e.preventDefault();
         },
       }, '✖'),
       m('a.title', { href: video.url, onclick: open }, video.title),
