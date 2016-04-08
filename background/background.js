@@ -145,8 +145,8 @@ chrome.runtime.onMessage.addListener(function(request) {
   if (request.watched) {
     watchedVideos.push(request.watched);
 
-    // Only keep  track of last 50 videos watched.
-    watchedVideos = watchedVideos.slice(0, 50);
+    // Only keep  track of last 100 videos watched.
+    watchedVideos = watchedVideos.slice(0, 100);
     chrome.storage.sync.set({ watched: watchedVideos });
   }
 });
