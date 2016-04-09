@@ -1,7 +1,7 @@
 /* global chrome, util */
 
+var MAX_WATCHED = 200;
 var options = {
-  max_videos: 50,
   interval: 15,
   use_same_tab: true,
 };
@@ -111,29 +111,42 @@ function checkForUpdates() {
 function updateMaxVideos() {
   var results = allVideos
     .filter(function(video) { return !watchedVideosMap[video.url]; })
-    .slice(0, options.max_videos);
-  chrome.browserAction.setBadgeText({ text: '' + results.length });
+    .slice(0, 50);
+  chrome.browserAction.setBadgeText({
+    text: results.length ? '' + results.length : '',
+  });
   localStorage.setItem('videos', JSON.stringify(results));
 }
 
 // Check every now and then for new videos.
 var timeoutID;
 function checkEveryNowAndThen() {
-  checkForUpdates();
-  timeoutID = setTimeout(checkEveryNowAndThen, options.interval * 1000 * 60);
+  timeoutID = setTimeout(function() {
+    checkForUpdates();
+    checkEveryNowAndThen();
+  }, options.interval * 1000 * 60);
 }
-
-// Check for videos when Chrome opens.
-checkEveryNowAndThen();
 
 // Change badge color, the default red is ugh.
 chrome.browserAction.setBadgeBackgroundColor({ color: [0, 0, 255, 192] });
 
-// Keep track of watched videos in storage so that this extension
-// works across computers.
-chrome.storage.sync.get('watched', function(items) {
+var optionsKeys = Object.keys(options);
+chrome.storage.sync.get(['watched'].concat(optionsKeys), function(items) {
+  // Keep track of watched videos in storage so that this extension
+  // works across computers.
   watchedVideos = items.watched || [];
   makeWatchedMap();
+
+  optionsKeys.forEach(function(key) {
+    if (items[key] !== undefined) {
+      options[key] = items[key];
+    }
+  });
+  localStorage.setItem('options', JSON.stringify(options));
+
+  // Check for videos when Chrome opens.
+  checkForUpdates();
+  checkEveryNowAndThen();
 });
 
 function makeWatchedMap() {
@@ -146,7 +159,9 @@ chrome.runtime.onMessage.addListener(function(request) {
     watchedVideos.push(request.watched);
 
     // Only keep  track of last 100 videos watched.
-    watchedVideos = watchedVideos.slice(0, 100);
+    if (watchedVideos.length > MAX_WATCHED) {
+      watchedVideos = watchedVideos.slice(-MAX_WATCHED);
+    }
     chrome.storage.sync.set({ watched: watchedVideos });
   }
 });
@@ -156,6 +171,14 @@ chrome.storage.onChanged.addListener(function(changes) {
     watchedVideos = changes.watched.newValue;
     makeWatchedMap();
     updateMaxVideos();
+  } else {
+    for (var key in changes) {
+      options[key] = changes[key].newValue;
+    }
+    localStorage.setItem('options', JSON.stringify(options));
+    if (changes.interval) {
+      checkEveryNowAndThen();
+    }
   }
 });
 

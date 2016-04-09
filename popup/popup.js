@@ -82,6 +82,7 @@ chrome.windows.getCurrent({}, function(win) {
   }
 });
 
+var options = JSON.parse(localStorage.getItem('options')) || {};
 var videos = JSON.parse(localStorage.getItem('videos')) || [];
 var $videos = m('ul', videos.map(function(video) {
   function openNewTab() {
@@ -93,7 +94,7 @@ var $videos = m('ul', videos.map(function(video) {
 
   function open() {
     chrome.runtime.sendMessage({ watched: video.url });
-    if (tabID) {
+    if (options.use_same_tab && tabID) {
       chrome.tabs.update(parseInt(tabID), {
         url: video.url,
         active: true
