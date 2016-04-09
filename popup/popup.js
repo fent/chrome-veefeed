@@ -169,4 +169,8 @@ var $videos = m('ul', videos.map(function(video) {
   ]);
 }));
 
+if (!videos.length) {
+  document.body.appendChild(m('div.no-videos', 'No new videos'));
+}
+
 document.body.appendChild($videos);

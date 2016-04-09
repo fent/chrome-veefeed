@@ -177,4 +177,6 @@ a:hover {
   content: " views";
 }
 
-.desc {}
+.no-videos {
+  white-space: pre;
+}
