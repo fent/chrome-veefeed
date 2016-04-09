@@ -18,7 +18,6 @@ chrome.options.set(
 		{ value: 720, desc: '12 hours' },
 		{ value: 1440, desc: '1 day' },
 		],
-		transform: function(value) { return parseInt(value, 10); },
 	  desc: 'How often to check for updates' },
 	{ name: 'use_same_tab', default: true,
 		desc: 'Open videos in the same tab when from the same window' },
