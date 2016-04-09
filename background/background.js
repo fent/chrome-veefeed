@@ -2,8 +2,7 @@
 
 var MAX_WATCHED = 200;
 var options = {
-  enable_youtube: true,
-  enable_twitch: true,
+  sources: { youtube: true, twitch: true },
   interval: 15,
   use_same_tab: true,
 };
@@ -15,14 +14,16 @@ var watchedVideosMap = {};
 
 function checkForUpdates() {
   var keys = Object.keys(sources);
+  var totalCalls = 0;
   var callsDone = 0;
   var results = [];
 
   keys.forEach(function(source) {
-    if (!options['enable_' + source]) { return; }
+    if (!options.sources[source]) { return; }
+    totalCalls++;
     sources[source](function(items) {
       results = results.concat(items);
-      if (++callsDone === keys.length) {
+      if (++callsDone === totalCalls) {
         results.sort(function(a, b) { return b.timestamp - a.timestamp; });
         allVideos = results;
         updateMaxVideos();

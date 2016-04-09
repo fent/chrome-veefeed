@@ -1,10 +1,12 @@
 /* global chrome */
 
 chrome.options.opts.autoSave = false;
-chrome.options.set(
-	'Must be logged into source sites to be able to retrieve videos', [
-	{ name: 'enable_youtube', default: true, desc: 'Enable YouTube' },
-	{ name: 'enable_twitch', default: true, desc: 'Enable Twitch' },
+chrome.options.set([
+	{ name: 'sources', type: 'object', options: [
+		{ name: 'youtube', default: true, desc: 'Enable YouTube' },
+		{ name: 'twitch', default: true, desc: 'Enable Twitch' },
+		],
+		desc: 'Must be logged in to be able to retrieve videos' },
 	{ name: 'interval', type: 'select', default: 15, options: [
 		{ value: 5,  desc: '5 minutes' },
 		{ value: 10, desc: '10 minutes' },
