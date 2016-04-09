@@ -23,10 +23,6 @@ a:hover {
   transition: height 250ms ease-out;
 }
 
-.video:last-child {
-  border-bottom: none;
-}
-
 .left-side {
   position: relative;
   height: 110px;
