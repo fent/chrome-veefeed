@@ -2,7 +2,7 @@
 
 var MAX_WATCHED = 200;
 var options = {
-  sources: { youtube: true, twitch: true },
+  sources: { youtube: true, twitch: false },
   interval: 15,
   use_same_tab: true,
   ignore: [],
