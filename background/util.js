@@ -38,3 +38,26 @@ util.relativeToTimestamp = function(str) {
   }[s[1]];
   return Date.now() - n * multiplier * 1000;
 };
+
+var sizedMap = util.sizedMap = function(limit, list) {
+  this.limit = limit;
+  this.list = [];
+  this.map = {};
+  if (list) {
+    for (var i = 0, len = list.length; i < len; i++) {
+      this.push(list[i]);
+    }
+  }
+};
+
+sizedMap.prototype.push = function(key) {
+  this.list.push(key);
+  this.map[key] = true;
+  if (this.list.length > this.limit) {
+    delete this.map[this.list.shift()];
+  }
+};
+
+sizedMap.prototype.has = function(key) {
+  return this.map[key] === true;
+};
