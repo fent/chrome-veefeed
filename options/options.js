@@ -23,4 +23,17 @@ chrome.options.set([
 	  desc: 'How often to check for updates' },
 	{ name: 'use_same_tab', default: true,
 		desc: 'Open videos in the same tab when from the same window' },
+	{ name: 'ignore', type: 'list', sortable: true, head: true,
+		desc: 'Ignore videos matching the following ' +
+			    '(Use * to match any string)', fields: [
+			{ type: 'select', name: 'source', desc: 'Source', options: [
+				{ value: '', desc: 'Select' },
+				{ value: 'youtube', desc: 'YouTube' },
+				{ value: 'twitch', desc: 'Twitch' },
+			] },
+			{ type: 'text', name: 'user', desc: 'User' },
+			{ type: 'text', name: 'title', desc: 'Title' },
+			{ type: 'text', name: 'game', desc: 'Game',
+				bindTo: { field: 'source', value: 'twitch' } },
+		]},
 ]);

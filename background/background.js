@@ -11,6 +11,7 @@ var options = {
 var allVideos;
 var watchedVideos;
 var watchedVideosMap = {};
+var ignoreRules = [];
 
 function checkForUpdates() {
   var keys = Object.keys(sources);
@@ -34,7 +35,22 @@ function checkForUpdates() {
 
 function updateMaxVideos() {
   var results = allVideos
-    .filter(function(video) { return !watchedVideosMap[video.url]; })
+    .filter(function(video) {
+      if (watchedVideosMap[video.url]) { return false; }
+      return !ignoreRules.some(function(ignore) {
+        if (ignore.source !== video.source) { return false; }
+        if (ignore.user && !ignore.user.test(video.user.name)) {
+          return false;
+        }
+        if (ignore.title && !ignore.title.test(video.title)) {
+          return false;
+        }
+        if (ignore.game && !ignore.game.test(video.game)) {
+          return false;
+        }
+        return true;
+      });
+    })
     .slice(0, 50);
   chrome.browserAction.setBadgeText({
     text: results.length ? '' + results.length : '',
@@ -55,11 +71,13 @@ function checkEveryNowAndThen() {
 chrome.browserAction.setBadgeBackgroundColor({ color: [0, 0, 255, 192] });
 
 var optionsKeys = Object.keys(options);
-chrome.storage.sync.get(['watched'].concat(optionsKeys), function(items) {
+chrome.storage.sync.get(['watched', 'ignore'].concat(optionsKeys),
+  function(items) {
   // Keep track of watched videos in storage so that this extension
   // works across computers.
   watchedVideos = items.watched || [];
   makeWatchedMap();
+  generateIgnore(items.ignore || []);
 
   optionsKeys.forEach(function(key) {
     if (items[key] !== undefined) {
@@ -78,6 +96,19 @@ function makeWatchedMap() {
   watchedVideos.forEach(function(url) { watchedVideosMap[url] = true; });
 }
 
+function generateIgnore(rules) {
+  rules.map(function(rule) {
+    ['user', 'title', 'game'].forEach(function(key) {
+      if (!rule[key]) { return; }
+      var exp = rule[key].replace(/[-[\]{}()*+?.\\^$|]/g, function(m) {
+        return m === '*' ? '.*' : '\\' + m;
+      });
+      rule[key] = new RegExp('^' + exp + '$', 'i');
+    });
+  });
+  ignoreRules = rules;
+}
+
 chrome.runtime.onMessage.addListener(function(request) {
   if (request.watched) {
     watchedVideos.push(request.watched);
@@ -94,7 +125,8 @@ chrome.storage.onChanged.addListener(function(changes) {
   if (changes.watched) {
     watchedVideos = changes.watched.newValue;
     makeWatchedMap();
-    updateMaxVideos();
+  } else if (changes.ignore) {
+    generateIgnore(changes.ignore.newValue);
   } else {
     for (var key in changes) {
       options[key] = changes[key].newValue;
@@ -104,6 +136,8 @@ chrome.storage.onChanged.addListener(function(changes) {
       checkEveryNowAndThen();
     }
   }
+
+  updateMaxVideos();
 });
 
 // Clear the tabs that have been opened when the extension starts.
