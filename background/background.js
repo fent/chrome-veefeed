@@ -158,3 +158,12 @@ chrome.tabs.onAttached.addListener(function(tabId, attachInfo) {
     localStorage.setItem('tabs', JSON.stringify(tabs));
   }
 });
+
+// Open options on installed.
+chrome.runtime.onInstalled.addListener(function() {
+  chrome.storage.sync.get(null, function(items) {
+    if (!Object.keys(items).length) {
+      chrome.runtime.openOptionsPage();
+    }
+  });
+});
