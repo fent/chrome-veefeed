@@ -16,9 +16,14 @@ a:hover {
 }
 
 #tabs {
+  position: fixed;
+  top: 0;
+  padding-top: 8px;
+  width: 100%;
   border-bottom: 1px solid #ccc;
   height: 25px;
-  margin-bottom: 0.5em;
+  background-color: #fff;
+  z-index: 9;
 }
 
 #tabs .tab {
@@ -40,10 +45,9 @@ a:hover {
 }
 
 #tabs .tab.selected {
-  padding-bottom: 1px;
   position: relative;
   top: -1px;
-  height: 27px;
+  height: 26px;
   background-color: #fff;
   opacity: 1;
 }
@@ -81,6 +85,7 @@ a:hover {
 #content {
   width: 600px;
   min-height: 120px;
+  margin-top: calc(1em + 25px);
 }
 
 #content > * {

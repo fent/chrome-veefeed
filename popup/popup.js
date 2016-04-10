@@ -109,6 +109,7 @@ var $content = document.getElementById('content');
 
 if (!showTabs) {
   $tabs.style.display = 'none';
+  $content.style.marginTop = 0;
 }
 
 groups.forEach(function(group) {
