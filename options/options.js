@@ -36,4 +36,5 @@ chrome.options.set([
 			{ type: 'text', name: 'game', desc: 'Game',
 				bindTo: { field: 'source', value: 'twitch' } },
 		]},
+	{ name: 'show_ignored_tab', desc: 'Show tab for ignored videos' },
 ]);

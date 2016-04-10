@@ -4,6 +4,7 @@ body {
 
 ul {
   padding: 0;
+  margin: 0;
 }
 
 a {
@@ -12,6 +13,82 @@ a {
 
 a:hover {
   color: #6294df !important;
+}
+
+#tabs {
+  border-bottom: 1px solid #ccc;
+  height: 25px;
+  margin-bottom: 0.5em;
+}
+
+#tabs .tab {
+  display: inline-block;
+  padding: 0 10px;
+  height: 25px;
+  margin-right: 5px;
+  border: 1px solid #ccc;
+  border-bottom: 0;
+  border-top-right-radius: 4px;
+  border-top-left-radius: 4px;
+  transition: color 50ms;
+  font-size: 16px;
+  line-height: 25px;
+  font-weight: 700;
+  background-color: lightgrey;
+  opacity: 0.5;
+  cursor: pointer;
+}
+
+#tabs .tab.selected {
+  padding-bottom: 1px;
+  position: relative;
+  top: -1px;
+  height: 27px;
+  background-color: #fff;
+  opacity: 1;
+}
+
+#tabs .tab:hover .label {
+  color: #6294df;
+}
+
+#tabs .tab:active .label {
+  color: orange;
+}
+
+#tabs .tab .badge {
+  display: inline-block;
+  width: 14px;
+  line-height: 14px;
+  font-size: 11px;
+  padding: 2px;
+  margin-left: 10px;
+  border-radius: 50%;
+  background-color: #225F86;
+  color: #ddd;
+  text-align: center;
+  position: relative;
+  top: -2px;
+  transition: all 100ms;
+}
+
+#tabs .tab .badge:empty {
+  width: 0;
+  padding: 0;
+  margin: 0;
+}
+
+#content {
+  width: 600px;
+  min-height: 120px;
+}
+
+#content > * {
+  display: none;
+}
+
+#content > *.selected {
+  display: block;
 }
 
 .video {
@@ -179,4 +256,5 @@ a:hover {
 
 .no-videos {
   white-space: pre;
+  font-size: 200%;
 }
