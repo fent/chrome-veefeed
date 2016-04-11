@@ -143,6 +143,9 @@ if (!showTabs) {
 
 var $videosMap = {};
 groups.forEach(function(group) {
+  group.unwatched = group.videos.filter(function(video) {
+    return !video.watched;
+  }).length;
   var $badge, $videos;
 
   if (showTabs) {
@@ -155,7 +158,7 @@ groups.forEach(function(group) {
         $videos.classList.add('selected');
       }
     }, m('span.label', group.name));
-    $badge = m('span.badge', group.videos.length || '');
+    $badge = m('span.badge', group.unwatched || '');
     $tab.appendChild($badge);
     $tabs.appendChild($tab);
   }
@@ -202,6 +205,7 @@ groups.forEach(function(group) {
         m('img.lazy', { 'data-src': video.thumbnail, onclick: open }),
         m('span.length', typeof video.length === 'number' ?
              toHumanLength(video.length) : video.length),
+        video.watched ? m('span.watched', 'WATCHED') : null,
         video.source === 'twitch' && video.game ?
           m('a.game', {
             href: 'https://www.twitch.tv/directory/game/' +
@@ -214,17 +218,16 @@ groups.forEach(function(group) {
           })) : null
       ]),
       m('div.right-side', [
-        group.removable && m('a.close', {
+        group.removable && !video.watched && m('a.close', {
           href: '#',
           onclick: function(e) {
             chrome.runtime.sendMessage({ watched: video.url });
             $videosMap[video.url].forEach(function(g) {
               var $video = g[0];
               var $badge = g[1];
-              var videos = g[2];
+              var group = g[2];
               if ($badge) {
-                videos.pop();
-                $badge.textContent = videos.length || '';
+                $badge.textContent = (--group.unwatched) || '';
               }
               if ($video.offsetParent === null) {
                 $video.parentNode.removeChild($video);
@@ -262,7 +265,7 @@ groups.forEach(function(group) {
     ]);
 
     ($videosMap[video.url] = $videosMap[video.url] || [])
-      .push([$video, $badge, group.videos]);
+      .push([$video, $badge, group]);
     return $video;
   }));
 

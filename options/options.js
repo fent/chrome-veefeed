@@ -66,6 +66,7 @@ chrome.options.set([
   { name: 'show_notifications', desc: 'Show notifications on new videos' },
   { name: 'play_sound', type: 'predefined_sound', allowNoSound: true,
     desc: 'Play sound on new videos' },
+  { name: 'show_watched', desc: 'Show watched videos too' },
   { type: 'h3', desc: 'Ignore Rules' },
   { name: 'ignore', type: 'list', sortable: true, head: true, fields: rules,
     desc: 'Ignore videos matching the following ' +

@@ -11,6 +11,7 @@ var options = {
   show_ignored_tab: false,
   show_notifications: false,
   play_sound: '',
+  show_watched: false,
   show_ungrouped: false,
 };
 
@@ -46,7 +47,13 @@ function updateMaxVideos() {
   ignoredVideos = [];
   var results = allVideos
     .filter(function(video) {
-      if (watchedVideos.has(video.url)) { return false; }
+      if (watchedVideos.has(video.url)) {
+        if (options.show_watched) {
+          video.watched = true;
+        } else {
+          return false;
+        }
+      }
       var ignoreIt = matchRules(ignoreRules, video);
       if (ignoreIt) { ignoredVideos.push(video); }
       return !ignoreIt;
@@ -104,8 +111,9 @@ function updateMaxVideos() {
   }).slice(0, MAX_VIDEOS);
 
   results = results.slice(0, MAX_VIDEOS);
+  var unwatched = results.filter(function(video) { return !video.watched; });
   chrome.browserAction.setBadgeText({
-    text: results.length ? '' + results.length : '',
+    text: unwatched ? '' + unwatched : '',
   });
 
   // Store results into local storage so that popup can read it.
