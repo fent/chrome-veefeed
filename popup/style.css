@@ -141,7 +141,11 @@ a:hover {
   bottom: auto;
 }
 
-.left-side .watched {
+.watched .left-side {
+  opacity: 0.75;
+}
+
+.watched .left-side:before {
   position: absolute;
   left: 2px;
   top: 2px;
@@ -152,6 +156,7 @@ a:hover {
   color: #fff;
   background-color: #000;
   opacity: 0.5;
+  content: "WATCHED";
 }
 
 .left-side .game {

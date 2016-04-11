@@ -200,12 +200,12 @@ groups.forEach(function(group) {
       }
     }
 
-    var $video = m('li.video.source-' + video.source, [
+    var $video = m('li.video.source-' + video.source,
+      { className: video.watched && 'watched' }, [
       m('a.left-side', { href: video.url, disabled: true }, [
         m('img.lazy', { 'data-src': video.thumbnail, onclick: open }),
         m('span.length', typeof video.length === 'number' ?
              toHumanLength(video.length) : video.length),
-        video.watched ? m('span.watched', 'WATCHED') : null,
         video.source === 'twitch' && video.game ?
           m('a.game', {
             href: 'https://www.twitch.tv/directory/game/' +
