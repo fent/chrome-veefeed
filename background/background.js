@@ -100,9 +100,12 @@ function updateMaxVideos() {
         options.play_sound.value + '.wav';
       audio.play();
     }
+
+    newVideos.forEach(function(video) { knownVideos.push(video.url); });
+  } else {
+    results.forEach(function(video) { knownVideos.push(video.url); });
   }
 
-  results.forEach(function(video) { knownVideos.push(video.url); });
   localStorage.setItem('videos', JSON.stringify(results));
   localStorage.setItem('ignored', JSON.stringify(ignoredVideos.slice(0, 50)));
 }
