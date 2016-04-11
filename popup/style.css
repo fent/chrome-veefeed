@@ -205,6 +205,10 @@ a:hover {
   color: #999 !important;
 }
 
+.watched .close {
+  display: none;
+}
+
 .title {
   margin-right: 24px;
   display: inline-block;

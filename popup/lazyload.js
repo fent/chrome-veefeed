@@ -6,22 +6,7 @@
  */
 
 !function(window){
-  var $q = function(q, res){
-        if (document.querySelectorAll) {
-          res = document.querySelectorAll(q);
-        } else {
-          var d=document
-            , a=d.styleSheets[0] || d.createStyleSheet();
-          a.addRule(q,'f:b');
-          for(var l=d.all,b=0,c=[],f=l.length;b<f;b++)
-            l[b].currentStyle.f && c.push(l[b]);
-
-          a.removeRule(0);
-          res = c;
-        }
-        return res;
-      }
-    , addEventListener = function(evt, fn){
+  var addEventListener = function(evt, fn){
         window.addEventListener
           ? this.addEventListener(evt, fn, false)
           : (window.attachEvent)
@@ -57,24 +42,38 @@
     )
   }
 
-    var images = new Array()
-      , query = $q('img.lazy')
-      , processScroll = window.processScroll = function(){
-          for (var i = 0; i < images.length; i++) {
-            if (elementInViewport(images[i])) {
-              loadImage(images[i], function () {
-                images.splice(i, i);
-              });
-            }
-          };
-        }
-      ;
-    // Array.prototype.slice.call is not callable under our lovely IE8 
+  // Expose library.
+  var lazyload = window.lazyload = {};
+  var images = new Array()
+    , query = document.getElementsByClassName('lazy')
+    , processScroll = lazyload.processScroll = function(){
+        for (var i = 0; i < images.length; i++) {
+          if (elementInViewport(images[i])) {
+            loadImage(images[i], function () {
+              images.splice(i, i);
+            });
+          }
+        };
+      }
+    ;
+
+  // Array.prototype.slice.call is not callable under our lovely IE8 
+  function addImages() {
     for (var i = 0; i < query.length; i++) {
       images.push(query[i]);
-    };
+    }
+  }
 
+  lazyload.addImages = function($node) {
+    var query = $node.getElementsByClassName('lazy');
+    for (var i = 0; i < query.length; i++) {
+      images.push(query[i]);
+    }
     processScroll();
-    addEventListener('scroll',processScroll);
+  };
+
+  addImages();
+  processScroll();
+  addEventListener('scroll',processScroll);
 
 }(this);

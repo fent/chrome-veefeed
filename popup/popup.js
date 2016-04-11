@@ -1,4 +1,4 @@
-/* global chrome, processScroll */
+/* global chrome, lazyload */
 
 function pad(num) { return num < 10 ? '0' + num : num; }
 
@@ -142,12 +142,12 @@ if (!showTabs) {
 }
 
 
-var $videosMap = {};
+var videosMap = {};
 groups.forEach(function(group) {
   group.unwatched = group.videos.filter(function(video) {
     return !video.watched;
   }).length;
-  var $badge, $videos;
+  var $badge;
 
   if (showTabs) {
     var $tab = m('a.tab', {
@@ -165,9 +165,14 @@ groups.forEach(function(group) {
         removeChildClasses($tabs, 'selected');
         removeChildClasses($content, 'selected');
         $tab.classList.add('selected');
-        $videos.classList.add('selected');
 
         group.selected = true;
+        if (!group.rendered) {
+          renderVideos(group);
+          lazyload.addImages(group.$videos);
+        } else {
+          group.$videos.classList.add('selected');
+        }
         document.body.scrollTop = group.scrollTop;
       }
     }, m('span.label', group.name));
@@ -176,16 +181,31 @@ groups.forEach(function(group) {
     $tabs.appendChild($tab);
   }
 
+  // If this videos is also in other tabs, remember in case it's removed.
+  group.videos.forEach(function(video) {
+    (videosMap[video.url] = videosMap[video.url] || [])
+      .push({ group: group, video: video, $badge: $badge });
+  });
+
+  if (group.selected) {
+    renderVideos(group);
+  }
+});
+
+function renderVideos(group) {
+  group.rendered = true;
   if (!group.videos.length) {
-    $content.appendChild($videos = m('div.no-videos', {
+    $content.appendChild(group.$videos = m('div.no-videos', {
       className: group.selected && 'selected',
     }, 'No new videos'));
     return;
   }
 
-  $videos = m('ul', {
+  group.$videos = m('ul', {
     className: group.selected && 'selected',
   }, group.videos.map(function(video) {
+    if (!options.show_watched && video.watched) { return; }
+
     function openNewTab() {
       chrome.tabs.create({ url: video.url }, function(tab) {
         tabs[tab.id] = winID;
@@ -235,21 +255,26 @@ groups.forEach(function(group) {
           href: '#',
           onclick: function(e) {
             chrome.runtime.sendMessage({ watched: video.url });
-            $videosMap[video.url].forEach(function(g) {
-              var $video = g[0];
-              var $badge = g[1];
-              var group = g[2];
-              if ($badge) {
-                $badge.textContent = (--group.unwatched) || '';
+            videosMap[video.url].forEach(function(g) {
+              if (g.$badge) {
+                g.$badge.textContent = (--g.group.unwatched) || '';
               }
-              if ($video.offsetParent === null) {
-                $video.parentNode.removeChild($video);
+              g.video.watched = true;
+              if (!g.$video) { return; }
+
+              if (options.show_watched) {
+                g.$video.classList.add('watched');
+
               } else {
-                $video.style.height = 0;
-                setTimeout(function() {
-                  $video.parentNode.removeChild($video);
-                  processScroll();
-                }, 250);
+                if (g.$video.offsetParent === null) {
+                  g.$video.parentNode.removeChild(g.$video);
+                } else {
+                  g.$video.style.height = 0;
+                  setTimeout(function() {
+                    g.$video.parentNode.removeChild(g.$video);
+                    lazyload.processScroll();
+                  }, 250);
+                }
               }
             });
             e.preventDefault();
@@ -277,10 +302,9 @@ groups.forEach(function(group) {
       ])
     ]);
 
-    ($videosMap[video.url] = $videosMap[video.url] || [])
-      .push([$video, $badge, group]);
+    videosMap[video.url].$video = $video;
     return $video;
   }));
 
-  $content.appendChild($videos);
-});
+  $content.appendChild(group.$videos);
+}
