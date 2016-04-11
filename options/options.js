@@ -64,8 +64,8 @@ chrome.options.set([
   { name: 'use_same_tab', default: true,
     desc: 'Open videos in the same tab when from the same window' },
   { name: 'show_notifications', desc: 'Show notifications on new videos' },
-  { name: 'play_sound', type: 'checkbox-predefined_sound',
-    defaultValue: 'Hero', desc: 'Play sound on new videos' },
+  { name: 'play_sound', type: 'predefined_sound', allowNoSound: true,
+    desc: 'Play sound on new videos' },
   { type: 'h3', desc: 'Ignore Rules' },
   { name: 'ignore', type: 'list', sortable: true, head: true, fields: rules,
     desc: 'Ignore videos matching the following ' +

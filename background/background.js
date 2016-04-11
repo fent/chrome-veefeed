@@ -10,7 +10,7 @@ var options = {
   ignore: [],
   show_ignored_tab: false,
   show_notifications: false,
-  play_sound: {},
+  play_sound: '',
   show_ungrouped: false,
 };
 
@@ -80,10 +80,10 @@ function updateMaxVideos() {
       });
     }
 
-    if (options.play_sound.enabled && newVideos.length) {
+    if (options.play_sound && newVideos.length) {
       var audio = new Audio();
       audio.src = 'options/bower_components/chrome-options/sounds/' +
-        options.play_sound.value + '.wav';
+        options.play_sound + '.wav';
       audio.play();
     }
 
