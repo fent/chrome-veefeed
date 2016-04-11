@@ -111,7 +111,9 @@ function updateMaxVideos() {
   }).slice(0, MAX_VIDEOS);
 
   results = results.slice(0, MAX_VIDEOS);
-  var unwatched = results.filter(function(video) { return !video.watched; });
+  var unwatched = results.filter(function(video) {
+    return !video.watched;
+  }).length;
   chrome.browserAction.setBadgeText({
     text: unwatched ? '' + unwatched : '',
   });
