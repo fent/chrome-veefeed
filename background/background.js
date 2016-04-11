@@ -1,18 +1,22 @@
 /* global chrome, sources, util */
 
 var MAX_WATCHED = 200;
+var MAX_KNOWN = 200;
 var options = {
   sources: { youtube: true, twitch: false },
   interval: 15,
   use_same_tab: true,
   ignore: [],
   show_ignored_tab: false,
+  show_notifications: false,
+  play_sound: {},
 };
 
 
 var allVideos;
-var ignoredVideos;
 var watchedVideos;
+var knownVideos = new util.sizedMap(MAX_KNOWN);
+var ignoredVideos;
 var ignoreRules = [];
 
 function checkForUpdates() {
@@ -61,6 +65,44 @@ function updateMaxVideos() {
   chrome.browserAction.setBadgeText({
     text: results.length ? '' + results.length : '',
   });
+
+  // Check if there are any new videos, only after the first fetch of videos.
+  if (knownVideos.list.length) {
+    var newVideos = results.filter(function(video) {
+      return !knownVideos.has(video.url);
+    });
+
+    if (options.show_notifications && newVideos.length === 1) {
+      chrome.notifications.create('vee', {
+        type: 'basic',
+        iconUrl: newVideos[0].thumbnail,
+        title: newVideos[0].title,
+        message: newVideos[0].user.name,
+        contextMessage: newVideos[0].desc.slice(0, 50),
+        eventTime: newVideos[0].timestamp,
+      });
+    } else if (options.show_notifications && newVideos.length > 1) {
+      chrome.notifications.create('vee', {
+        type: 'list',
+        iconUrl: newVideos[0].thumbnail,
+        title: newVideos[0].title,
+        message: 'New videos',
+        eventTime: newVideos[0].timestamp,
+        items: newVideos.map(function(video) {
+          return { title: video.title, message: video.user.name };
+        }),
+      });
+    }
+
+    if (options.play_sound.enabled && newVideos.length) {
+      var audio = new Audio();
+      audio.src = 'options/bower_components/chrome-options/sounds/' +
+        options.play_sound.value + '.wav';
+      audio.play();
+    }
+  }
+
+  results.forEach(function(video) { knownVideos.push(video.url); });
   localStorage.setItem('videos', JSON.stringify(results));
   localStorage.setItem('ignored', JSON.stringify(ignoredVideos.slice(0, 50)));
 }

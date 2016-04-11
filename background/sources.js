@@ -24,6 +24,15 @@ sources.youtube = function(callback) {
       var views = hasMeta ? parseInt($meta.children[1].textContent, 10) : null;
       var $desc = $content.getElementsByClassName('yt-lockup-description')[0];
 
+      // YouTube videos sometimes don't have thumbnails loaded until
+      // the page is scrolle down.
+      var url = $thumb.children[0].href;
+      var thumbnail = $thumb.getElementsByTagName('img')[0].src;
+      if (thumbnail === 'https://s.ytimg.com/yts/img/pixel-vfl3z5WfW.gif') {
+        var id = url.slice(url.indexOf('v=') + 2);
+        thumbnail = 'https://i.ytimg.com/vi_webp/' + id + '/mqdefault.webp';
+      }
+
       // Skip videos that have already been watched,
       // and marked watched by YouTube.
       if(!!$thumb.getElementsByClassName('watched-badge').length) {
@@ -39,13 +48,13 @@ sources.youtube = function(callback) {
           verified: !!$content
             .getElementsByClassName('yt-channel-title-icon-verified').length
         },
-        url: $thumb.children[0].href,
-        thumbnail: $thumb.getElementsByTagName('img')[0].src,
+        url: url,
+        thumbnail: thumbnail,
         length: $length ? $length.textContent : null,
         title: $content.children[0].children[0].textContent,
         timestamp: hasMeta ? util.relativeToTimestamp(time) : 0, 
         views: views,
-        desc: $desc ? $desc.innerHTML : null,
+        desc: $desc ? $desc.innerHTML : '',
       });
     }
     callback(items);

@@ -6,8 +6,11 @@
   "permissions": [
     "https://www.twitch.tv/directory/following/videos",
     "https://api.twitch.tv/*",
+    "https://static-cdn.jtvnw.net/v1/AUTH_system/*",
     "https://www.youtube.com/feed/subscriptions",
+    "https://i.ytimg.com/vi/*",
     "cookies",
+    "notifications",
     "storage"
   ],
   "author": "fent (https://github.com/fent)",

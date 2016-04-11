@@ -167,11 +167,6 @@ groups.forEach(function(group) {
       }
     }
 
-    if (video.thumbnail === 'https://s.ytimg.com/yts/img/pixel-vfl3z5WfW.gif') {
-      var id = video.url.slice(video.url.indexOf('v=') + 2);
-      video.thumbnail = 'https://i.ytimg.com/vi_webp/' + id + '/mqdefault.webp';
-    }
-
     return m('li.video.source-' + video.source, [
       m('a.left-side', { href: video.url, disabled: true }, [
         m('img.lazy', { 'data-src': video.thumbnail, onclick: open }),
