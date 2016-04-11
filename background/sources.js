@@ -25,7 +25,10 @@ sources.youtube = function(callback) {
       var $starts = $meta.getElementsByClassName('localized-date')[0];
       var timestamp = $starts ?
         ~~$starts.getAttribute('data-timestamp') * 1000 :
-        hasMeta ? util.relativeToTimestamp(time) : 0;
+        // Add i to relative timestamp so that videos that say they were
+        // posted at the same time (relatively) are still ordered in the
+        // order that they are on the page.
+        hasMeta ? util.relativeToTimestamp(time) + 1 : 0;
       var $desc = $content.getElementsByClassName('yt-lockup-description')[0];
 
       // YouTube videos sometimes don't have thumbnails loaded until
