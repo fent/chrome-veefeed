@@ -38,6 +38,17 @@ function timeAgo(timestamp) {
   return null;
 }
 
+var months = 'Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec'.split(' ');
+function showTime(timestamp) {
+  var date = new Date(timestamp);
+  var hour = date.getHours() % 12;
+  var ampm = hour > 11 ? 'pm' : 'am';
+  hour = hour % 12;
+  if (hour === 0) { hour = 12; }
+  return months[date.getMonth()] + ' ' + date.getDate() + ', ' +
+    hour + ':' + pad(date.getMinutes()) + ampm;
+}
+
 // Inspired by mithril :)
 function m(element, attr, content) {
   var s = element.split('.');
@@ -214,8 +225,11 @@ groups.forEach(function(group) {
             m('span.verified', { 'data-title': 'Verified' }) : null
         ]),
         m('div', [
-          m('span.time', timeAgo(video.timestamp)),
-          m('span.views', video.views)
+          video.timestamp && now < video.timestamp &&
+            m('span.starts', showTime(video.timestamp)),
+          video.timestamp && now >= video.timestamp &&
+            m('span.time', timeAgo(video.timestamp)),
+          video.views && m('span.views', video.views),
         ]),
         video.desc ? m('div', { innerHTML: video.desc }) : null
       ])

@@ -238,10 +238,15 @@ a:hover {
   white-space: pre;
 }
 
-.time {
+.time, .starts {
   line-height: 1.3em;
   font-size: 100%;
   color: #999;
+}
+
+.starts:before {
+  content: "Starts: ";
+  font-weight: 500;
 }
 
 .views:before {

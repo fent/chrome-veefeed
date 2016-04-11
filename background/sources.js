@@ -21,7 +21,11 @@ sources.youtube = function(callback) {
       var $meta = $content.getElementsByClassName('yt-lockup-meta-info')[0];
       var hasMeta = $meta.children.length > 1;
       var time = hasMeta ? $meta.children[0].textContent : null;
-      var views = hasMeta ? parseInt($meta.children[1].textContent, 10) : null;
+      var views = hasMeta ? ~~$meta.children[1].textContent : null;
+      var $starts = $meta.getElementsByClassName('localized-date')[0];
+      var timestamp = $starts ?
+        ~~$starts.getAttribute('data-timestamp') * 1000 :
+        hasMeta ? util.relativeToTimestamp(time) : 0;
       var $desc = $content.getElementsByClassName('yt-lockup-description')[0];
 
       // YouTube videos sometimes don't have thumbnails loaded until
@@ -52,7 +56,7 @@ sources.youtube = function(callback) {
         thumbnail: thumbnail,
         length: $length ? $length.textContent : null,
         title: $content.children[0].children[0].textContent,
-        timestamp: hasMeta ? util.relativeToTimestamp(time) : 0, 
+        timestamp: timestamp, 
         views: views,
         desc: $desc ? $desc.innerHTML : '',
       });
