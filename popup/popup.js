@@ -141,6 +141,7 @@ if (!showTabs) {
   $content.style.marginTop = 0;
 }
 
+
 var $videosMap = {};
 groups.forEach(function(group) {
   group.unwatched = group.videos.filter(function(video) {
@@ -152,10 +153,22 @@ groups.forEach(function(group) {
     var $tab = m('a.tab', {
       className: group.selected && 'selected',
       onclick: function() {
+        // Remember the scroll position of the last selected group.
+        var selectedGroup = groups.filter(function(group) {
+          return group.selected;
+        })[0];
+        if (selectedGroup) {
+          selectedGroup.scrollTop = document.body.scrollTop;
+          selectedGroup.selected = false;
+        }
+
         removeChildClasses($tabs, 'selected');
         removeChildClasses($content, 'selected');
         $tab.classList.add('selected');
         $videos.classList.add('selected');
+
+        group.selected = true;
+        document.body.scrollTop = group.scrollTop;
       }
     }, m('span.label', group.name));
     $badge = m('span.badge', group.unwatched || '');
