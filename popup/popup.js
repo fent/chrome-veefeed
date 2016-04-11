@@ -109,6 +109,11 @@ var videos = JSON.parse(localStorage.getItem('videos')) || [];
 var groups = [{ name: 'All', videos: videos, selected: true, removable: true }];
 var showTabs = false;
 
+var groupedVideos = JSON.parse(localStorage.getItem('groups')) || [];
+if (groupedVideos.length) { showTabs = true; }
+groupedVideos.forEach(function(group) { group.removable = true; });
+groups = groups.concat(groupedVideos);
+
 if (options.ignore && options.ignore.length && options.show_ignored_tab) {
   var ignoredVideos = JSON.parse(localStorage.getItem('ignored'));
   groups.push({ name: 'Ignored', videos: ignoredVideos });

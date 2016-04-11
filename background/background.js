@@ -2,6 +2,7 @@
 
 var MAX_WATCHED = 200;
 var MAX_KNOWN = 200;
+var MAX_VIDEOS = 50;
 var options = {
   sources: { youtube: true, twitch: false },
   interval: 15,
@@ -18,6 +19,7 @@ var watchedVideos;
 var knownVideos = new util.sizedMap(MAX_KNOWN);
 var ignoredVideos;
 var ignoreRules = [];
+var groups = [];
 
 function checkForUpdates() {
   var keys = Object.keys(sources);
@@ -44,27 +46,10 @@ function updateMaxVideos() {
   var results = allVideos
     .filter(function(video) {
       if (watchedVideos.has(video.url)) { return false; }
-      var ignoreIt = ignoreRules.some(function(ignore) {
-        if (ignore.source !== video.source) { return false; }
-        if (ignore.user && !ignore.user.test(video.user.name)) {
-          return false;
-        }
-        if (ignore.title && !ignore.title.test(video.title)) {
-          return false;
-        }
-        if (ignore.game && !ignore.game.test(video.game)) {
-          return false;
-        }
-        return ignore.user || ignore.title || ignore.game;
-      });
+      var ignoreIt = matchRules(ignoreRules, video);
       if (ignoreIt) { ignoredVideos.push(video); }
       return !ignoreIt;
-    })
-    .slice(0, 50);
-
-  chrome.browserAction.setBadgeText({
-    text: results.length ? '' + results.length : '',
-  });
+    });
 
   // Check if there are any new videos, only after the first fetch of videos.
   if (knownVideos.list.length) {
@@ -106,8 +91,28 @@ function updateMaxVideos() {
     results.forEach(function(video) { knownVideos.push(video.url); });
   }
 
+  var matchedMap = {};
+  var groupedVideos = groups.map(function(group) {
+    var matched = results.filter(matchRules.bind(null, group.rules));
+    matched.forEach(function(video) { matchedMap[video.url] = true; });
+    return { name: group.name, videos: matched.slice(0, MAX_VIDEOS) };
+  });
+
+  var ungroupedVideos = results.filter(function(video) {
+    return matchedMap[video.url];
+  }).slice(0, MAX_VIDEOS);
+
+  results = results.slice(0, MAX_VIDEOS);
+  chrome.browserAction.setBadgeText({
+    text: results.length ? '' + results.length : '',
+  });
+
+  // Store results into local storage so that popup can read it.
   localStorage.setItem('videos', JSON.stringify(results));
-  localStorage.setItem('ignored', JSON.stringify(ignoredVideos.slice(0, 50)));
+  localStorage.setItem('groups', JSON.stringify(groupedVideos));
+  localStorage.setItem('ungrouped', JSON.stringify(ungroupedVideos));
+  localStorage.setItem('ignored',
+    JSON.stringify(ignoredVideos.slice(0, MAX_VIDEOS)));
 }
 
 // Check every now and then for new videos.
@@ -123,11 +128,14 @@ function checkEveryNowAndThen() {
 chrome.browserAction.setBadgeBackgroundColor({ color: [0, 0, 255, 192] });
 
 var optionsKeys = Object.keys(options);
-chrome.storage.sync.get(['watched'].concat(optionsKeys), function(items) {
+chrome.storage.sync.get(['watched', 'groups'].concat(optionsKeys),
+  function(items) {
   // Keep track of watched videos in storage so that this extension
   // works across computers.
   watchedVideos = new util.sizedMap(MAX_WATCHED, items.watched || []);
-  generateIgnore(items.ignore || []);
+  ignoreRules = generateRules(items.ignore || []);
+  groups = items.groups || [];
+  groups.forEach(function(group) { generateRules(group.rules); });
 
   optionsKeys.forEach(function(key) {
     if (items[key] !== undefined) {
@@ -141,8 +149,8 @@ chrome.storage.sync.get(['watched'].concat(optionsKeys), function(items) {
   checkEveryNowAndThen();
 });
 
-function generateIgnore(rules) {
-  rules.map(function(rule) {
+function generateRules(rules) {
+  return rules.map(function(rule) {
     ['user', 'title', 'game'].forEach(function(key) {
       if (!rule[key]) { return; }
       var exp = rule[key].replace(/[-[\]{}()*+?.\\^$|]/g, function(m) {
@@ -150,8 +158,24 @@ function generateIgnore(rules) {
       });
       rule[key] = new RegExp('^' + exp + '$', 'i');
     });
+    return rule;
   });
-  ignoreRules = rules;
+}
+
+function matchRules(rules, video) {
+  return rules.some(function(ignore) {
+    if (ignore.source !== video.source) { return false; }
+    if (ignore.user && !ignore.user.test(video.user.name)) {
+      return false;
+    }
+    if (ignore.title && !ignore.title.test(video.title)) {
+      return false;
+    }
+    if (ignore.game && !ignore.game.test(video.game)) {
+      return false;
+    }
+    return ignore.user || ignore.title || ignore.game;
+  });
 }
 
 chrome.runtime.onMessage.addListener(function(request) {
@@ -173,7 +197,11 @@ chrome.storage.onChanged.addListener(function(changes) {
       checkEveryNowAndThen();
     }
     if (changes.ignore) {
-      generateIgnore(changes.ignore.newValue);
+      ignoreRules = generateRules(changes.ignore.newValue);
+    }
+    if (changes.groups) {
+      groups = changes.groups.newValue;
+      groups.forEach(function(group) { generateRules(group.rules); });
     }
   }
 
