@@ -23,6 +23,10 @@ chrome.options.set([
 	  desc: 'How often to check for updates' },
 	{ name: 'use_same_tab', default: true,
 		desc: 'Open videos in the same tab when from the same window' },
+	{ name: 'show_notifications', desc: 'Show notifications on new videos' },
+	{ name: 'play_sound', type: 'checkbox-predefined_sound',
+		defaultValue: 'Hero', desc: 'Play sound on new videos' },
+	{ type: 'h3', desc: 'Ignore Rules' },
 	{ name: 'ignore', type: 'list', sortable: true, head: true,
 		desc: 'Ignore videos matching the following ' +
 			    '(Use * to match any string)', fields: [
@@ -38,7 +42,4 @@ chrome.options.set([
 		]},
 	{ name: 'show_ignored_tab', preview: 'png',
 		desc: 'Show tab for ignored videos' },
-	{ name: 'show_notifications', desc: 'Show notifications on new videos' },
-	{ name: 'play_sound', type: 'checkbox-predefined_sound',
-		defaultValue: 'Hero', desc: 'Play sound on new videos' },
 ]);
