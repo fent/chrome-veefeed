@@ -110,7 +110,7 @@ var groups = [options.show_ungrouped ?
   { name: 'Other',
     videos: JSON.parse(localStorage.getItem('ungrouped')) || [],
     removable: true } :
-  { name: 'All', videos: videos, selected: true, removable: true }
+  { name: 'All', videos: videos, removable: true }
 ];
 var showTabs = false;
 
@@ -118,6 +118,14 @@ var groupedVideos = JSON.parse(localStorage.getItem('groups')) || [];
 if (groupedVideos.length) { showTabs = true; }
 groupedVideos.forEach(function(group) { group.removable = true; });
 groups = groups.concat(groupedVideos);
+
+// Make the first tab with videos selected.
+for (var i = 0, len = groups.length; i < len; i++) {
+  if (groups[i].videos.length) {
+    groups[i].selected = true;
+    break;
+  }
+}
 
 if (options.ignore && options.ignore.length && options.show_ignored_tab) {
   var ignoredVideos = JSON.parse(localStorage.getItem('ignored'));
