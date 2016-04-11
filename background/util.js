@@ -51,6 +51,9 @@ var sizedMap = util.sizedMap = function(limit, list) {
 };
 
 sizedMap.prototype.push = function(key) {
+  if (this.has(key)) {
+    this.list.splice(this.list.indexOf(key), 1);
+  }
   this.list.push(key);
   this.map[key] = true;
   if (this.list.length > this.limit) {
