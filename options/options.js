@@ -36,8 +36,9 @@ chrome.options.set([
 			{ type: 'text', name: 'game', desc: 'Game',
 				bindTo: { field: 'source', value: 'twitch' } },
 		]},
-	{ name: 'show_ignored_tab', desc: 'Show tab for ignored videos' },
+	{ name: 'show_ignored_tab', preview: 'png',
+		desc: 'Show tab for ignored videos' },
 	{ name: 'show_notifications', desc: 'Show notifications on new videos' },
 	{ name: 'play_sound', type: 'checkbox-predefined_sound',
-		defaultValue: 'Hero', desc: 'Play sound on new video' },
+		defaultValue: 'Hero', desc: 'Play sound on new videos' },
 ]);
