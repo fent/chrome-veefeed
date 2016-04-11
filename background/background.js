@@ -11,6 +11,7 @@ var options = {
   show_ignored_tab: false,
   show_notifications: false,
   play_sound: {},
+  show_ungrouped: false,
 };
 
 
@@ -99,7 +100,7 @@ function updateMaxVideos() {
   });
 
   var ungroupedVideos = results.filter(function(video) {
-    return matchedMap[video.url];
+    return !matchedMap[video.url];
   }).slice(0, MAX_VIDEOS);
 
   results = results.slice(0, MAX_VIDEOS);

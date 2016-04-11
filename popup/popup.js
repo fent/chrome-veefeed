@@ -106,7 +106,12 @@ chrome.windows.getCurrent({}, function(win) {
 
 var options = JSON.parse(localStorage.getItem('options')) || {};
 var videos = JSON.parse(localStorage.getItem('videos')) || [];
-var groups = [{ name: 'All', videos: videos, selected: true, removable: true }];
+var groups = [options.show_ungrouped ?
+  { name: 'Other',
+    videos: JSON.parse(localStorage.getItem('ungrouped')) || [],
+    removable: true } :
+  { name: 'All', videos: videos, selected: true, removable: true }
+];
 var showTabs = false;
 
 var groupedVideos = JSON.parse(localStorage.getItem('groups')) || [];

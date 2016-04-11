@@ -79,4 +79,6 @@ chrome.options.set([
     filter: function(row) {
       return row.name && row.rules && row.rules.length;
     }},
+  { name: 'show_ungrouped',
+    desc: 'Show tab for ungrouped videos instead of All videos tab' },
 ]);
