@@ -128,6 +128,7 @@ if (!showTabs) {
   $content.style.marginTop = 0;
 }
 
+var $videosMap = {};
 groups.forEach(function(group) {
   var $badge, $videos;
 
@@ -183,7 +184,7 @@ groups.forEach(function(group) {
       }
     }
 
-    return m('li.video.source-' + video.source, [
+    var $video = m('li.video.source-' + video.source, [
       m('a.left-side', { href: video.url, disabled: true }, [
         m('img.lazy', { 'data-src': video.thumbnail, onclick: open }),
         m('span.length', typeof video.length === 'number' ?
@@ -204,17 +205,24 @@ groups.forEach(function(group) {
           href: '#',
           onclick: function(e) {
             chrome.runtime.sendMessage({ watched: video.url });
-            if ($badge) {
-              group.videos.pop();
-              $badge.textContent = group.videos.length;
-            }
-
-            var $video = e.target.parentNode.parentNode;
-            $video.style.height = 0;
-            setTimeout(function() {
-              $video.parentNode.removeChild($video);
-              processScroll();
-            }, 250);
+            $videosMap[video.url].forEach(function(g) {
+              var $video = g[0];
+              var $badge = g[1];
+              var videos = g[2];
+              if ($badge) {
+                videos.pop();
+                $badge.textContent = videos.length || '';
+              }
+              if ($video.offsetParent === null) {
+                $video.parentNode.removeChild($video);
+              } else {
+                $video.style.height = 0;
+                setTimeout(function() {
+                  $video.parentNode.removeChild($video);
+                  processScroll();
+                }, 250);
+              }
+            });
             e.preventDefault();
           },
         }, '✖'),
@@ -239,6 +247,10 @@ groups.forEach(function(group) {
         video.desc ? m('div', { innerHTML: video.desc }) : null
       ])
     ]);
+
+    ($videosMap[video.url] = $videosMap[video.url] || [])
+      .push([$video, $badge, group.videos]);
+    return $video;
   }));
 
   $content.appendChild($videos);
