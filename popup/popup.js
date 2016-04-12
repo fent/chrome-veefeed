@@ -120,11 +120,16 @@ groupedVideos.forEach(function(group) { group.removable = true; });
 groups = groups.concat(groupedVideos);
 
 // Make the first tab with videos selected.
+var tabSelected = false;
 for (var i = 0, len = groups.length; i < len; i++) {
-  if (groups[i].videos.length) {
+  if (groups[i].videos.filter(function(v) { return !v.watched; }).length) {
     groups[i].selected = true;
+    tabSelected = true;
     break;
   }
+}
+if (!tabSelected) {
+  groups[0].selected = true;
 }
 
 if (options.ignore && options.ignore.length && options.show_ignored_tab) {
@@ -253,6 +258,7 @@ function renderVideos(group) {
       m('div.right-side', [
         group.removable && !video.watched && m('a.close', {
           href: '#',
+          'data-title': 'Mark as Watched',
           onclick: function(e) {
             chrome.runtime.sendMessage({ watched: video.url });
             videosMap[video.url].forEach(function(g) {
