@@ -62,7 +62,7 @@ function updateMaxVideos() {
   // Check if there are any new videos, only after the first fetch of videos.
   if (knownVideos.list.length) {
     var newVideos = results.filter(function(video) {
-      return !knownVideos.has(video.url);
+      return !knownVideos.has(video.url) && !video.watched;
     });
 
     if (options.show_notifications && newVideos.length === 1) {
