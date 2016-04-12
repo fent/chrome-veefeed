@@ -260,18 +260,19 @@ function renderVideos(group) {
                 g.$badge.textContent = (--g.group.unwatched) || '';
               }
               g.video.watched = true;
-              if (!g.$video) { return; }
+              var $video = g.video.$video;
+              if (!$video) { return; }
 
               if (options.show_watched) {
-                g.$video.classList.add('watched');
+                $video.classList.add('watched');
 
               } else {
-                if (g.$video.offsetParent === null) {
-                  g.$video.parentNode.removeChild(g.$video);
+                if ($video.offsetParent === null) {
+                  $video.parentNode.removeChild($video);
                 } else {
-                  g.$video.style.height = 0;
+                  $video.style.height = 0;
                   setTimeout(function() {
-                    g.$video.parentNode.removeChild(g.$video);
+                    $video.parentNode.removeChild($video);
                     lazyload.processScroll();
                   }, 250);
                 }
@@ -302,7 +303,7 @@ function renderVideos(group) {
       ])
     ]);
 
-    videosMap[video.url].$video = $video;
+    video.$video = $video;
     return $video;
   }));
 
