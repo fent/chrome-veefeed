@@ -1,6 +1,6 @@
 /* global chrome, sources, util */
 
-var MAX_WATCHED = 200;
+var MAX_WATCHED = 150;
 var MAX_KNOWN = 200;
 var MAX_VIDEOS = 50;
 var options = {

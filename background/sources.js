@@ -28,7 +28,7 @@ sources.youtube = function(callback) {
         // Add i to relative timestamp so that videos that say they were
         // posted at the same time (relatively) are still ordered in the
         // order that they are on the page.
-        hasMeta ? util.relativeToTimestamp(time) + i : 0;
+        hasMeta ? util.relativeToTimestamp(time) - i : 0;
       var $desc = $content.getElementsByClassName('yt-lockup-description')[0];
 
       // YouTube videos sometimes don't have thumbnails loaded until
@@ -38,12 +38,6 @@ sources.youtube = function(callback) {
       if (thumbnail === 'https://s.ytimg.com/yts/img/pixel-vfl3z5WfW.gif') {
         var id = url.slice(url.indexOf('v=') + 2);
         thumbnail = 'https://i.ytimg.com/vi_webp/' + id + '/mqdefault.webp';
-      }
-
-      // Skip videos that have already been watched,
-      // and marked watched by YouTube.
-      if(!!$thumb.getElementsByClassName('watched-badge').length) {
-        continue;
       }
 
       items.push({
@@ -62,6 +56,7 @@ sources.youtube = function(callback) {
         timestamp: timestamp, 
         views: views,
         desc: $desc ? $desc.innerHTML : '',
+        watched: !!$thumb.getElementsByClassName('watched-badge').length,
       });
     }
     callback(items);
