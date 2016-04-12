@@ -219,9 +219,6 @@ chrome.storage.onChanged.addListener(function(changes) {
   updateMaxVideos();
 });
 
-// Clear the tabs that have been opened when the extension starts.
-localStorage.removeItem('tabs');
-
 chrome.tabs.onAttached.addListener(function(tabId, attachInfo) {
   var tabs = JSON.parse(localStorage.getItem('tabs'));
   if (tabs && tabs[tabId]) {
