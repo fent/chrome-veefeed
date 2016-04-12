@@ -34,11 +34,10 @@ sources.youtube = function(callback) {
       // YouTube videos sometimes don't have thumbnails loaded until
       // the page is scrolle down.
       var url = $thumb.children[0].href;
-      var thumbnail = $thumb.getElementsByTagName('img')[0].src;
-      if (thumbnail === 'https://s.ytimg.com/yts/img/pixel-vfl3z5WfW.gif') {
-        var id = url.slice(url.indexOf('v=') + 2);
-        thumbnail = 'https://i.ytimg.com/vi_webp/' + id + '/mqdefault.webp';
-      }
+      var $img = $thumb.getElementsByTagName('img')[0];
+      var thumbnail =
+        $img.src === 'https://s.ytimg.com/yts/img/pixel-vfl3z5WfW.gif' ?
+        thumbnail = $img.getAttribute('data-thumb') : $img.src;
 
       items.push({
         source: 'youtube',
