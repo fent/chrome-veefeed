@@ -44,6 +44,7 @@ var sizedMap = util.sizedMap = function(limit, list) {
   this.list = [];
   this.map = {};
   if (list) {
+    list = list.slice(-limit);
     for (var i = 0, len = list.length; i < len; i++) {
       this.push(list[i]);
     }
