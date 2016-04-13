@@ -21,10 +21,10 @@ sources.youtube = function(callback) {
       var $meta = $content.getElementsByClassName('yt-lockup-meta-info')[0];
       var hasMeta = $meta.children.length > 1;
       var time = hasMeta ? $meta.children[0].textContent : null;
-      var views = hasMeta ? ~~$meta.children[1].textContent : null;
+      var views = hasMeta ? parseInt($meta.children[1].textContent, 0) : null;
       var $starts = $meta.getElementsByClassName('localized-date')[0];
       var timestamp = $starts ?
-        ~~$starts.getAttribute('data-timestamp') * 1000 :
+        parseInt($starts.getAttribute('data-timestamp'), 10) * 1000 :
         // Add i to relative timestamp so that videos that say they were
         // posted at the same time (relatively) are still ordered in the
         // order that they are on the page.
