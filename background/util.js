@@ -88,13 +88,15 @@ util.isSameVideo = function(video1, video2) {
   });
 
   // Look for numbers, if they both have the same numbers, then ok...
-  var r, pattern = /((?:\d+:)?\d\d?:\d\d|\d+(?:\.\d+)%?)/;
+  var r, pattern = /((?:\d+:)?\d\d?:\d\d|\d+(?:\.\d+)%?)/g;
   while (r = pattern.exec(video1)) {
-    if (!wordsMap[r[1]]) { return false; }
+    var num = r[1];
+    if (!wordsMap[num]) { return false; }
+    delete wordsMap[num];
   }
 
   // If they both have two of the same words, consider them the same video.
   return video2.title.split(/\s+/).filter(function(word) {
     return word && wordsMap[word.toLowerCase()];
-  }).length;
+  }).length >= 2;
 };
