@@ -183,15 +183,17 @@ a:hover {
   position: absolute;
   left: 4px;
   bottom: 4px;
-  background: no-repeat url(https://s.ytimg.com/yts/imgbin/www-hitchhiker-vflsIkBw3.webp) -72px -397px;
+  background: no-repeat url(https://s.ytimg.com/yts/imgbin/www-hitchhiker-vflsIkBw3.webp) -73px -398px;
   background-size: auto;
   display: none;
   width: 20px;
   height: 20px;
-  background-color: #ccc;
+  box-sizing: border-box;
+  border: 1px solid #ccc;
   border-radius: 50%;
+  background-color: #ccc;
   opacity: 0;
-  transition: opacity 200ms;
+  transition: opacity 200ms, transform 250ms;
 }
 
 .left-side:hover .queue {
@@ -200,12 +202,14 @@ a:hover {
 
 .left-side .queue:active {
   background-color: #6294df;
+  transform: rotate(-90deg);
 }
 
 .video.queued .left-side .queue {
   display: inline-block;
   opacity: 1;
   background-color: #6294df;
+  border-color: #000;
 }
 
 #content.tab-opened .video .left-side .queue {
