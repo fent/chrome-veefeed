@@ -88,22 +88,6 @@ function goToLink(e) {
   chrome.tabs.create({ url: e.target.href || e.target.parentNode.href });
 }
 
-// See if there's another video opened in this window.
-var tabs = {}, tabID, winID;
-chrome.windows.getCurrent({}, function(win) {
-  winID = win.id;
-  var mytabs = JSON.parse(localStorage.getItem('tabs'));
-  if (mytabs) {
-    for (var id in mytabs) {
-      if (mytabs[id] === winID) {
-        tabID = id;
-        break;
-      }
-    }
-    tabs = mytabs;
-  }
-});
-
 var options = JSON.parse(localStorage.getItem('options')) || {};
 var videos = JSON.parse(localStorage.getItem('videos')) || [];
 var groups = [options.show_ungrouped ?
@@ -145,6 +129,24 @@ if (!showTabs) {
   $tabs.style.display = 'none';
   $content.style.marginTop = 0;
 }
+
+
+// See if there's another video opened in this window.
+var tabs = {}, tabID, winID;
+chrome.windows.getCurrent({}, function(win) {
+  winID = win.id;
+  var mytabs = JSON.parse(localStorage.getItem('tabs'));
+  if (mytabs) {
+    for (var id in mytabs) {
+      if (mytabs[id] === winID) {
+        tabID = id;
+        $content.classList.add('tab-opened');
+        break;
+      }
+    }
+    tabs = mytabs;
+  }
+});
 
 
 var videosMap = {};
@@ -238,8 +240,10 @@ function renderVideos(group) {
       }
     }
 
-    var $video = m('li.video.source-' + video.source,
-      { className: video.watched && 'watched' }, [
+    var vidClass = '.source-' + video.source;
+    if (video.watched) { vidClass += '.watched'; }
+    if (video.queued) { vidClass += '.queued'; }
+    var $video = m('li.video' + vidClass, [
       m('a.left-side', { href: video.url, disabled: true }, [
         m('img.lazy', { 'data-src': video.thumbnail, onclick: open }),
         m('span.length', typeof video.length === 'number' ?
@@ -253,7 +257,24 @@ function renderVideos(group) {
           }, m('img.lazy', {
             'data-src': 'http://static-cdn.jtvnw.net/ttv-boxart/' +
               encodeURIComponent(video.game) + '-138x190.jpg',
-          })) : null
+          })) : null,
+        m('span.queue', {
+          'data-title': 'Add to Queue',
+          onclick: function() {
+            if (video.queued) { return; }
+            chrome.runtime.sendMessage({
+              queue: true,
+              tabID: tabID,
+              url: video.url,
+            });
+            videosMap[video.url].forEach(function(g) {
+              g.video.queued = true;
+              if (g.video.$video) {
+                g.video.$video.classList.add('queued');
+              }
+            });
+          },
+        })
       ]),
       m('div.right-side', [
         group.removable && !video.watched && m('a.close', {

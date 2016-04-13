@@ -1,8 +1,10 @@
 /* global chrome, sources, util */
 
-var MAX_WATCHED = 150;
-var MAX_KNOWN = 200;
-var MAX_VIDEOS = 50;
+var MAX_WATCHED = 150; // Max watched videos to keep in storage.
+var MAX_KNOWN = 200;   // Max videos in memory to "know" about, to notify.
+var MAX_VIDEOS = 50;   // Max videos to display for each group.
+var QUEUE_WAIT = 2500; // How long to wait to play queued up videos.
+
 var options = {
   sources: { youtube: true, twitch: false },
   interval: 15,
@@ -22,6 +24,8 @@ var knownVideos = new util.sizedMap(MAX_KNOWN);
 var ignoredVideos;
 var ignoreRules = [];
 var groups = [];
+var queueTabs = {};
+var queueUrlMap = {};
 
 function checkForUpdates() {
   var keys = Object.keys(sources);
@@ -37,16 +41,17 @@ function checkForUpdates() {
       if (++callsDone === totalCalls) {
         results.sort(function(a, b) { return b.timestamp - a.timestamp; });
         allVideos = results;
-        updateMaxVideos();
+        updateVideos();
       }
     });
   });
 }
 
-function updateMaxVideos() {
+function updateVideos() {
   ignoredVideos = [];
   var results = allVideos
     .filter(function(video) {
+      video.queued = !!queueUrlMap[video.url];
       if (watchedVideos.has(video.url)) {
         if (options.show_watched) {
           video.watched = true;
@@ -189,15 +194,43 @@ function matchRules(rules, video) {
   });
 }
 
-chrome.runtime.onMessage.addListener(function(request) {
+chrome.runtime.onMessage.addListener(function(request, sender) {
   if (request.watched) {
     watchedVideos.push(request.watched);
     chrome.storage.sync.set({ watched: watchedVideos.list });
+
+  } else if (request.queue) {
+    (queueTabs[request.tabID] = queueTabs[request.tabID] || [])
+      .push(request.url);
+    queueUrlMap[request.url] = request.tabID;
+    updateVideos();
+
+  } else if (request.ended) {
+    var tabID = sender.tab.id;
+    if (queueTabs[tabID]) {
+      var nextVideoUrl = queueTabs[tabID].shift();
+      delete queueUrlMap[nextVideoUrl];
+      if (!queueTabs[tabID].length) {
+        delete queueTabs[tabID];
+      }
+      watchedVideos.push(nextVideoUrl);
+      chrome.storage.sync.set({ watched: watchedVideos.list });
+
+      // Play the next video in a few secs...
+      setTimeout(function() {
+        chrome.tabs.update(parseInt(tabID), {
+          url: nextVideoUrl,
+          active: true
+        });
+      }, QUEUE_WAIT);
+    }
   }
 });
 
 chrome.storage.onChanged.addListener(function(changes) {
   if (changes.watched) {
+    // Watched videos are in storage so that they are remembered
+    // across the same account.
     watchedVideos = new util.sizedMap(MAX_WATCHED, changes.watched.newValue);
   } else {
     for (var key in changes) {
@@ -216,7 +249,7 @@ chrome.storage.onChanged.addListener(function(changes) {
     }
   }
 
-  updateMaxVideos();
+  updateVideos();
 });
 
 chrome.tabs.onAttached.addListener(function(tabId, attachInfo) {
@@ -224,6 +257,19 @@ chrome.tabs.onAttached.addListener(function(tabId, attachInfo) {
   if (tabs && tabs[tabId]) {
     tabs[tabId] = attachInfo.newWindowId;
     localStorage.setItem('tabs', JSON.stringify(tabs));
+  }
+});
+
+chrome.tabs.onRemoved.addListener(function(tabId) {
+  var tabs = JSON.parse(localStorage.getItem('tabs'));
+  if (tabs && tabs[tabId]) {
+    delete tabs[tabId];
+    localStorage.setItem('tabs', JSON.stringify(tabs));
+    var queuedUrls = queueTabs[tabId];
+    if (queuedUrls) {
+      queuedUrls.forEach(function(url) { delete queueUrlMap[url]; });
+      updateVideos();
+    }
   }
 });
 
