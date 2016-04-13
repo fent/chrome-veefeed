@@ -246,8 +246,7 @@ function renderVideos(group) {
     var $video = m('li.video' + vidClass, [
       m('a.left-side', { href: video.url, disabled: true }, [
         m('img.lazy', { 'data-src': video.thumbnail, onclick: open }),
-        m('span.length', typeof video.length === 'number' ?
-             toHumanLength(video.length) : video.length),
+        video.length && m('span.length', toHumanLength(video.length)),
         video.source === 'twitch' && video.game ?
           m('a.game', {
             href: 'https://www.twitch.tv/directory/game/' +

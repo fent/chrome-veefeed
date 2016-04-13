@@ -50,7 +50,7 @@ sources.youtube = function(callback) {
         },
         url: url,
         thumbnail: thumbnail,
-        length: $length ? $length.textContent : null,
+        length: $length ? util.timeToSeconds($length.textContent) : null,
         title: $content.children[0].children[0].textContent,
         timestamp: timestamp, 
         views: views,

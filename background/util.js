@@ -65,3 +65,11 @@ sizedMap.prototype.push = function(key) {
 sizedMap.prototype.has = function(key) {
   return this.map[key] === true;
 };
+
+// Converts from 00:00:00 or 00:00 to seconds.
+util.timeToSeconds = function(str) {
+  var s = str.split(':');
+  return s.length === 2 ?
+    ~~s[0] * 60 + ~~s[1] :
+    ~~s[0] * 3600 + ~~s[1] * 60 + ~~s[2];
+};
