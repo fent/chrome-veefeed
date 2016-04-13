@@ -185,7 +185,7 @@ a:hover {
   bottom: 4px;
   background: no-repeat url(https://s.ytimg.com/yts/imgbin/www-hitchhiker-vflsIkBw3.webp) -73px -398px;
   background-size: auto;
-  display: none;
+  display: inline-block;
   width: 20px;
   height: 20px;
   box-sizing: border-box;
@@ -206,14 +206,9 @@ a:hover {
 }
 
 .video.queued .left-side .queue {
-  display: inline-block;
   opacity: 1;
   background-color: #6294df;
   border-color: #000;
-}
-
-#content.tab-opened .video .left-side .queue {
-  display: inline-block;
 }
 
 .right-side {

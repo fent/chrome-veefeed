@@ -140,64 +140,65 @@ chrome.windows.getCurrent({}, function(win) {
     for (var id in mytabs) {
       if (mytabs[id] === winID) {
         tabID = id;
-        $content.classList.add('tab-opened');
         break;
       }
     }
     tabs = mytabs;
   }
+  renderContent();
 });
 
 
 var videosMap = {};
-groups.forEach(function(group) {
-  group.unwatched = group.videos.filter(function(video) {
-    return !video.watched;
-  }).length;
-  var $badge;
+function renderContent() {
+  groups.forEach(function(group) {
+    group.unwatched = group.videos.filter(function(video) {
+      return !video.watched;
+    }).length;
+    var $badge;
 
-  if (showTabs) {
-    var $tab = m('a.tab', {
-      className: group.selected && 'selected',
-      onclick: function() {
-        // Remember the scroll position of the last selected group.
-        var selectedGroup = groups.filter(function(group) {
-          return group.selected;
-        })[0];
-        if (selectedGroup) {
-          selectedGroup.scrollTop = document.body.scrollTop;
-          selectedGroup.selected = false;
+    if (showTabs) {
+      var $tab = m('a.tab', {
+        className: group.selected && 'selected',
+        onclick: function() {
+          // Remember the scroll position of the last selected group.
+          var selectedGroup = groups.filter(function(group) {
+            return group.selected;
+          })[0];
+          if (selectedGroup) {
+            selectedGroup.scrollTop = document.body.scrollTop;
+            selectedGroup.selected = false;
+          }
+
+          removeChildClasses($tabs, 'selected');
+          removeChildClasses($content, 'selected');
+          $tab.classList.add('selected');
+
+          group.selected = true;
+          if (!group.rendered) {
+            renderVideos(group);
+          } else {
+            group.$videos.classList.add('selected');
+          }
+          document.body.scrollTop = group.scrollTop;
         }
+      }, m('span.label', group.name));
+      $badge = m('span.badge', group.unwatched || '');
+      $tab.appendChild($badge);
+      $tabs.appendChild($tab);
+    }
 
-        removeChildClasses($tabs, 'selected');
-        removeChildClasses($content, 'selected');
-        $tab.classList.add('selected');
+    // If this videos is also in other tabs, remember in case it's removed.
+    group.videos.forEach(function(video) {
+      (videosMap[video.url] = videosMap[video.url] || [])
+        .push({ group: group, video: video, $badge: $badge });
+    });
 
-        group.selected = true;
-        if (!group.rendered) {
-          renderVideos(group);
-          lazyload.addImages(group.$videos);
-        } else {
-          group.$videos.classList.add('selected');
-        }
-        document.body.scrollTop = group.scrollTop;
-      }
-    }, m('span.label', group.name));
-    $badge = m('span.badge', group.unwatched || '');
-    $tab.appendChild($badge);
-    $tabs.appendChild($tab);
-  }
-
-  // If this videos is also in other tabs, remember in case it's removed.
-  group.videos.forEach(function(video) {
-    (videosMap[video.url] = videosMap[video.url] || [])
-      .push({ group: group, video: video, $badge: $badge });
+    if (group.selected) {
+      renderVideos(group);
+    }
   });
-
-  if (group.selected) {
-    renderVideos(group);
-  }
-});
+}
 
 function renderVideos(group) {
   group.rendered = true;
@@ -257,7 +258,7 @@ function renderVideos(group) {
             'data-src': 'http://static-cdn.jtvnw.net/ttv-boxart/' +
               encodeURIComponent(video.game) + '-138x190.jpg',
           })) : null,
-        m('span.queue', {
+        tabID && m('span.queue', {
           'data-title': 'Add to Queue',
           onclick: function() {
             var message = { tabID: tabID, url: video.url };
@@ -336,4 +337,5 @@ function renderVideos(group) {
   }));
 
   $content.appendChild(group.$videos);
+  lazyload.addImages(group.$videos);
 }
