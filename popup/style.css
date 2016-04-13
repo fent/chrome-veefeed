@@ -334,3 +334,20 @@ a.close[data-title]:hover:after {
   white-space: pre;
   font-size: 200%;
 }
+
+.favicon {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background-repeat: no-repeat;
+  background-size: cover;
+  margin-right: 4px;
+}
+
+.source-youtube .favicon {
+  background-image: url(https://www.youtube.com/favicon.ico);
+}
+
+.source-twitch .favicon {
+  background-image: url(https://www.twitch.tv/favicon.ico);
+}
