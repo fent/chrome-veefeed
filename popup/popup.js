@@ -260,16 +260,17 @@ function renderVideos(group) {
         m('span.queue', {
           'data-title': 'Add to Queue',
           onclick: function() {
-            if (video.queued) { return; }
-            chrome.runtime.sendMessage({
-              queue: true,
-              tabID: tabID,
-              url: video.url,
-            });
+            var message = { tabID: tabID, url: video.url };
+            if (!video.queued) {
+              message.queue = true;
+            } else {
+              message.unqueue = true;
+            }
+            chrome.runtime.sendMessage(message);
             videosMap[video.url].forEach(function(g) {
-              g.video.queued = true;
+              g.video.queued = !video.queued;
               if (g.video.$video) {
-                g.video.$video.classList.add('queued');
+                g.video.$video.classList.toggle('queued');
               }
             });
           },

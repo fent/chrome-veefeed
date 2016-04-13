@@ -205,6 +205,18 @@ chrome.runtime.onMessage.addListener(function(request, sender) {
     queueUrlMap[request.url] = request.tabID;
     updateVideos();
 
+  } else if (request.unqueue) {
+    var queue;
+    if (queue = queueTabs[request.tabID]) {
+      var i = queue.indexOf(request.url);
+      if (i > -1) {
+        queue.splice(i, 1);
+        if (!queue.length) { delete queueTabs[request.tabID]; }
+      }
+    }
+    delete queueUrlMap[request.url];
+    updateVideos();
+
   } else if (request.ended) {
     var tabID = sender.tab.id;
     if (queueTabs[tabID]) {

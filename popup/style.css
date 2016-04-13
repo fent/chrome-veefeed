@@ -306,6 +306,12 @@ a.close[data-title]:hover:after {
   left: calc(100% + 2px);
   top: 0;
   transform: translate3d(0, 0, 0);
+  content: "Add to Queue";
+}
+
+.video.queued .left-side .queue[data-title]:hover:after {
+  content: "Remove from Queue";
+  color: orange;
 }
 
 .time, .starts {
