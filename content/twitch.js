@@ -16,18 +16,22 @@ function getSlider(callback) {
   }, 1000);
 }
 
-getSlider(function($slider) {
-  $slider = $slider.getElementsByClassName('ui-slider-handle')[0];
+getSlider(function() {
+  var $currentTime = document.getElementsByClassName('js-seek-currenttime')[0];
+  var $totalTime = document.getElementsByClassName('js-seek-totaltime')[0];
+  var totalTime;
   
   // This looks at the player slider, whenever it reaches the end,
   // it assumes the video has ended.
   // However, there's a bug where the slider will move without the video
   // playing. Happens when the page is opened at a small size.
   var observer = new MutationObserver(function() {
-    if (parseFloat($slider.style.left, 10) > 99) {
+    var currentTime = $currentTime.textContent;
+    totalTime = totalTime || $totalTime.textContent;
+    if (currentTime === totalTime && currentTime !== '00:00') {
       chrome.runtime.sendMessage({ ended: true });
       observer.disconnect();
     }
   });
-  observer.observe($slider, { attributes: true });
+  observer.observe($currentTime, { childList: true });
 });
