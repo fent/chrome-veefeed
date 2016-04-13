@@ -39,7 +39,6 @@ function checkForUpdates() {
     sources[source](function(items) {
       results = results.concat(items);
       if (++callsDone === totalCalls) {
-        results.sort(function(a, b) { return b.timestamp - a.timestamp; });
         allVideos = results;
         updateVideos();
       }
@@ -49,9 +48,17 @@ function checkForUpdates() {
 
 function updateVideos() {
   ignoredVideos = [];
+  allVideos.sort(function(a, b) {
+    var apos = queueUrlMap[a.url];
+    var bpos = queueUrlMap[b.url];
+    return apos != null && bpos != null ? apos - bpos :
+      apos != null && bpos == null ? -1 :
+      bpos != null && apos == null ?  1 : b.timestamp - a.timestamp;
+  });
+
   var results = allVideos
     .filter(function(video) {
-      video.queued = !!queueUrlMap[video.url];
+      video.queued = queueUrlMap[video.url] != null;
       if (watchedVideos.has(video.url)) {
         if (options.show_watched) {
           video.watched = true;
@@ -195,23 +202,28 @@ function matchRules(rules, video) {
 }
 
 chrome.runtime.onMessage.addListener(function(request, sender) {
+  var queue;
+
   if (request.watched) {
     watchedVideos.push(request.watched);
     chrome.storage.sync.set({ watched: watchedVideos.list });
 
   } else if (request.queue) {
-    (queueTabs[request.tabID] = queueTabs[request.tabID] || [])
+    var pos = (queueTabs[request.tabID] = queueTabs[request.tabID] || [])
       .push(request.url);
-    queueUrlMap[request.url] = request.tabID;
+    queueUrlMap[request.url] = pos - 1;
     updateVideos();
 
   } else if (request.unqueue) {
-    var queue;
     if (queue = queueTabs[request.tabID]) {
       var i = queue.indexOf(request.url);
       if (i > -1) {
         queue.splice(i, 1);
-        if (!queue.length) { delete queueTabs[request.tabID]; }
+        if (!queue.length) {
+          delete queueTabs[request.tabID];
+        } else {
+          queue.forEach(function(url, i) { queueUrlMap[url] = i; });
+        }
       }
     }
     delete queueUrlMap[request.url];
@@ -219,12 +231,16 @@ chrome.runtime.onMessage.addListener(function(request, sender) {
 
   } else if (request.ended) {
     var tabID = sender.tab.id;
-    if (queueTabs[tabID]) {
-      var nextVideoUrl = queueTabs[tabID].shift();
+    queue = queueTabs[tabID];
+    if (queue) {
+      var nextVideoUrl = queue.shift();
       delete queueUrlMap[nextVideoUrl];
-      if (!queueTabs[tabID].length) {
+      if (!queue.length) {
         delete queueTabs[tabID];
+      } else {
+        queue.forEach(function(url, i) { queueUrlMap[url] = i; });
       }
+
       watchedVideos.push(nextVideoUrl);
       chrome.storage.sync.set({ watched: watchedVideos.list });
 
