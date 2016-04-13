@@ -132,18 +132,19 @@ if (!showTabs) {
 
 
 // See if there's another video opened in this window.
-var tabs = {}, tabID, winID;
+var tabs = JSON.parse(localStorage.getItem('tabs')) || {};
+var tabID, winID, queue;
 chrome.windows.getCurrent({}, function(win) {
   winID = win.id;
-  var mytabs = JSON.parse(localStorage.getItem('tabs'));
-  if (mytabs) {
-    for (var id in mytabs) {
-      if (mytabs[id] === winID) {
+  if (tabs) {
+    for (var id in tabs) {
+      if (tabs[id] === winID) {
         tabID = id;
+        queue = JSON.parse(localStorage.getItem('queue'));
+        if (queue) { queue = queue[tabID]; }
         break;
       }
     }
-    tabs = mytabs;
   }
   renderContent();
 });
@@ -209,6 +210,17 @@ function renderVideos(group) {
     return;
   }
 
+  // Put queued videos at the top.
+  if (queue) {
+    group.videos.sort(function(a, b) {
+      var apos = queue[a.url];
+      var bpos = queue[b.url];
+      return apos != null && bpos != null ? apos - bpos :
+        apos != null && bpos == null ? -1 :
+        bpos != null && apos == null ?  1 : b.timestamp - a.timestamp;
+    });
+  }
+
   group.$videos = m('ul', {
     className: group.selected && 'selected',
   }, group.videos.map(function(video) {
@@ -241,6 +253,7 @@ function renderVideos(group) {
       }
     }
 
+    video.queued = queue && queue[video.url] != null;
     var vidClass = '.source-' + video.source;
     if (video.watched) { vidClass += '.watched'; }
     if (video.queued) { vidClass += '.queued'; }

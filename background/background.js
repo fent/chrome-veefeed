@@ -40,6 +40,7 @@ function checkForUpdates() {
       results = results.concat(items);
       if (++callsDone === totalCalls) {
         allVideos = results;
+        allVideos.sort(function(a, b) { return b.timestamp - a.timestamp; });
         updateVideos();
       }
     });
@@ -48,17 +49,8 @@ function checkForUpdates() {
 
 function updateVideos() {
   ignoredVideos = [];
-  allVideos.sort(function(a, b) {
-    var apos = queueUrlMap[a.url];
-    var bpos = queueUrlMap[b.url];
-    return apos != null && bpos != null ? apos - bpos :
-      apos != null && bpos == null ? -1 :
-      bpos != null && apos == null ?  1 : b.timestamp - a.timestamp;
-  });
-
   var results = allVideos
     .filter(function(video) {
-      video.queued = queueUrlMap[video.url] != null;
       if (watchedVideos.has(video.url)) {
         if (options.show_watched) {
           video.watched = true;
@@ -201,6 +193,19 @@ function matchRules(rules, video) {
   });
 }
 
+// Clear queue when extension starts.
+localStorage.removeItem('queue');
+
+function updateQueue(queue, tabID, url) {
+  if (!queue.length) {
+    delete queueTabs[tabID];
+    delete queueUrlMap[tabID];
+  } else {
+    queue.forEach(function(url, i) { queueUrlMap[tabID][url] = i; });
+    delete queueUrlMap[tabID][url];
+  }
+}
+
 chrome.runtime.onMessage.addListener(function(request, sender) {
   var queue;
 
@@ -211,36 +216,28 @@ chrome.runtime.onMessage.addListener(function(request, sender) {
   } else if (request.queue) {
     var pos = (queueTabs[request.tabID] = queueTabs[request.tabID] || [])
       .push(request.url);
-    queueUrlMap[request.url] = pos - 1;
-    updateVideos();
+    (queueUrlMap[request.tabID] = queueUrlMap[request.tabID] || {})
+      [request.url] = pos - 1;
+    localStorage.setItem('queue', JSON.stringify(queueUrlMap));
 
   } else if (request.unqueue) {
     if (queue = queueTabs[request.tabID]) {
       var i = queue.indexOf(request.url);
       if (i > -1) {
         queue.splice(i, 1);
-        if (!queue.length) {
-          delete queueTabs[request.tabID];
-        } else {
-          queue.forEach(function(url, i) { queueUrlMap[url] = i; });
-        }
+        updateQueue(queue, request.tabID, request.url);
       }
     }
-    delete queueUrlMap[request.url];
-    updateVideos();
+    localStorage.setItem('queue', JSON.stringify(queueUrlMap));
 
   } else if (request.ended) {
     var tabID = sender.tab.id;
     queue = queueTabs[tabID];
     if (queue) {
       var nextVideoUrl = queue.shift();
-      delete queueUrlMap[nextVideoUrl];
-      if (!queue.length) {
-        delete queueTabs[tabID];
-      } else {
-        queue.forEach(function(url, i) { queueUrlMap[url] = i; });
-      }
+      updateQueue(queue, tabID, nextVideoUrl);
 
+      localStorage.setItem('queue', JSON.stringify(queueUrlMap));
       watchedVideos.push(nextVideoUrl);
       chrome.storage.sync.set({ watched: watchedVideos.list });
 
@@ -293,11 +290,9 @@ chrome.tabs.onRemoved.addListener(function(tabId) {
   if (tabs && tabs[tabId]) {
     delete tabs[tabId];
     localStorage.setItem('tabs', JSON.stringify(tabs));
-    var queuedUrls = queueTabs[tabId];
-    if (queuedUrls) {
-      queuedUrls.forEach(function(url) { delete queueUrlMap[url]; });
-      updateVideos();
-    }
+    delete queueTabs[tabId];
+    delete queueUrlMap[tabId];
+    localStorage.setItem('queue', JSON.stringify(queueUrlMap));
   }
 });
 
