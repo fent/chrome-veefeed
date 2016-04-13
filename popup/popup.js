@@ -324,7 +324,12 @@ function renderVideos(group) {
         }, '✖'),
         m('a.title', { href: video.url, onclick: open }, video.title),
         m('div.user', [
-          m('span.favicon'),
+          m('span.favicon', { className: 'source-' + video.source }),
+          video.otherSource && m('a.favicon', {
+            className: 'source-' + video.otherSource.source,
+            href: video.otherSource.url,
+            onclick: goToLink,
+          }),
           video.user.thumbnail ?
             m('img.lazy', { 'data-src': video.user.thumbnail }) : null,
           m('a.name', {

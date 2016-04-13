@@ -349,10 +349,10 @@ a.close[data-title]:hover:after {
   margin-right: 4px;
 }
 
-.source-youtube .favicon {
+ .favicon.source-youtube {
   background-image: url(https://www.youtube.com/favicon.ico);
 }
 
-.source-twitch .favicon {
+.favicon.source-twitch {
   background-image: url(https://www.twitch.tv/favicon.ico);
 }

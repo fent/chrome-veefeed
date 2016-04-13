@@ -1,14 +1,15 @@
 /* global chrome */
 
 chrome.options.opts.autoSave = false;
+var sources = [
+  { value: '', desc: 'Select' },
+  { value: 'youtube', desc: 'YouTube' },
+  { value: 'twitch', desc: 'Twitch' },
+];
 
 // Used for ignore and group rules.
 var rules = [
-  { type: 'select', name: 'source', desc: 'Source', options: [
-    { value: '', desc: 'Select' },
-    { value: 'youtube', desc: 'YouTube' },
-    { value: 'twitch', desc: 'Twitch' },
-  ] },
+  { type: 'select', name: 'source', desc: 'Source', options: sources },
   { type: 'text', name: 'user', desc: 'User' },
   { type: 'text', name: 'title', desc: 'Title' },
   { type: 'text', name: 'game', desc: 'Game',
@@ -82,4 +83,16 @@ chrome.options.set([
     }},
   { name: 'show_ungrouped',
     desc: 'Show tab for ungrouped videos instead of All videos tab' },
+  { type: 'h3', desc: 'Merge Videos' },
+  { name:'merge', type: 'list', sortable: true, head: true, fields: [
+      { type: 'select', name: 'source1', required: true,
+        options: sources, desc: 'Preferred Source' },
+      { type: 'text', name: 'username1', required: true, desc: 'Username' },
+      { type: 'select', name: 'source2', required: true,
+        options: sources, desc: 'Other Source' },
+      { type: 'text', name: 'username2', required: true, desc: 'Username' },
+    ],
+    desc: 'If you\'re following a user who uploads videos on more ' +
+          'than one site, they may sometimes upload the same ' +
+          'video on both accounts.'}
 ]);

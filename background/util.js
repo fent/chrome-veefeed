@@ -73,3 +73,28 @@ util.timeToSeconds = function(str) {
     ~~s[0] * 60 + ~~s[1] :
     ~~s[0] * 3600 + ~~s[1] * 60 + ~~s[2];
 };
+
+util.isSameVideo = function(video1, video2) {
+  // If the videos are within a few seconds of each other,
+  // they might be the same video...
+  if (video1.length - 10 > video2.length ||
+      video2.length > video1.length + 10) {
+    return false;
+  }
+
+  var wordsMap = {};
+  video2.title.split(/\s+/).forEach(function(word) {
+    if (word) { wordsMap[word.toLowerCase()] = true; }
+  });
+
+  // Look for numbers, if they both have the same numbers, then ok...
+  var r, pattern = /((?:\d+:)?\d\d?:\d\d|\d+(?:\.\d+)%?)/;
+  while (r = pattern.exec(video1)) {
+    if (!wordsMap[r[1]]) { return false; }
+  }
+
+  // If they both have two of the same words, consider them the same video.
+  return video2.title.split(/\s+/).filter(function(word) {
+    return word && wordsMap[word.toLowerCase()];
+  }).length;
+};

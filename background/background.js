@@ -15,6 +15,7 @@ var options = {
   play_sound: '',
   show_watched: false,
   show_ungrouped: false,
+  merge: [],
 };
 
 
@@ -47,9 +48,37 @@ function checkForUpdates() {
   });
 }
 
+function mergeMatch(source, username, video) {
+  return video.source === source && video.user.name === username;
+}
+
 function updateVideos() {
   ignoredVideos = [];
-  var results = allVideos
+  var results = allVideos.slice();
+
+  // See if any videos can be merged.
+  options.merge.forEach(function(rule) {
+    results
+      .filter(mergeMatch.bind(null, rule.source1, rule.username1))
+      .forEach(function(video1) {
+        if (video1.otherSource) { return; }
+        for (var i = results.length - 1; i >= 0; i--) {
+          var video2 = results[i];
+          if (!mergeMatch(rule.source2, rule.username2, video2)) { continue; }
+          if (util.isSameVideo(video1, video2)) {
+            results.splice(i, 1);
+            for (var key in video2) {
+              if (!video1[key]) {
+                video1[key] = video2[key];
+              }
+            }
+            video1.otherSource = { source: video2.source, url: video2.url };
+          }
+        }
+      });
+  });
+
+  results = results
     .filter(function(video) {
       if (watchedVideos.has(video.url)) {
         if (options.show_watched) {
