@@ -234,7 +234,11 @@ function renderVideos(group) {
     }
 
     function open() {
-      chrome.runtime.sendMessage({ watched: video.url });
+      chrome.runtime.sendMessage({
+        watched: true,
+        url: video.url,
+        tabID: tabID,
+      });
       if (options.use_same_tab && tabID) {
         chrome.tabs.update(parseInt(tabID), {
           url: video.url,
@@ -295,7 +299,11 @@ function renderVideos(group) {
           href: '#',
           'data-title': 'Mark as Watched',
           onclick: function(e) {
-            chrome.runtime.sendMessage({ watched: video.url });
+            chrome.runtime.sendMessage({
+              watched: true,
+              url: video.url,
+              tabID: tabID,
+            });
             videosMap[video.url].forEach(function(g) {
               if (g.$badge) {
                 g.$badge.textContent = (--g.group.unwatched) || '';
