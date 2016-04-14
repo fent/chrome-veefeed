@@ -4,6 +4,8 @@ var MAX_WATCHED = 150; // Max watched videos to keep in storage.
 var MAX_KNOWN = 200;   // Max videos in memory to "know" about, to notify.
 var MAX_VIDEOS = 50;   // Max videos to display for each group.
 var QUEUE_WAIT_MS = 2500; // How long to wait to play queued up videos.
+var BADGE_COLOR = '#225F86';
+var BADGE_COLOR_QUEUED = '#6294df';
 
 var options = {
   sources: { youtube: true, twitch: false },
@@ -173,7 +175,7 @@ function checkEveryNowAndThen() {
 }
 
 // Change badge color, the default red is ugh.
-chrome.browserAction.setBadgeBackgroundColor({ color: [0, 0, 255, 192] });
+chrome.browserAction.setBadgeBackgroundColor({ color: BADGE_COLOR });
 
 var optionsKeys = Object.keys(options);
 chrome.storage.sync.get(['watched', 'groups'].concat(optionsKeys),
@@ -235,6 +237,10 @@ function updateQueue(queue, tabID, url) {
     // If queue is empty, remove the tab maps.
     delete queueTabs[tabID];
     delete queueUrlMap[tabID];
+    chrome.browserAction.setBadgeBackgroundColor({
+      color: BADGE_COLOR,
+      tabId: +tabID,
+    });
   } else {
     // Otherwise, update the position of the queued videos,
     // since a video could have been removed from the middle.
@@ -274,6 +280,10 @@ chrome.runtime.onMessage.addListener(function(request, sender) {
     (queueUrlMap[request.tabID] = queueUrlMap[request.tabID] || {})
       [request.url] = pos - 1;
     localStorage.setItem('queue', JSON.stringify(queueUrlMap));
+    chrome.browserAction.setBadgeBackgroundColor({
+      color: BADGE_COLOR_QUEUED,
+      tabId: +request.tabID,
+    });
 
   } else if (request.unqueue) {
     unqueue(request.tabID, request.url);
