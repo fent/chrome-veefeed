@@ -38,6 +38,9 @@ sources.youtube = function(callback) {
       var thumbnail =
         $img.src === 'https://s.ytimg.com/yts/img/pixel-vfl3z5WfW.gif' ?
         thumbnail = $img.getAttribute('data-thumb') : $img.src;
+      if (thumbnail.indexOf('//') === 0) {
+        thumbnail = 'https:' + thumbnail;
+      }
 
       items.push({
         source: 'youtube',
