@@ -27,6 +27,7 @@ var ignoreRules = [];
 var groups = [];
 var queueTabs = {};
 var queueUrlMap = {};
+var playingVideos = {};
 
 function checkForUpdates() {
   var keys = Object.keys(sources);
@@ -223,8 +224,9 @@ function matchRules(rules, video) {
   });
 }
 
-// Clear queue when extension starts.
+// Clear queue and videos playing when extension starts.
 localStorage.removeItem('queue');
+localStorage.removeItem('playing');
 
 function updateQueue(queue, tabID, url) {
   if (!queue.length) {
@@ -260,6 +262,10 @@ chrome.runtime.onMessage.addListener(function(request, sender) {
     // for this storage key.
     chrome.storage.sync.set({ watched: watchedVideos.list });
 
+  } else if (request.play) {
+    playingVideos[request.tabID] = request.url;
+    localStorage.setItem('playing', JSON.stringify(playingVideos));
+
   } else if (request.queue) {
     var pos = (queueTabs[request.tabID] = queueTabs[request.tabID] || [])
       .push(request.url);
@@ -272,6 +278,11 @@ chrome.runtime.onMessage.addListener(function(request, sender) {
 
   } else if (request.ended) {
     var tabID = sender.tab.id;
+    if (playingVideos[tabID]) {
+      delete playingVideos[tabID];
+      localStorage.setItem('playing', JSON.stringify(playingVideos));
+    }
+
     var queue = queueTabs[tabID];
     if (queue) {
       var nextVideoUrl = queue.shift();
@@ -333,6 +344,8 @@ chrome.tabs.onRemoved.addListener(function(tabId) {
     delete queueTabs[tabId];
     delete queueUrlMap[tabId];
     localStorage.setItem('queue', JSON.stringify(queueUrlMap));
+    delete playingVideos[tabId];
+    localStorage.setItem('playing', JSON.stringify(playingVideos));
   }
 });
 

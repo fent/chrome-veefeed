@@ -144,18 +144,37 @@ a:hover {
   opacity: 0.75;
 }
 
-.watched .left-side:before {
+.watched .left-side:before, .playing .left-side:before {
   position: absolute;
   left: 2px;
   top: 2px;
   padding: 2px 4px;
-  line-height: 1.3em;
-  font-size: 11px;
   font-weight: 500;
-  color: #fff;
   background-color: #000;
   opacity: 0.75;
+}
+
+.watched:not(.playing) .left-side:before {
+  font-size: 11px;
+  line-height: 1.3em;
+  color: #fff;
   content: "WATCHED";
+}
+
+.playing .left-side:before {
+  font-size: 14px;
+  border-radius: 4px;
+  color: #C31313;
+  content: "▶";
+  animation-duration: 700ms;
+  animation-iteration-count: infinite;
+  animation-name: backAndForth;
+}
+
+@keyframes backAndForth {
+  0%   { left: 2px; }
+  50%  { left: 6px; }
+  100% { left: 2px; }
 }
 
 .left-side .game {
@@ -208,6 +227,10 @@ a:hover {
   opacity: 1;
   background-color: #6294df;
   border-color: #000;
+}
+
+.video.playing .left-side .queue {
+  display: none;
 }
 
 .right-side {

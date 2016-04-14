@@ -112,12 +112,15 @@ var tabs = JSON.parse(localStorage.getItem('tabs')) || {};
 var tabID, winID, queue;
 chrome.windows.getCurrent({}, function(win) {
   winID = win.id;
+  var playingVideos;
   if (tabs) {
     for (var id in tabs) {
       if (tabs[id] === winID) {
         tabID = id;
         queue = JSON.parse(localStorage.getItem('queue'));
         if (queue) { queue = queue[tabID]; }
+        playingVideos = JSON.parse(localStorage.getItem('playing'));
+        if (playingVideos) { playingVideos = playingVideos[tabID]; }
         break;
       }
     }
@@ -127,6 +130,7 @@ chrome.windows.getCurrent({}, function(win) {
   groups.forEach(function(group) {
     group.videos.forEach(function(video) {
       video.queued = queue && queue[video.url] != null;
+      video.playing = playingVideos && playingVideos === video.url || false;
     });
   });
 
@@ -220,15 +224,19 @@ function renderVideos(group) {
   }
 
   // Put queued videos at the top.
-  if (queue) {
-    group.videos.sort(function(a, b) {
+  group.videos.sort(function(a, b) {
+    var play = b.playing - a.playing;
+    if (play !== 0) { return play; }
+    if (queue) {
       var apos = queue[a.url];
       var bpos = queue[b.url];
       return apos != null && bpos != null ? apos - bpos :
         apos != null && bpos == null ? -1 :
         bpos != null && apos == null ?  1 : b.timestamp - a.timestamp;
-    });
-  }
+    } else {
+      return b.timestamp - a.timestamp;
+    }
+  });
 
   group.$videos = m('ul', {
     className: group.selected && 'selected',
@@ -239,6 +247,11 @@ function renderVideos(group) {
       chrome.tabs.create({ url: video.url }, function(tab) {
         tabs[tab.id] = winID;
         localStorage.setItem('tabs', JSON.stringify(tabs));
+        chrome.runtime.sendMessage({
+          play: true,
+          url: video.url,
+          tabID: tab.id,
+        });
       });
     }
 
@@ -266,6 +279,7 @@ function renderVideos(group) {
         url: video.url,
         tabID: tabID,
       });
+
       if (options.use_same_tab && tabID) {
         chrome.tabs.update(parseInt(tabID), {
           url: video.url,
@@ -276,6 +290,11 @@ function renderVideos(group) {
             localStorage.setItem('tabs', JSON.stringify(tabs));
             openNewTab();
           } else {
+            chrome.runtime.sendMessage({
+              play: true,
+              url: video.url,
+              tabID: tab.id,
+            });
             window.close();
           }
         });
@@ -287,6 +306,7 @@ function renderVideos(group) {
     var vidClass = '.source-' + video.source;
     if (video.watched) { vidClass += '.watched'; }
     if (video.queued) { vidClass += '.queued'; }
+    if (video.playing) { vidClass += '.playing'; }
     var $video = m('li.video' + vidClass, [
       m('a.left-side', { href: video.url, disabled: true }, [
         m('img.lazy', { 'data-src': video.thumbnail, onclick: open }),
