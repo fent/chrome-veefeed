@@ -59,13 +59,8 @@ function updateVideos() {
   var results = allVideos
     .filter(function(video) {
       delete video.otherSource;
-      if (watchedVideos.has(video.url)) {
-        if (options.show_watched) {
-          video.watched = true;
-        } else {
-          return false;
-        }
-      }
+      video.watched = watchedVideos.has(video.url);
+      if (video.watched && !options.show_watched) { return false; }
       var ignoreIt = matchRules(ignoreRules, video);
       if (ignoreIt) { ignoredVideos.push(video); }
       return !ignoreIt;

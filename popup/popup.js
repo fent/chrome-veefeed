@@ -224,10 +224,13 @@ function renderVideos(group) {
     return;
   }
 
-  // Put queued videos at the top.
+  // Put currently playing video at the top, followed by queued videos,
+  // then unwatched videos, and finally, watched videos at the bottom.
   group.videos.sort(function(a, b) {
     var play = b.playing - a.playing;
     if (play !== 0) { return play; }
+    var watched = a.watched - b.watched;
+    if (watched !== 0) { return watched; }
     if (queue) {
       var apos = queue[a.url];
       var bpos = queue[b.url];
