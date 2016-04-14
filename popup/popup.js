@@ -233,7 +233,25 @@ function renderVideos(group) {
       });
     }
 
+    var opening = false;
     function open() {
+      if (opening) { return; }
+      opening = true;
+
+      if (video.queued) {
+        // If video is in queue, wait a little to let the user know that
+        // it will be removed from the queue as they open it.
+        videosMap[video.url].forEach(function(g) {
+          g.video.queued = false;
+          if (g.video.$video) { g.video.$video.classList.remove('queued'); }
+        });
+        setTimeout(function() {
+          opening = false;
+          open();
+        }, 500);
+        return;
+      }
+
       chrome.runtime.sendMessage({
         watched: true,
         url: video.url,
