@@ -109,7 +109,7 @@ var $content = document.getElementById('content');
 
 // See if there's another video opened in this window.
 var tabs = JSON.parse(localStorage.getItem('tabs')) || {};
-var tabID, winID, queue;
+var tabID, winID, queue, videoPlaying = false;
 chrome.windows.getCurrent({}, function(win) {
   winID = win.id;
   var playingVideos;
@@ -131,6 +131,7 @@ chrome.windows.getCurrent({}, function(win) {
     group.videos.forEach(function(video) {
       video.queued = queue && queue[video.url] != null;
       video.playing = playingVideos && playingVideos === video.url || false;
+      videoPlaying = videoPlaying || video.playing;
     });
   });
 
@@ -321,7 +322,7 @@ function renderVideos(group) {
             'data-src': 'http://static-cdn.jtvnw.net/ttv-boxart/' +
               encodeURIComponent(video.game) + '-138x190.jpg',
           })) : null,
-        tabID && m('span.queue', {
+        videoPlaying && m('span.queue', {
           'data-title': 'Add to Queue',
           onclick: function() {
             var message = { tabID: tabID, url: video.url };
