@@ -54,7 +54,21 @@ function mergeMatch(source, username, video) {
 
 function updateVideos() {
   ignoredVideos = [];
-  var results = allVideos.slice();
+
+  var results = allVideos
+    .filter(function(video) {
+      delete video.otherSource;
+      if (watchedVideos.has(video.url)) {
+        if (options.show_watched) {
+          video.watched = true;
+        } else {
+          return false;
+        }
+      }
+      var ignoreIt = matchRules(ignoreRules, video);
+      if (ignoreIt) { ignoredVideos.push(video); }
+      return !ignoreIt;
+    });
 
   // See if any videos can be merged.
   options.merge.forEach(function(rule) {
@@ -67,30 +81,17 @@ function updateVideos() {
           if (!mergeMatch(rule.source2, rule.username2, video2)) { continue; }
           if (util.isSameVideo(video1, video2)) {
             results.splice(i, 1);
+
+            // Merge everything from other source to preferred source.
+            // If one is watched, they both will be.
             for (var key in video2) {
-              if (!video1[key]) {
-                video1[key] = video2[key];
-              }
+              if (!video1[key]) { video1[key] = video2[key]; }
             }
             video1.otherSource = { source: video2.source, url: video2.url };
           }
         }
       });
   });
-
-  results = results
-    .filter(function(video) {
-      if (watchedVideos.has(video.url)) {
-        if (options.show_watched) {
-          video.watched = true;
-        } else {
-          return false;
-        }
-      }
-      var ignoreIt = matchRules(ignoreRules, video);
-      if (ignoreIt) { ignoredVideos.push(video); }
-      return !ignoreIt;
-    });
 
   // Check if there are any new videos, only after the first fetch of videos.
   if (knownVideos.list.length) {
