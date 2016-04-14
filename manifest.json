@@ -4,8 +4,6 @@
   "version": "0.1.0",
   "description": "Keep track of your YouTube and Twitch subscriptions",
   "icons": {
-    "16": "img/icon-16.png",
-    "48": "img/icon-48.png",
     "128": "img/icon-128.png"
   },
   "permissions": [
