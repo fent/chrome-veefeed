@@ -103,7 +103,7 @@ if (groupedVideos.length) { showTabs = true; }
 groupedVideos.forEach(function(group) { group.removable = true; });
 groups = groups.concat(groupedVideos);
 
-var $tabs = document.getElementById('tabs');
+var $tabs = document.getElementById('tabs').children[0];
 var $content = document.getElementById('content');
 
 
