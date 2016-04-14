@@ -103,32 +103,8 @@ if (groupedVideos.length) { showTabs = true; }
 groupedVideos.forEach(function(group) { group.removable = true; });
 groups = groups.concat(groupedVideos);
 
-// Make the first tab with videos selected.
-var tabSelected = false;
-for (var i = 0, len = groups.length; i < len; i++) {
-  if (groups[i].videos.filter(function(v) { return !v.watched; }).length) {
-    groups[i].selected = true;
-    tabSelected = true;
-    break;
-  }
-}
-if (!tabSelected) {
-  groups[0].selected = true;
-}
-
-if (options.ignore && options.ignore.length && options.show_ignored_tab) {
-  var ignoredVideos = JSON.parse(localStorage.getItem('ignored'));
-  groups.push({ name: 'Ignored', videos: ignoredVideos });
-  showTabs = true;
-}
-
 var $tabs = document.getElementById('tabs');
 var $content = document.getElementById('content');
-
-if (!showTabs) {
-  $tabs.style.display = 'none';
-  $content.style.marginTop = 0;
-}
 
 
 // See if there's another video opened in this window.
@@ -146,6 +122,39 @@ chrome.windows.getCurrent({}, function(win) {
       }
     }
   }
+
+  // Find out what videos are queued.
+  groups.forEach(function(group) {
+    group.videos.forEach(function(video) {
+      video.queued = queue && queue[video.url] != null;
+    });
+  });
+
+  // Make the first tab with unwatched or queued videos selected.
+  var tabSelected = false;
+  for (var i = 0, len = groups.length; i < len; i++) {
+    if (groups[i].videos.filter(function(v) {
+        return !v.watched || v.queued; }).length) {
+      groups[i].selected = true;
+      tabSelected = true;
+      break;
+    }
+  }
+  if (!tabSelected) {
+    groups[0].selected = true;
+  }
+
+  if (options.ignore && options.ignore.length && options.show_ignored_tab) {
+    var ignoredVideos = JSON.parse(localStorage.getItem('ignored'));
+    groups.push({ name: 'Ignored', videos: ignoredVideos });
+    showTabs = true;
+  }
+
+  if (!showTabs) {
+    $tabs.style.display = 'none';
+    $content.style.marginTop = 0;
+  }
+
   renderContent();
 });
 
@@ -275,7 +284,6 @@ function renderVideos(group) {
       }
     }
 
-    video.queued = queue && queue[video.url] != null;
     var vidClass = '.source-' + video.source;
     if (video.watched) { vidClass += '.watched'; }
     if (video.queued) { vidClass += '.queued'; }
