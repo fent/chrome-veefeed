@@ -96,21 +96,28 @@ function updateVideos() {
     });
 
     if (options.show_notifications && newVideos.length) {
-      var notification = newVideos.length === 1 ? {
-        type: 'basic',
-        title: newVideos[0].title,
-        message: newVideos[0].user.name,
-        contextMessage: newVideos[0].desc.slice(0, 50),
-        eventTime: newVideos[0].timestamp,
-      } : {
-        type: 'list',
-        title: newVideos[0].title,
-        message: 'New videos',
-        eventTime: newVideos[0].timestamp,
-        items: newVideos.map(function(video) {
-          return { title: video.title, message: video.user.name };
-        }),
-      };
+      var notification = {};
+      if (newVideos.length === 1) {
+        var $node = document.createElement('div');
+        $node.innerHTML = newVideos[0].desc;
+        notification = {
+          type: 'basic',
+          title: newVideos[0].title,
+          message: newVideos[0].user.name,
+          contextMessage: $node.textContent.slice(0, 50),
+          eventTime: newVideos[0].timestamp,
+        };
+      } else {
+        notification = {
+          type: 'list',
+          title: newVideos[0].title,
+          message: 'New videos',
+          eventTime: newVideos[0].timestamp,
+          items: newVideos.map(function(video) {
+            return { title: video.title, message: video.user.name };
+          }),
+        };
+      }
       var video = newVideos
         .find(function(video) { return video.thumbnail; });
       if (video) { notification.iconUrl = video.thumbnail; }
