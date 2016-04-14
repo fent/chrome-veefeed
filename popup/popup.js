@@ -136,8 +136,8 @@ chrome.windows.getCurrent({}, function(win) {
   });
 
   // Make the first tab with unwatched or queued videos selected.
-  var tabSelected = false;
-  for (var i = 0, len = groups.length; i < len; i++) {
+  var tabSelected = false, i, len;
+  for (i = 0, len = groups.length; i < len; i++) {
     if (groups[i].videos.filter(function(v) {
         return !v.watched || v.queued; }).length) {
       groups[i].selected = true;
@@ -145,6 +145,19 @@ chrome.windows.getCurrent({}, function(win) {
       break;
     }
   }
+
+  // If there are no new or queued videos, look for a video that's playing.
+  if (!tabSelected) {
+    for (i = 0, len = groups.length; i < len; i++) {
+      if (groups[i].videos.filter(function(v) { return v.playing; }).length) {
+          groups[i].selected = true;
+          tabSelected = true;
+          break;
+        }
+    }
+  }
+
+  // Otherwise, select the first tab.
   if (!tabSelected) {
     groups[0].selected = true;
   }
