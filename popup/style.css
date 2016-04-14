@@ -278,7 +278,28 @@ a:hover {
   margin-bottom: 3px;
 }
 
-.user {}
+.favicon {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background-repeat: no-repeat;
+  background-size: cover;
+  margin-right: 4px;
+}
+
+ .favicon.source-youtube {
+  background-image: url(https://www.youtube.com/favicon.ico);
+}
+
+.favicon.source-twitch {
+  background-image: url(https://www.twitch.tv/favicon.ico);
+}
+
+.user:before {
+  content: '\002022';
+  margin-right: 4px;
+  color: #ccc;
+}
 
 .user img {
   width: 12px;
@@ -364,21 +385,4 @@ a.close[data-title]:hover:after {
 .no-videos {
   white-space: pre;
   font-size: 200%;
-}
-
-.favicon {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  background-repeat: no-repeat;
-  background-size: cover;
-  margin-right: 4px;
-}
-
- .favicon.source-youtube {
-  background-image: url(https://www.youtube.com/favicon.ico);
-}
-
-.favicon.source-twitch {
-  background-image: url(https://www.twitch.tv/favicon.ico);
 }
