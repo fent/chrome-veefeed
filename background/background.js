@@ -294,6 +294,8 @@ chrome.runtime.onMessage.addListener(function(request, sender) {
 
       // Play the next video in a few secs...
       setTimeout(function() {
+        playingVideos[tabID] = nextVideoUrl;
+        localStorage.setItem('playing', JSON.stringify(playingVideos));
         chrome.tabs.update(parseInt(tabID), {
           url: nextVideoUrl,
           active: true
