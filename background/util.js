@@ -82,6 +82,9 @@ util.isSameVideo = function(video1, video2) {
     return false;
   }
 
+  // If the titles are exact, then they sare the same.
+  if (video1.title === video2.title) { return true; }
+
   var wordsMap = {};
   video2.title.split(/\s+/).forEach(function(word) {
     if (word) { wordsMap[word.toLowerCase()] = true; }
