@@ -99,26 +99,26 @@ function updateVideos() {
       return !knownVideos.has(video.url) && !video.watched;
     });
 
-    if (options.show_notifications && newVideos.length === 1) {
-      chrome.notifications.create('vee', {
+    if (options.show_notifications && newVideos.length) {
+      var notification = newVideos.length === 1 ? {
         type: 'basic',
-        iconUrl: newVideos[0].thumbnail,
         title: newVideos[0].title,
         message: newVideos[0].user.name,
         contextMessage: newVideos[0].desc.slice(0, 50),
         eventTime: newVideos[0].timestamp,
-      });
-    } else if (options.show_notifications && newVideos.length > 1) {
-      chrome.notifications.create('vee', {
+      } : {
         type: 'list',
-        iconUrl: newVideos[0].thumbnail,
         title: newVideos[0].title,
         message: 'New videos',
         eventTime: newVideos[0].timestamp,
         items: newVideos.map(function(video) {
           return { title: video.title, message: video.user.name };
         }),
-      });
+      };
+      var video = newVideos
+        .find(function(video) { return video.thumbnail; });
+      if (video) { notification.iconUrl = video.thumbnail; }
+      chrome.notifications.create('vee', notification);
     }
 
     if (options.play_sound && newVideos.length) {
