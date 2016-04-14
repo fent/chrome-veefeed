@@ -108,8 +108,7 @@ a:hover {
 .left-side {
   position: relative;
   height: 110px;
-  margin: 4px 0;
-  margin-right: 8px;
+  margin: 4px 8px 0 2px;
 }
 
 .left-side:hover {
