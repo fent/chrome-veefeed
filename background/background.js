@@ -222,6 +222,10 @@ function matchRules(rules, video) {
   });
 }
 
+// Clear queue and videos playing when extension starts.
+localStorage.removeItem('queue');
+localStorage.removeItem('playing');
+
 function updateQueue(queue, tabID, url) {
   if (!queue.length) {
     // If queue is empty, remove the tab maps.
