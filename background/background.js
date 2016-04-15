@@ -214,17 +214,11 @@ function generateRules(rules) {
 
 function matchRules(rules, video) {
   return rules.some(function(ignore) {
-    if (ignore.source !== video.source) { return false; }
-    if (ignore.user && !ignore.user.test(video.user.name)) {
-      return false;
-    }
-    if (ignore.title && !ignore.title.test(video.title)) {
-      return false;
-    }
-    if (ignore.game && !ignore.game.test(video.game)) {
-      return false;
-    }
-    return ignore.user || ignore.title || ignore.game;
+    if (ignore.source && ignore.source !== video.source) { return false; }
+    if (ignore.user && !ignore.user.test(video.user.name)) { return false; }
+    if (ignore.title && !ignore.title.test(video.title)) { return false; }
+    if (ignore.game && !ignore.game.test(video.game)) { return false; }
+    return ignore.source || ignore.user || ignore.title || ignore.game;
   });
 }
 
