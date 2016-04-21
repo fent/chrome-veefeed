@@ -135,32 +135,30 @@ chrome.windows.getCurrent({}, function(win) {
     });
   });
 
-  // Make the first tab with unwatched or queued videos selected.
-  var tabSelected = false, i, len;
-  for (i = 0, len = groups.length; i < len; i++) {
-    if (groups[i].videos.filter(function(v) {
-        return !v.watched || v.queued; }).length) {
-      groups[i].selected = true;
-      tabSelected = true;
-      break;
-    }
+  var groupSelected;
+
+  // Select the first tab with a video playing.
+  groupSelected = groups.find(function(group) {
+    return group.videos.some(function(video) { return video.playing; });
+  });
+
+  // Otherwise, look for queued videos.
+  if (!groupSelected) {
+    groupSelected = groups.find(function(group) {
+      return group.videos.some(function(video) { return video.queued; });
+    });
   }
 
-  // If there are no new or queued videos, look for a video that's playing.
-  if (!tabSelected) {
-    for (i = 0, len = groups.length; i < len; i++) {
-      if (groups[i].videos.filter(function(v) { return v.playing; }).length) {
-          groups[i].selected = true;
-          tabSelected = true;
-          break;
-        }
-    }
+  // If no currently playing or queued, look for unwatched videos.
+  if (!groupSelected) {
+    groupSelected = groups.find(function(group) {
+      return group.videos.some(function(video) { return !video.watched; });
+    });
   }
 
   // Otherwise, select the first tab.
-  if (!tabSelected) {
-    groups[0].selected = true;
-  }
+  if (!groupSelected) { groupSelected = groups[0]; }
+  groupSelected.selected = true;
 
   if (options.ignore && options.ignore.length && options.show_ignored_tab) {
     var ignoredVideos = JSON.parse(localStorage.getItem('ignored'));
