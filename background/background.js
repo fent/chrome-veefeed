@@ -149,16 +149,14 @@ function updateVideos() {
     return !matchedMap[video.url];
   }).slice(0, MAX_VIDEOS);
 
-  results = results.slice(0, MAX_VIDEOS);
   var unwatched = results.filter(function(video) {
     return !video.watched;
   }).length;
-  chrome.browserAction.setBadgeText({
-    text: unwatched ? '' + unwatched : '',
-  });
+
+  chrome.browserAction.setBadgeText({ text: unwatched ? '' + unwatched : '' });
 
   // Store results into local storage so that popup can read it.
-  localStorage.setItem('videos', JSON.stringify(results));
+  localStorage.setItem('videos', JSON.stringify(results.slice(0, MAX_VIDEOS)));
   localStorage.setItem('groups', JSON.stringify(groupedVideos));
   localStorage.setItem('ungrouped', JSON.stringify(ungroupedVideos));
   localStorage.setItem('ignored',
