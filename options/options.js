@@ -13,7 +13,7 @@ var rules = [
   { type: 'text', name: 'user', desc: 'User' },
   { type: 'text', name: 'title', desc: 'Title' },
   { type: 'text', name: 'game', desc: 'Game',
-    bindTo: { field: 'source', value: 'twitch' } },
+    bindTo: { field: 'source', value: ['twitch', ''] } },
 ];
 
 chrome.options.fields.group = function(value, save) {
