@@ -18,6 +18,7 @@ var options = {
   show_watched: false,
   show_ungrouped: false,
   merge: [],
+  hide_empty_tabs: false,
 };
 
 

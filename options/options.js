@@ -86,6 +86,7 @@ chrome.options.set([
     }},
   { name: 'show_ungrouped',
     desc: 'Show tab for ungrouped videos instead of All videos tab' },
+  { name: 'hide_empty_tabs', desc: 'Hide tabs without videos' },
   { type: 'h3', desc: 'Merge Videos' },
   { name:'merge', type: 'list', sortable: true, head: true, fields: [
       { type: 'select', name: 'source1', required: true,

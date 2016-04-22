@@ -178,6 +178,8 @@ chrome.windows.getCurrent({}, function(win) {
 var videosMap = {};
 function renderContent() {
   groups.forEach(function(group) {
+    if (options.hide_empty_tabs && !group.videos.length) { return; }
+
     group.unwatched = group.videos.filter(function(video) {
       return !video.watched;
     }).length;
