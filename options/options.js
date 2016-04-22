@@ -71,7 +71,8 @@ chrome.options.set([
     desc: 'Play sound on new videos' },
   { name: 'show_watched', desc: 'Show watched videos too' },
   { type: 'h3', desc: 'Ignore Rules' },
-  { name: 'ignore', type: 'list', sortable: true, head: true, fields: rules,
+  { name: 'ignore', type: 'list',
+    sortable: true, head: true, collapsible: true, fields: rules,
     desc: 'Ignore videos matching the following ' +
           '(Use * to match any string)' },
   { name: 'show_ignored_tab', preview: 'png',
