@@ -148,7 +148,9 @@ a:hover {
   opacity: 0.75;
 }
 
-.watched .left-side:before, .playing .left-side:before {
+.watched .left-side:before,
+.playing .left-side:before,
+.queued .left-side:before {
   position: absolute;
   left: 2px;
   top: 2px;
@@ -158,11 +160,20 @@ a:hover {
   opacity: 0.75;
 }
 
-.watched:not(.playing) .left-side:before {
+.watched .left-side:before,
+.queued .left-side:before {
   font-size: 11px;
   line-height: 1.3em;
+}
+
+.watched:not(.playing) .left-side:before {
   color: #fff;
   content: "WATCHED";
+}
+
+.queued:not(.playing) .left-side:before {
+ color: #6294df;
+ content: "QUEUED";
 }
 
 .playing .left-side:before {
