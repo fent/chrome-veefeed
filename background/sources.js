@@ -28,7 +28,7 @@ sources.youtube = function(callback) {
         // Add i to relative timestamp so that videos that say they were
         // posted at the same time (relatively) are still ordered in the
         // order that they are on the page.
-        hasMeta ? util.relativeToTimestamp(time) - i : 0;
+        hasMeta ? util.relativeToTimestamp(time) - i : Date.now() - i;
       var $desc = $content.getElementsByClassName('yt-lockup-description')[0];
 
       // YouTube videos sometimes don't have thumbnails loaded until
@@ -56,6 +56,7 @@ sources.youtube = function(callback) {
         length: $length ? util.timeToSeconds($length.textContent) : null,
         title: $content.children[0].children[0].textContent,
         timestamp: timestamp, 
+        live: !!$content.getElementsByClassName('yt-badge-live').length,
         views: views,
         desc: $desc ? $desc.innerHTML : '',
         watched: !!$thumb.getElementsByClassName('watched-badge').length,

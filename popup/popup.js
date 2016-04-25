@@ -413,10 +413,12 @@ function renderVideos(group) {
           ])
         ]),
         m('div', [
-          video.timestamp && now < video.timestamp &&
-            m('span.starts', showTime(video.timestamp)),
-          video.timestamp && now >= video.timestamp &&
-            m('span.time', timeAgo(video.timestamp)),
+          video.timestamp ?
+            now < video.timestamp ?
+            m('span.starts', showTime(video.timestamp)) :
+            now >= video.timestamp &&
+              m('span.time', timeAgo(video.timestamp)) :
+          video.live ? m('span.live', 'LIVE NOW') : null,
           video.views && m('span.views', video.views),
         ]),
         video.desc ? m('div', { innerHTML: video.desc }) : null
