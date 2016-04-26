@@ -1,6 +1,6 @@
 /* global chrome, sources, util */
 
-var MAX_WATCHED = 150; // Max watched videos to keep in storage.
+var MAX_WATCHED = 200; // Max watched videos to keep in storage.
 var MAX_KNOWN = 200;   // Max videos in memory to "know" about, to notify.
 var MAX_VIDEOS = 50;   // Max videos to display for each group.
 var QUEUE_WAIT_MS = 2500; // How long to wait to play queued up videos.
@@ -62,7 +62,8 @@ function updateVideos() {
   var results = allVideos
     .filter(function(video) {
       delete video.otherSource;
-      video.watched = video.watched || watchedVideos.has(video.url);
+      video.watched = video.watched ||
+        watchedVideos.has(videoID(video.url)) || watchedVideos.has(video.url);
       if (video.watched && !options.show_watched) { return false; }
       var ignoreIt = matchRules(ignoreRules, video);
       if (ignoreIt) { ignoredVideos.push(video); }
@@ -253,11 +254,17 @@ function unqueue(tabID, url) {
   }
 }
 
+function videoID(url) {
+  var parts = new URL(url);
+  var result = /([a-z0-9_-]+)$/i.exec(url);
+  return result && result[1]? parts.host + '/' + result[1] : url;
+}
+
 chrome.runtime.onMessage.addListener(function(request, sender) {
   if (request.watched) {
     // Remove this video from queue if opened from a tab that has a queue.
     if (request.tabID) { unqueue(request.tabID, request.url); }
-    watchedVideos.push(request.url);
+    watchedVideos.push(videoID(request.url));
 
     // Watched videos is updated in storage since there is a listener
     // for this storage key.
@@ -294,7 +301,7 @@ chrome.runtime.onMessage.addListener(function(request, sender) {
       updateQueue(queue, tabID, nextVideoUrl);
 
       localStorage.setItem('queue', JSON.stringify(queueUrlMap));
-      watchedVideos.push(nextVideoUrl);
+      watchedVideos.push(videoID(nextVideoUrl));
       chrome.storage.sync.set({ watched: watchedVideos.list });
 
       // Play the next video in a few secs...
