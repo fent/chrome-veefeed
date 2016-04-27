@@ -29,10 +29,10 @@ chrome.options.fields.group = function(value, save) {
   }
 
   var $container = $('<div class="group"></div>');
-  var $name = $('<div></div>').appendTo($container);
-  $('<label>').text('Name: ').appendTo($name);
-  chrome.options.fields.text(value.name, saveField('name'))
-    .appendTo($name);
+  var $top = $('<div><label>Name: <label></div>').appendTo($container);
+  chrome.options.fields.text(value.name, saveField('name')).appendTo($top);
+  $top.append(' <label>Don\'t match additional groups: </label>');
+  chrome.options.fields.checkbox(value.only, saveField('only')).appendTo($top);
   chrome.options.base.list(value.rules, saveField('rules'), {
     sortable: true,
     head: true,

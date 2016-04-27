@@ -141,9 +141,15 @@ function updateVideos() {
   }
 
   var matchedMap = {};
+  var matchedOnlyMap = {};
   var groupedVideos = groups.map(function(group) {
-    var matched = results.filter(matchRules.bind(null, group.rules));
-    matched.forEach(function(video) { matchedMap[video.url] = true; });
+    var matched = results
+      .filter(matchRules.bind(null, group.rules))
+      .filter(function(video) { return !matchedOnlyMap[video.url]; });
+    matched.forEach(function(video) {
+      matchedMap[video.url] = true;
+      if (group.only) { matchedOnlyMap[video.url] = true; }
+    });
     return { name: group.name, videos: matched.slice(0, MAX_VIDEOS) };
   });
 

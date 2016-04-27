@@ -73,6 +73,7 @@ sources.twitch = function(callback) {
   }, function(cookie) {
     var xhr = util.ajax('https://api.twitch.tv/kraken/videos/followed?' +
       'limit=40&offset=0&on_site=1', function(xhr) {
+        if (!xhr.response || !xhr.response.videos) { return; }
         callback(xhr.response.videos.map(function(video) {
           return {
             source: 'twitch',
