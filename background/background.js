@@ -1,6 +1,6 @@
 /* global chrome, sources, util */
 
-var MAX_WATCHED = 200; // Max watched videos to keep in storage.
+var MAX_WATCHED = 180; // Max watched videos to keep in storage.
 var MAX_KNOWN = 200;   // Max videos in memory to "know" about, to notify.
 var MAX_VIDEOS = 50;   // Max videos to display for each group.
 var QUEUE_WAIT_MS = 2500; // How long to wait to play queued up videos.
@@ -263,7 +263,8 @@ function unqueue(tabID, url) {
 function videoID(url) {
   var parts = new URL(url);
   var result = /([a-z0-9_-]+)$/i.exec(url);
-  return result && result[1]? parts.host + '/' + result[1] : url;
+  var host = parts.host.replace(/^www\./, '');
+  return result && result[1] ? host + '/' + result[1] : url;
 }
 
 chrome.runtime.onMessage.addListener(function(request, sender) {
