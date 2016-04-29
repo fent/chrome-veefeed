@@ -364,7 +364,7 @@ function renderVideos(group) {
             });
           },
         }),
-        videoPlaying && m('span.open-new-tab', {
+        videoPlaying && options.use_same_tab && m('span.open-new-tab', {
           'data-title': 'Open in new tab',
           onclick: open.bind(null, true),
         }, '⇗')
