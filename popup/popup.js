@@ -273,7 +273,7 @@ function renderVideos(group) {
     }
 
     var opening = false;
-    function open() {
+    function open(inNewTab) {
       if (opening) { return; }
       opening = true;
 
@@ -298,7 +298,7 @@ function renderVideos(group) {
         tabID: tabID,
       });
 
-      if (options.use_same_tab && tabID) {
+      if (options.use_same_tab && tabID && !inNewTab) {
         chrome.tabs.update(parseInt(tabID), {
           url: video.url,
           active: true
@@ -327,7 +327,10 @@ function renderVideos(group) {
     if (video.playing) { vidClass += '.playing'; }
     var $video = m('li.video' + vidClass, [
       m('a.left-side', { href: video.url, disabled: true }, [
-        m('img.lazy', { 'data-src': video.thumbnail, onclick: open }),
+        m('img.lazy', {
+          'data-src': video.thumbnail,
+          onclick: open.bind(null, false),
+        }),
         video.length && m('span.length', toHumanLength(video.length)),
         video.source === 'twitch' && video.game ?
           m('a.game', {
@@ -360,7 +363,11 @@ function renderVideos(group) {
               }
             });
           },
-        })
+        }),
+        videoPlaying && m('span.open-new-tab', {
+          'data-title': 'Open in new tab',
+          onclick: open.bind(null, true),
+        }, '⇗')
       ]),
       m('div.right-side', [
         group.removable && !video.watched && m('a.close', {
@@ -399,7 +406,10 @@ function renderVideos(group) {
             e.preventDefault();
           },
         }, '✖'),
-        m('a.title', { href: video.url, onclick: open }, video.title),
+        m('a.title', {
+          href: video.url,
+          onclick: open.bind(null, false)
+        }, video.title),
         m('div', [
           m('span.favicon', { className: 'source-' + video.source }),
           video.otherSource && m('a.favicon', {

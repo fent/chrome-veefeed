@@ -213,11 +213,22 @@ a:hover {
 }
 
 .left-side .queue {
-  position: absolute;
   left: 4px;
-  bottom: 4px;
   background: no-repeat url(https://s.ytimg.com/yts/imgbin/www-hitchhiker-vflsIkBw3.webp) -73px -398px;
   background-size: auto;
+}
+
+.left-side .open-new-tab {
+  left: 28px;
+  font-size: 20px;
+  line-height: 18px;
+  text-align: center;
+  color: #B15656;
+}
+
+.left-side .queue, .left-side .open-new-tab {
+  position: absolute;
+  bottom: 4px;
   display: inline-block;
   width: 20px;
   height: 20px;
@@ -229,7 +240,7 @@ a:hover {
   transition: opacity 200ms, transform 250ms;
 }
 
-.left-side:hover .queue {
+.left-side:hover .queue, .left-side:hover .open-new-tab {
   opacity: 1;
 }
 
@@ -348,6 +359,7 @@ a:hover {
   top: -2px;
   transform: translate3d(-50%, -100%, 0);
   white-space: pre;
+  z-index: 99;
 }
 
 a.close[data-title]:hover:after {
@@ -355,10 +367,16 @@ a.close[data-title]:hover:after {
   transform: translate3d(-100%, 0, 0);
 }
 
-.left-side .queue[data-title]:hover:after {
-  left: calc(100% + 2px);
-  top: 0;
+.left-side .queue[data-title]:hover:after,
+.left-side .open-new-tab[data-title]:hover:after {
+  left: -4px;
+  top: calc(-100% - 2px);
   transform: translate3d(0, 0, 0);
+  font-size: 12px;
+  line-height: 12px;
+}
+
+.left-side .queue[data-title]:hover:after {
   content: "Add to Queue";
 }
 
