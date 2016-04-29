@@ -65,7 +65,7 @@ chrome.options.set([
     ],
     desc: 'How often to check for updates' },
   { name: 'use_same_tab', default: true,
-    desc: 'Open videos in the same tab when from the same window' },
+    desc: 'Open videos in the same tab' },
   { name: 'show_notifications', desc: 'Show notifications on new videos' },
   { name: 'play_sound', type: 'predefined_sound', allowNoSound: true,
     desc: 'Play sound on new videos' },

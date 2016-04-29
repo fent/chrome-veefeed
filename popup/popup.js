@@ -107,31 +107,29 @@ var $tabs = document.getElementById('tabs').children[0];
 var $content = document.getElementById('content');
 
 
-// See if there's another video opened in this window.
-var tabs = JSON.parse(localStorage.getItem('tabs')) || {};
-var tabID, winID, queue, videoPlaying = false;
-chrome.windows.getCurrent({}, function(win) {
-  winID = win.id;
-  var playingVideos;
-  if (tabs) {
-    for (var id in tabs) {
-      if (tabs[id] === winID) {
-        tabID = id;
-        queue = JSON.parse(localStorage.getItem('queue'));
-        if (queue) { queue = queue[tabID]; }
-        playingVideos = JSON.parse(localStorage.getItem('playing'));
-        if (playingVideos) { playingVideos = playingVideos[tabID]; }
-        break;
-      }
-    }
+// See if there's another video opened in this tab.
+var tabID, winID, queue, videoIsPlaying = false;
+chrome.tabs.query({ active: true, currentWindow: true }, function(results) {
+  if (!results.length) {
+    console.error('This shouldn\'t happen');
+    return;
   }
+
+  var tab = results[0];
+  tabID = tab.id;
+  winID = tab.windowId;
+  queue = JSON.parse(localStorage.getItem('queue'));
+  if (queue) { queue = queue[tabID]; }
+  var playingVideos = JSON.parse(localStorage.getItem('playing'));
+  var playingVideo;
+  if (playingVideos) { playingVideo = playingVideos[tabID]; }
 
   // Find out what videos are queued.
   groups.forEach(function(group) {
     group.videos.forEach(function(video) {
       video.queued = queue && queue[video.url] != null;
-      video.playing = playingVideos && playingVideos === video.url || false;
-      videoPlaying = videoPlaying || video.playing;
+      video.playing = playingVideo === video.url;
+      videoIsPlaying = videoIsPlaying || video.playing;
     });
   });
 
@@ -262,8 +260,6 @@ function renderVideos(group) {
 
     function openNewTab() {
       chrome.tabs.create({ url: video.url }, function(tab) {
-        tabs[tab.id] = winID;
-        localStorage.setItem('tabs', JSON.stringify(tabs));
         chrome.runtime.sendMessage({
           play: true,
           url: video.url,
@@ -286,7 +282,7 @@ function renderVideos(group) {
         });
         setTimeout(function() {
           opening = false;
-          open();
+          open(inNewTab);
         }, 500);
         return;
       }
@@ -298,14 +294,12 @@ function renderVideos(group) {
         tabID: tabID,
       });
 
-      if (options.use_same_tab && tabID && !inNewTab) {
+      if (options.use_same_tab && videoIsPlaying && !inNewTab) {
         chrome.tabs.update(parseInt(tabID), {
           url: video.url,
           active: true
         }, function(tab) {
           if (!tab) {
-            delete tabs[tabID];
-            localStorage.setItem('tabs', JSON.stringify(tabs));
             openNewTab();
           } else {
             chrome.runtime.sendMessage({
@@ -342,7 +336,7 @@ function renderVideos(group) {
             'data-src': 'http://static-cdn.jtvnw.net/ttv-boxart/' +
               encodeURIComponent(video.game) + '-138x190.jpg',
           })) : null,
-        videoPlaying && m('span.queue', {
+        videoIsPlaying && m('span.queue', {
           'data-title': 'Add to Queue',
           onclick: function() {
             var message = {
@@ -364,7 +358,7 @@ function renderVideos(group) {
             });
           },
         }),
-        videoPlaying && options.use_same_tab && m('span.open-new-tab', {
+        videoIsPlaying && options.use_same_tab && m('span.open-new-tab', {
           'data-title': 'Open in new tab',
           onclick: open.bind(null, true),
         }, '⇗')

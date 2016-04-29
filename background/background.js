@@ -302,10 +302,7 @@ chrome.runtime.onMessage.addListener(function(request, sender) {
 
   } else if (request.ended) {
     var tabID = sender.tab.id;
-    if (playingVideos[tabID]) {
-      delete playingVideos[tabID];
-      localStorage.setItem('playing', JSON.stringify(playingVideos));
-    }
+    if (!playingVideos[tabID]) { return; }
 
     var queue = queueTabs[tabID];
     if (queue) {
@@ -327,6 +324,9 @@ chrome.runtime.onMessage.addListener(function(request, sender) {
           active: true
         });
       }, QUEUE_WAIT_MS);
+    } else {
+      delete playingVideos[tabID];
+      localStorage.setItem('playing', JSON.stringify(playingVideos));
     }
   }
 });
@@ -363,23 +363,14 @@ chrome.storage.onChanged.addListener(function(changes) {
   updateVideos();
 });
 
-chrome.tabs.onAttached.addListener(function(tabId, attachInfo) {
-  var tabs = JSON.parse(localStorage.getItem('tabs'));
-  if (tabs && tabs[tabId]) {
-    tabs[tabId] = attachInfo.newWindowId;
-    localStorage.setItem('tabs', JSON.stringify(tabs));
-  }
-});
-
-chrome.tabs.onRemoved.addListener(function(tabId) {
-  var tabs = JSON.parse(localStorage.getItem('tabs'));
-  if (tabs && tabs[tabId]) {
-    delete tabs[tabId];
-    localStorage.setItem('tabs', JSON.stringify(tabs));
-    delete queueTabs[tabId];
-    delete queueUrlMap[tabId];
+chrome.tabs.onRemoved.addListener(function(tabID) {
+  if (queueTabs[tabID]) {
+    delete queueTabs[tabID];
+    delete queueUrlMap[tabID];
     localStorage.setItem('queue', JSON.stringify(queueUrlMap));
-    delete playingVideos[tabId];
+  }
+  if (playingVideos[tabID]) {
+    delete playingVideos[tabID];
     localStorage.setItem('playing', JSON.stringify(playingVideos));
   }
 });
