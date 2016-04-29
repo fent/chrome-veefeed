@@ -23,7 +23,7 @@ var options = {
 
 
 var allVideos;
-var watchedVideos;
+var watchedVideos = {};
 var knownVideos = new util.sizedMap(MAX_KNOWN);
 var ignoredVideos;
 var ignoreRules = [];
@@ -63,7 +63,7 @@ function updateVideos() {
     .filter(function(video) {
       delete video.otherSource;
       video.watched = video.watched ||
-        watchedVideos.has(videoID(video.url)) || watchedVideos.has(video.url);
+        watchedVideos[video.source].has(videoID(video.url));
       if (video.watched && !options.show_watched) { return false; }
       var ignoreIt = matchRules(ignoreRules, video);
       if (ignoreIt) { ignoredVideos.push(video); }
@@ -183,12 +183,17 @@ function checkEveryNowAndThen() {
 // Change badge color, the default red is ugh.
 chrome.browserAction.setBadgeBackgroundColor({ color: BADGE_COLOR });
 
-var optionsKeys = Object.keys(options);
-chrome.storage.sync.get(['watched', 'groups'].concat(optionsKeys),
-  function(items) {
+var optionsKeys = ['groups']
+  .concat(Object.keys(options))
+  .concat(Object.keys(sources).map(function(s) { return 'watched_'+ s; }));
+chrome.storage.sync.get(optionsKeys, function(items) {
   // Keep track of watched videos in storage so that this extension
   // works across computers.
-  watchedVideos = new util.sizedMap(MAX_WATCHED, items.watched || []);
+  for (var source in sources) {
+    watchedVideos[source] =
+      new util.sizedMap(MAX_WATCHED, items['watched_' + source] || []);
+  }
+
   ignoreRules = generateRules(items.ignore || []);
   groups = items.groups || [];
   groups.forEach(function(group) { generateRules(group.rules); });
@@ -244,7 +249,7 @@ function updateQueue(queue, tabID, url) {
   } else {
     // Otherwise, update the position of the queued videos,
     // since a video could have been removed from the middle.
-    queue.forEach(function(url, i) { queueUrlMap[tabID][url] = i; });
+    queue.forEach(function(o, i) { queueUrlMap[tabID][o.url] = i; });
     delete queueUrlMap[tabID][url];
   }
 }
@@ -252,7 +257,7 @@ function updateQueue(queue, tabID, url) {
 function unqueue(tabID, url) {
   var queue = queueTabs[tabID];
   if (!queue) { return; }
-  var i = queue.indexOf(url);
+  var i = queue.findIndex(function(o) { return o.url === url; });
   if (i > -1) {
     queue.splice(i, 1);
     updateQueue(queue, tabID, url);
@@ -261,21 +266,21 @@ function unqueue(tabID, url) {
 }
 
 function videoID(url) {
-  var parts = new URL(url);
   var result = /([a-z0-9_-]+)$/i.exec(url);
-  var host = parts.host.replace(/^www\./, '');
-  return result && result[1] ? host + '/' + result[1] : url;
+  return result && result[1] || url;
 }
 
 chrome.runtime.onMessage.addListener(function(request, sender) {
   if (request.watched) {
     // Remove this video from queue if opened from a tab that has a queue.
     if (request.tabID) { unqueue(request.tabID, request.url); }
-    watchedVideos.push(videoID(request.url));
+    watchedVideos[request.source].push(videoID(request.url));
 
     // Watched videos is updated in storage since there is a listener
     // for this storage key.
-    chrome.storage.sync.set({ watched: watchedVideos.list });
+    chrome.storage.sync.set({
+      ['watched_' + request.source]: watchedVideos[request.source].list
+    });
 
   } else if (request.play) {
     playingVideos[request.tabID] = request.url;
@@ -283,7 +288,7 @@ chrome.runtime.onMessage.addListener(function(request, sender) {
 
   } else if (request.queue) {
     var pos = (queueTabs[request.tabID] = queueTabs[request.tabID] || [])
-      .push(request.url);
+      .push({ url: request.url, source: request.source });
     (queueUrlMap[request.tabID] = queueUrlMap[request.tabID] || {})
       [request.url] = pos - 1;
     localStorage.setItem('queue', JSON.stringify(queueUrlMap));
@@ -304,19 +309,21 @@ chrome.runtime.onMessage.addListener(function(request, sender) {
 
     var queue = queueTabs[tabID];
     if (queue) {
-      var nextVideoUrl = queue.shift();
-      updateQueue(queue, tabID, nextVideoUrl);
+      var nextVideo = queue.shift();
+      updateQueue(queue, tabID, nextVideo);
 
       localStorage.setItem('queue', JSON.stringify(queueUrlMap));
-      watchedVideos.push(videoID(nextVideoUrl));
-      chrome.storage.sync.set({ watched: watchedVideos.list });
+      watchedVideos[nextVideo.source].push(videoID(nextVideo.url));
+      chrome.storage.sync.set({
+        ['watched_' + nextVideo.source]: watchedVideos[nextVideo.source].list
+      });
 
       // Play the next video in a few secs...
       setTimeout(function() {
-        playingVideos[tabID] = nextVideoUrl;
+        playingVideos[tabID] = nextVideo.url;
         localStorage.setItem('playing', JSON.stringify(playingVideos));
         chrome.tabs.update(parseInt(tabID), {
-          url: nextVideoUrl,
+          url: nextVideo.url,
           active: true
         });
       }, QUEUE_WAIT_MS);
@@ -325,11 +332,18 @@ chrome.runtime.onMessage.addListener(function(request, sender) {
 });
 
 chrome.storage.onChanged.addListener(function(changes) {
-  if (changes.watched) {
+  var watchedFound = false;
+  for (var source in sources) {
     // Watched videos are in storage so that they are remembered
     // across the same account.
-    watchedVideos = new util.sizedMap(MAX_WATCHED, changes.watched.newValue);
-  } else {
+    if (changes['watched_' + source]) {
+      watchedVideos[source] =
+        new util.sizedMap(MAX_WATCHED, changes['watched_' + source].newValue);
+      watchedFound = true;
+    }
+  }
+
+  if (!watchedFound) {
     for (var key in changes) {
       options[key] = changes[key].newValue;
     }

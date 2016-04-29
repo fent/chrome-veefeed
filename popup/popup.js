@@ -294,6 +294,7 @@ function renderVideos(group) {
       chrome.runtime.sendMessage({
         watched: true,
         url: video.url,
+        source: video.source,
         tabID: tabID,
       });
 
@@ -341,7 +342,11 @@ function renderVideos(group) {
         videoPlaying && m('span.queue', {
           'data-title': 'Add to Queue',
           onclick: function() {
-            var message = { tabID: tabID, url: video.url };
+            var message = {
+              tabID: tabID,
+              url: video.url,
+              source: video.source,
+            };
             if (!video.queued) {
               message.queue = true;
             } else {
@@ -365,6 +370,7 @@ function renderVideos(group) {
             chrome.runtime.sendMessage({
               watched: true,
               url: video.url,
+              source: video.source,
               tabID: tabID,
             });
             videosMap[video.url].forEach(function(g) {
