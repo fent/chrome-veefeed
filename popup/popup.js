@@ -88,6 +88,9 @@ function goToLink(e) {
   chrome.tabs.create({ url: e.target.href || e.target.parentNode.href });
 }
 
+var VIDEO_HEIGHT = 119;
+var SET_POS_WAIT = 200;
+
 var options = JSON.parse(localStorage.getItem('options')) || {};
 var videos = JSON.parse(localStorage.getItem('videos')) || [];
 var groups = [options.show_ungrouped ?
@@ -107,8 +110,12 @@ var $tabs = document.getElementById('tabs').children[0];
 var $content = document.getElementById('content');
 
 
-// See if there's another video opened in this tab.
 var tabID, winID, queue, videoIsPlaying = false;
+function getQueue() {
+  queue = JSON.parse(localStorage.getItem('queue'));
+  if (queue) { queue = queue[tabID]; }
+}
+
 chrome.tabs.query({ active: true, currentWindow: true }, function(results) {
   if (!results.length) {
     console.error('This shouldn\'t happen');
@@ -118,8 +125,9 @@ chrome.tabs.query({ active: true, currentWindow: true }, function(results) {
   var tab = results[0];
   tabID = tab.id;
   winID = tab.windowId;
-  queue = JSON.parse(localStorage.getItem('queue'));
-  if (queue) { queue = queue[tabID]; }
+  getQueue();
+
+  // See if there's another video opened in this tab.
   var playingVideos = JSON.parse(localStorage.getItem('playing'));
   var playingVideo;
   if (playingVideos) { playingVideo = playingVideos[tabID]; }
@@ -235,24 +243,6 @@ function renderVideos(group) {
     return;
   }
 
-  // Put currently playing video at the top, followed by queued videos,
-  // then unwatched videos, and finally, watched videos at the bottom.
-  group.videos.sort(function(a, b) {
-    var play = b.playing - a.playing;
-    if (play !== 0) { return play; }
-    var watched = a.watched - b.watched;
-    if (watched !== 0) { return watched; }
-    if (queue) {
-      var apos = queue[a.url];
-      var bpos = queue[b.url];
-      return apos != null && bpos != null ? apos - bpos :
-        apos != null && bpos == null ? -1 :
-        bpos != null && apos == null ?  1 : b.timestamp - a.timestamp;
-    } else {
-      return b.timestamp - a.timestamp;
-    }
-  });
-
   group.$videos = m('ul', {
     className: group.selected && 'selected',
   }, group.videos.map(function(video) {
@@ -355,6 +345,10 @@ function renderVideos(group) {
               g.video.queued = !video.queued;
               if (g.video.$video) {
                 g.video.$video.classList.toggle('queued');
+                setTimeout(function() {
+                  getQueue();
+                  setVideoPositions(g.group);
+                }, SET_POS_WAIT);
               }
             });
           },
@@ -398,6 +392,8 @@ function renderVideos(group) {
                   }, 250);
                 }
               }
+
+              setTimeout(setVideoPositions.bind(null, g.group), SET_POS_WAIT);
             });
             e.preventDefault();
           },
@@ -441,6 +437,36 @@ function renderVideos(group) {
     return $video;
   }));
 
+  setVideoPositions(group);
   $content.appendChild(group.$videos);
   lazyload.addImages(group.$videos);
+}
+
+function setVideoPositions(group) {
+  if (!options.show_watched) {
+    group.videos = group.videos.filter(function(v) { return !v.watched; });
+  }
+
+  // Put currently playing video at the top, followed by queued videos,
+  // then unwatched videos, and finally, watched videos at the bottom.
+  group.videos.sort(function(a, b) {
+    var play = b.playing - a.playing;
+    if (play !== 0) { return play; }
+    var watched = a.watched - b.watched;
+    if (watched !== 0) { return watched; }
+    if (queue) {
+      var apos = queue[a.url];
+      var bpos = queue[b.url];
+      return apos != null && bpos != null ? apos - bpos :
+        apos != null && bpos == null ? -1 :
+        bpos != null && apos == null ?  1 : b.timestamp - a.timestamp;
+    } else {
+      return b.timestamp - a.timestamp;
+    }
+  });
+
+  group.$videos.style.height = (VIDEO_HEIGHT * group.videos.length) + 'px';
+  group.videos.forEach(function(video, i) {
+    video.$video.style.top = (VIDEO_HEIGHT * i) + 'px';
+  });
 }

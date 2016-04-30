@@ -4,8 +4,10 @@ body {
 }
 
 ul {
+  position: relative;
   padding: 0;
   margin: 0;
+  transition: height 300ms;
 }
 
 a {
@@ -101,12 +103,13 @@ a:hover {
 }
 
 .video {
+  position: absolute;
   display: flex;
   border-bottom: 1px solid grey;
   margin-right: 4px;
   overflow: hidden;
   height: 118px;
-  transition: height 250ms ease-out;
+  transition: height 250ms ease-out, top 300ms ease-in;
 }
 
 .left-side {
