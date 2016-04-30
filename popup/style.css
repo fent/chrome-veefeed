@@ -109,7 +109,7 @@ a:hover {
   margin-right: 4px;
   overflow: hidden;
   height: 118px;
-  transition: height 250ms ease-out, top 300ms ease-in;
+  transition: height 250ms ease-out, top 500ms cubic-bezier(0.645, 0.045, 0.355, 1);
 }
 
 .left-side {
