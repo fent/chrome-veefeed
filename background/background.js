@@ -31,6 +31,7 @@ var groups = [];
 var queueTabs = {};
 var queueUrlMap = {};
 var playingVideos = {};
+var pausedTabs = {};
 
 function checkForUpdates() {
   var keys = Object.keys(sources);
@@ -265,9 +266,19 @@ function unqueue(tabID, url) {
   }
 }
 
+function markPlaying(tabID, url) {
+  playingVideos[tabID] = url;
+  localStorage.setItem('playing', JSON.stringify(playingVideos));
+}
+
 function videoID(url) {
   var result = /([a-z0-9_-]+)$/i.exec(url);
   return result && result[1] || url;
+}
+
+function isVideoPage(url) {
+  /* jshint maxlen: false */
+  return /https?:\/\/(www\.)?(youtube\.com\/(watch|embed)|twitch\.tv\/[a-z0-9_]+\/[cv]\/[0-9]+)/i.test(url);
 }
 
 chrome.runtime.onMessage.addListener(function(request, sender) {
@@ -283,8 +294,29 @@ chrome.runtime.onMessage.addListener(function(request, sender) {
     });
 
   } else if (request.play) {
-    playingVideos[request.tabID] = request.url;
-    localStorage.setItem('playing', JSON.stringify(playingVideos));
+    markPlaying(request.tabID, request.url);
+
+  } else if (request.newTab) {
+    markPlaying(request.tabID, request.url);
+
+    // When a new tab is created for a video,
+    // check if the same videos has other video tabs opened
+    // pause them if they are playing.
+    pausedTabs[request.tabID] = [];
+    chrome.tabs.query({ windowId: request.winID }, function(tabs) {
+      tabs.forEach(function(tab) {
+        if (tab.url !== request.url && isVideoPage(tab.url)) {
+          chrome.tabs.sendMessage(tab.id, {
+            pause: true,
+          }, {}, function(wasPaused) {
+            if (wasPaused) {
+              pausedTabs[request.tabID].push(tab.id);
+            }
+          });
+        }
+
+      });
+    });
 
   } else if (request.queue) {
     var pos = (queueTabs[request.tabID] = queueTabs[request.tabID] || [])
@@ -317,8 +349,7 @@ chrome.runtime.onMessage.addListener(function(request, sender) {
 
       // Play the next video in a few secs...
       setTimeout(function() {
-        playingVideos[tabID] = nextVideo.url;
-        localStorage.setItem('playing', JSON.stringify(playingVideos));
+        markPlaying(tabID, nextVideo.url);
         chrome.tabs.update(parseInt(tabID), {
           url: nextVideo.url,
           active: true
@@ -372,6 +403,12 @@ chrome.tabs.onRemoved.addListener(function(tabID) {
   if (playingVideos[tabID]) {
     delete playingVideos[tabID];
     localStorage.setItem('playing', JSON.stringify(playingVideos));
+  }
+  if (pausedTabs[tabID]) {
+    pausedTabs[tabID].forEach(function(tabID) {
+      chrome.tabs.sendMessage(tabID, { play: true });
+    });
+    delete pausedTabs[tabID];
   }
 });
 

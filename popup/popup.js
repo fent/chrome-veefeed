@@ -261,9 +261,10 @@ function renderVideos(group) {
     function openNewTab() {
       chrome.tabs.create({ url: video.url }, function(tab) {
         chrome.runtime.sendMessage({
-          play: true,
+          newTab: true,
           url: video.url,
           tabID: tab.id,
+          winID: winID,
         });
       });
     }
