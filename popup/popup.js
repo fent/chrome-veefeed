@@ -89,7 +89,7 @@ function goToLink(e) {
 }
 
 var VIDEO_HEIGHT = 119;
-var SET_POS_WAIT = 200;
+var SET_POS_WAIT = 100;
 
 var options = JSON.parse(localStorage.getItem('options')) || {};
 var videos = JSON.parse(localStorage.getItem('videos')) || [];
