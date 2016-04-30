@@ -113,6 +113,7 @@ a:hover {
   position: relative;
   height: 110px;
   margin: 4px 8px 0 2px;
+  z-index: 9;
 }
 
 .left-side:hover {

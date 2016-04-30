@@ -360,7 +360,8 @@ function renderVideos(group) {
           },
         }),
         videoIsPlaying && options.use_same_tab && m('span.open-new-tab', {
-          'data-title': 'Open in new tab, pause current video',
+          'data-title': 'Open in new tab' +
+            (options.pause_other_tabs ? ', pause current video' : ''),
           onclick: open.bind(null, true),
         }, '⇗')
       ]),
