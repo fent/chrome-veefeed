@@ -452,15 +452,14 @@ function setVideoPositions(group) {
   group.videos.sort(function(a, b) {
     var play = b.playing - a.playing;
     if (play !== 0) { return play; }
-    var watched = a.watched - b.watched;
-    if (watched !== 0) { return watched; }
-    if (queue) {
-      var apos = queue[a.url];
-      var bpos = queue[b.url];
+    var apos, bpos;
+    if (queue &&
+       ((apos = queue[a.url]) != null || (bpos = queue[b.url]) != null)) {
       return apos != null && bpos != null ? apos - bpos :
-        apos != null && bpos == null ? -1 :
-        bpos != null && apos == null ?  1 : b.timestamp - a.timestamp;
+        apos != null && bpos == null ? -1 : 1;
     } else {
+      var watched = a.watched - b.watched;
+      if (watched !== 0) { return watched; }
       return b.timestamp - a.timestamp;
     }
   });
