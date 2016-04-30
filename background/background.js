@@ -216,9 +216,9 @@ function generateRules(rules) {
   return rules.map(function(rule) {
     ['user', 'title', 'game'].forEach(function(key) {
       if (!rule[key]) { return; }
-      var exp = rule[key].replace(/[-[\]{}()*+?.\\^$|]/g, function(m) {
-        return m === '*' ? '.*' : '\\' + m;
-      });
+      var exp = rule[key]
+        .replace(/[-[\]{}()+?.\\^$|]/g, '\\$&')
+        .replace(/\*/g, '.*');
       rule[key] = new RegExp('^' + exp + '$', 'i');
     });
     return rule;
