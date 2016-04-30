@@ -11,6 +11,7 @@ var options = {
   sources: { youtube: true, twitch: false },
   interval: 15,
   use_same_tab: true,
+  pause_other_tabs: true,
   ignore: [],
   show_ignored_tab: false,
   show_notifications: false,
@@ -302,6 +303,7 @@ chrome.runtime.onMessage.addListener(function(request, sender) {
     // When a new tab is created for a video,
     // check if the same videos has other video tabs opened
     // pause them if they are playing.
+    if (!options.pause_other_tabs) { return; }
     pausedTabs[request.tabID] = [];
     chrome.tabs.query({ windowId: request.winID }, function(tabs) {
       tabs.forEach(function(tab) {
