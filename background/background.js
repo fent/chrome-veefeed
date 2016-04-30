@@ -66,7 +66,6 @@ function updateVideos() {
       delete video.otherSource;
       video.watched = video.watched ||
         watchedVideos[video.source].has(videoID(video.url));
-      if (video.watched && !options.show_watched) { return false; }
       var ignoreIt = matchRules(ignoreRules, video);
       if (ignoreIt) { ignoredVideos.push(video); }
       return !ignoreIt;
@@ -93,6 +92,11 @@ function updateVideos() {
           }
         }
       });
+  });
+
+  // Lower the amount of videos sent to popup if `show_watched` is false.
+  results = results.filter(function(video) {
+    return !video.watched || options.show_watched;
   });
 
   // Check if there are any new videos, only after the first fetch of videos.
