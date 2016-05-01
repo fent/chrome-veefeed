@@ -453,15 +453,14 @@ function setVideoPositions(group) {
   // Put currently playing video at the top, followed by queued videos,
   // then unwatched videos, and finally, watched videos at the bottom.
   group.videos.sort(function(a, b) {
-    var play = b.playing - a.playing;
-    if (play !== 0) { return play; }
-    var apos, bpos;
-    if (queue &&
-       ((apos = queue[a.url]) != null || (bpos = queue[b.url]) != null)) {
-      return apos != null && bpos != null ? apos - bpos :
-        apos != null && bpos == null ? -1 : 1;
+    var playing = !!b.playing - !!a.playing;
+    if (playing !== 0) { return playing; }
+    var queued = !!b.queued - !!a.queued;
+    if (queued !== 0) { return queued; }
+    if (a.queued && b.queued) {
+      return queue[a.url] - queue[b.url];
     } else {
-      var watched = a.watched - b.watched;
+      var watched = !!a.watched - !!b.watched;
       if (watched !== 0) { return watched; }
       return b.timestamp - a.timestamp;
     }
