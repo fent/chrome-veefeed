@@ -18,7 +18,8 @@ function pause() {
 
   var label;
   if (button && getComputedStyle(button).display !== 'none' &&
-     (!(label = button.getAttribute('aria-label')) || label === 'Pause')) {
+     (!(label = button.getAttribute('aria-label')) || label === 'Pause') &&
+      button.getAttribute('title') !== 'Replay') {
     button.click();
     return true;
   }
