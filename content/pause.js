@@ -1,8 +1,8 @@
 /* global chrome */
 
-function getByClass(classes) {
-  for (var i = 0, len = classes.length; i < len; i++) {
-    var $el = document.getElementsByClassName(classes[i])[0];
+function get(selectors) {
+  for (var i = 0, len = selectors.length; i < len; i++) {
+    var $el = document.querySelector(selectors[i]);
     if ($el) {
       return $el;
     }
@@ -10,31 +10,26 @@ function getByClass(classes) {
 }
 
 function pause() {
-  var button = getByClass([
-    'icon-player-pause',
-    'js-pause-button',
-    'ytp-play-button'
+  var button = get([
+    '.icon-player-pause',
+    '.js-pause-button',
+    '.ytp-play-button[aria-label="Pause"]'
   ]);
 
-  var label;
-  if (button && getComputedStyle(button).display !== 'none' &&
-     (!(label = button.getAttribute('aria-label')) || label === 'Pause') &&
-      button.getAttribute('title') !== 'Replay') {
+  if (button && getComputedStyle(button).display !== 'none') {
     button.click();
     return true;
   }
 }
 
 function play() {
-  var button = getByClass([
-    'icon-player-play',
-    'js-play-button',
-    'ytp-play-button'
+  var button = get([
+    '.icon-player-play',
+    '.js-play-button',
+    '.ytp-play-button[aria-label="Play"]'
   ]);
 
-  var label;
-  if (button && getComputedStyle(button).display !== 'none' &&
-     (!(label = button.getAttribute('aria-label')) || label === 'Play')) {
+  if (button && getComputedStyle(button).display !== 'none') {
     button.click();
   }
 }
