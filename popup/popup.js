@@ -110,7 +110,7 @@ var $tabs = document.getElementById('tabs').children[0];
 var $content = document.getElementById('content');
 
 
-var tabID, winID, queue, videoIsPlaying = false;
+var tabID, winID, queue, videoIsOpened = false, videoIsPlaying = false;
 function getQueue() {
   queue = JSON.parse(localStorage.getItem('queue'));
   if (queue) { queue = queue[tabID]; }
@@ -128,15 +128,17 @@ chrome.tabs.query({ active: true, currentWindow: true }, function(results) {
   getQueue();
 
   // See if there's another video opened in this tab.
-  var playingVideos = JSON.parse(localStorage.getItem('playing'));
-  var playingVideo;
-  if (playingVideos) { playingVideo = playingVideos[tabID]; }
+  var openedVideo = JSON.parse(localStorage.getItem('opened'));
+  if (openedVideo) { openedVideo = openedVideo[tabID]; }
 
   // Find out what videos are queued.
   groups.forEach(function(group) {
     group.videos.forEach(function(video) {
       video.queued = queue && queue[video.url] != null;
-      video.playing = playingVideo === video.url;
+      video.playing = openedVideo &&
+        openedVideo.url === video.url && openedVideo.playing;
+      videoIsOpened = videoIsOpened ||
+        openedVideo && openedVideo.url === video.url;
       videoIsPlaying = videoIsPlaying || video.playing;
     });
   });
@@ -285,7 +287,7 @@ function renderVideos(group) {
         tabID: tabID,
       });
 
-      if (options.use_same_tab && videoIsPlaying && !inNewTab) {
+      if (options.use_same_tab && videoIsOpened && !inNewTab) {
         chrome.tabs.update(parseInt(tabID), {
           url: video.url,
           active: true
@@ -353,9 +355,10 @@ function renderVideos(group) {
             });
           },
         }),
-        videoIsPlaying && options.use_same_tab && m('span.open-new-tab', {
+        videoIsOpened && options.use_same_tab && m('span.open-new-tab', {
           'data-title': 'Open in new tab' +
-            (options.pause_other_tabs ? ', pause current video' : ''),
+            (options.pause_other_tabs && videoIsPlaying?
+             ', pause current video' : ''),
           onclick: open.bind(null, true),
         }, '⇗')
       ]),

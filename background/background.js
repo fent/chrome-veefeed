@@ -31,7 +31,7 @@ var ignoreRules = [];
 var groups = [];
 var queueTabs = {};
 var queueUrlMap = {};
-var playingVideos = {};
+var openedVideos = {};
 var pausedTabs = {};
 
 function checkForUpdates() {
@@ -241,7 +241,7 @@ function matchRules(rules, video) {
 
 // Clear queue and videos playing when extension starts.
 localStorage.removeItem('queue');
-localStorage.removeItem('playing');
+localStorage.removeItem('opened');
 
 function updateQueue(queue, tabID, url) {
   if (!queue.length) {
@@ -271,9 +271,9 @@ function unqueue(tabID, url) {
   }
 }
 
-function markPlaying(tabID, url) {
-  playingVideos[tabID] = url;
-  localStorage.setItem('playing', JSON.stringify(playingVideos));
+function markAsPlaying(tabID, url) {
+  openedVideos[tabID] = { url: url, playing: true };
+  localStorage.setItem('opened', JSON.stringify(openedVideos));
 }
 
 function videoID(url) {
@@ -299,10 +299,10 @@ chrome.runtime.onMessage.addListener(function(request, sender) {
     });
 
   } else if (request.play) {
-    markPlaying(request.tabID, request.url);
+    markAsPlaying(request.tabID, request.url);
 
   } else if (request.newTab) {
-    markPlaying(request.tabID, request.url);
+    markAsPlaying(request.tabID, request.url);
 
     // When a new tab is created for a video,
     // check if the same videos has other video tabs opened
@@ -340,7 +340,9 @@ chrome.runtime.onMessage.addListener(function(request, sender) {
 
   } else if (request.ended) {
     var tabID = sender.tab.id;
-    if (!playingVideos[tabID]) { return; }
+    if (!openedVideos[tabID]) { return; }
+    openedVideos[tabID].playing = false;
+    localStorage.setItem('opened', JSON.stringify(openedVideos));
 
     var queue = queueTabs[tabID];
     if (queue) {
@@ -355,15 +357,12 @@ chrome.runtime.onMessage.addListener(function(request, sender) {
 
       // Play the next video in a few secs...
       setTimeout(function() {
-        markPlaying(tabID, nextVideo.url);
+        markAsPlaying(tabID, nextVideo.url);
         chrome.tabs.update(parseInt(tabID), {
           url: nextVideo.url,
           active: true
         });
       }, QUEUE_WAIT_MS);
-    } else {
-      delete playingVideos[tabID];
-      localStorage.setItem('playing', JSON.stringify(playingVideos));
     }
   }
 });
@@ -406,9 +405,9 @@ chrome.tabs.onRemoved.addListener(function(tabID) {
     delete queueUrlMap[tabID];
     localStorage.setItem('queue', JSON.stringify(queueUrlMap));
   }
-  if (playingVideos[tabID]) {
-    delete playingVideos[tabID];
-    localStorage.setItem('playing', JSON.stringify(playingVideos));
+  if (openedVideos[tabID]) {
+    delete openedVideos[tabID];
+    localStorage.setItem('opened', JSON.stringify(openedVideos));
   }
   if (pausedTabs[tabID]) {
     pausedTabs[tabID].forEach(function(tabID) {
