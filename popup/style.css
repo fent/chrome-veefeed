@@ -241,7 +241,7 @@ a:hover {
   border-radius: 50%;
   background-color: #ccc;
   opacity: 0;
-  transition: opacity 200ms, transform 250ms, background-color 100ms;
+  transition: opacity 100ms, transform 250ms, background-color 100ms;
 }
 
 .left-side:hover .queue, .left-side:hover .open-new-tab {

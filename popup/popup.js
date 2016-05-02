@@ -90,6 +90,7 @@ function goToLink(e) {
 
 var VIDEO_HEIGHT = 119;
 var SET_POS_WAIT = 100;
+var POS_ANIM_TIME = 500;
 
 var options = JSON.parse(localStorage.getItem('options')) || {};
 var videos = JSON.parse(localStorage.getItem('videos')) || [];
@@ -350,6 +351,27 @@ function renderVideos(group) {
                 setTimeout(function() {
                   getQueue();
                   setVideoPositions(g.group);
+                  setTimeout(function() {
+                    // A nasty hack to make the :hover states of possible
+                    // videos being placed under the mouse after the
+                    // animation, activate.
+                    var $children = g.group.$videos.querySelectorAll(
+                      '.animating .queue, .animating .open-new-tab');
+                    for (var i = 0, len = $children.length; i < len; i++) {
+                      $children[i].style.opacity = '0';
+                      $children[i].style.display = 'none';
+                    }
+                    setTimeout(function() {
+                      for (var i = 0, len = $children.length; i < len; i++) {
+                        $children[i].style.display = null;
+                      }
+                    }, 10);
+                    setTimeout(function() {
+                      for (var i = 0, len = $children.length; i < len; i++) {
+                        $children[i].style.opacity = null;
+                      }
+                    }, 100);
+                  }, POS_ANIM_TIME);
                 }, SET_POS_WAIT);
               }
             });
@@ -468,6 +490,13 @@ function setVideoPositions(group) {
 
   group.$videos.style.height = (VIDEO_HEIGHT * group.videos.length) + 'px';
   group.videos.forEach(function(video, i) {
-    video.$video.style.top = (VIDEO_HEIGHT * i) + 'px';
+    var top = (VIDEO_HEIGHT * i) + 'px';
+    if (top !== video.$video.style.top) {
+      video.$video.style.top = top;
+      video.$video.classList.add('animating');
+      setTimeout(function() {
+        video.$video.classList.remove('animating');
+      }, POS_ANIM_TIME + 20);
+    }
   });
 }
