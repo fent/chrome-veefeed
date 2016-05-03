@@ -16,32 +16,6 @@ var rules = [
     bindTo: { field: 'source', value: ['twitch', ''] } },
 ];
 
-chrome.options.fields.group = function(value, save) {
-  if (value == null || typeof value !== 'object') {
-    value = {};
-  }
-
-  function saveField(fieldName) {
-    return function(newValue) {
-      value[fieldName] = newValue;
-      save(value);
-    };
-  }
-
-  var $container = $('<div class="group"></div>');
-  var $top = $('<div><label>Name: <label></div>').appendTo($container);
-  chrome.options.fields.text(value.name, saveField('name')).appendTo($top);
-  $top.append(' <label>Don\'t match additional groups: </label>');
-  chrome.options.fields.checkbox(value.only, saveField('only')).appendTo($top);
-  chrome.options.base.list(value.rules, saveField('rules'), {
-    sortable: true,
-    head: true,
-    fields: rules,
-  }).appendTo($container);
-
-  return $container;
-};
-
 var mergeSources = [{ value: '', desc: 'Select' }].concat(sources);
 
 chrome.options.set([
@@ -81,12 +55,22 @@ chrome.options.set([
   { name: 'show_ignored_tab', preview: 'png',
     desc: 'Show tab for ignored videos' },
   { type: 'h3', desc: 'Groups' },
-  { name: 'groups', type: 'group-list', sortable: true, preview: 'png',
+  { name: 'groups', type: 'list', sortable: true, preview: 'png',
     desc: 'Categorize videos and group them into tabs ' +
           '(Use * to match any string)',
     filter: function(row) {
       return row.name && row.rules && row.rules.length;
-    }},
+    }, fields: [{
+      type: 'column', options: [
+        { type: 'row', options: [
+          { type: 'text', name: 'name', desc: 'Name', singleline: true },
+          { type: 'checkbox', name: 'only',
+            desc: 'Don\'t match additional groups' }
+        ]},
+        { type: 'list', name: 'rules',
+          sortable: true, head: true, fields: rules }
+      ]
+    }]},
   { name: 'show_ungrouped',
     desc: 'Show tab for ungrouped videos instead of All videos tab' },
   { name: 'hide_empty_tabs', desc: 'Hide tabs without videos' },
