@@ -413,13 +413,13 @@ function renderVideos(group) {
                   $video.style.height = 0;
                   setTimeout(function() {
                     $video.parentNode.removeChild($video);
-                    lazyload.processScroll();
-                  }, 250);
+                  }, SET_POS_WAIT);
                 }
               }
 
               setTimeout(setVideoPositions.bind(null, g.group), SET_POS_WAIT);
             });
+
             e.preventDefault();
           },
         }, '✖'),
@@ -462,9 +462,9 @@ function renderVideos(group) {
     return $video;
   }));
 
+  lazyload.addImages(group.$videos);
   setVideoPositions(group);
   $content.appendChild(group.$videos);
-  lazyload.addImages(group.$videos);
 }
 
 function setVideoPositions(group) {
@@ -499,4 +499,6 @@ function setVideoPositions(group) {
       }, POS_ANIM_TIME + 20);
     }
   });
+
+  lazyload.processScroll();
 }
