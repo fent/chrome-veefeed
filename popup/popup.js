@@ -84,10 +84,6 @@ function removeChildClasses($node, className) {
   }
 }
 
-function goToLink(e) {
-  chrome.tabs.create({ url: e.target.href || e.target.parentNode.href });
-}
-
 var VIDEO_HEIGHT = 119;
 var SET_POS_WAIT = 100;
 var POS_ANIM_TIME = 500;
@@ -324,8 +320,8 @@ function renderVideos(group) {
           m('a.game', {
             href: 'https://www.twitch.tv/directory/game/' +
               encodeURIComponent(video.game) + '/videos/week',
-           'data-title': video.game,
-           onclick: goToLink,
+            'data-title': video.game,
+            target: '_blank',
           }, m('img.lazy', {
             'data-src': 'http://static-cdn.jtvnw.net/ttv-boxart/' +
               encodeURIComponent(video.game) + '-138x190.jpg',
@@ -432,14 +428,14 @@ function renderVideos(group) {
           video.otherSource && m('a.favicon', {
             className: 'source-' + video.otherSource.source,
             href: video.otherSource.url,
-            onclick: goToLink,
+            target: '_blank',
           }),
           m('span.user', [
             video.user.thumbnail ?
               m('img.lazy', { 'data-src': video.user.thumbnail }) : null,
             m('a.name', {
               href: video.user.url,
-              onclick: goToLink,
+              target: '_blank',
             }, video.user.name),
             video.user.verified &&
               m('span.verified', { 'data-title': 'Verified' })
