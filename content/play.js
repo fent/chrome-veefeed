@@ -8,12 +8,11 @@ function get(selectors) {
 }
 
 var $button = get([
-  '.icon-player-pause',
-  '.js-pause-button',
-  '.ytp-play-button[aria-label="Pause"]'
+  '.icon-player-play',
+  '.js-play-button',
+  '.ytp-play-button[aria-label="Play"]'
 ]);
 
 if ($button && getComputedStyle($button).display !== 'none') {
   $button.click();
-  true;
 }

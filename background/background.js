@@ -312,10 +312,10 @@ chrome.runtime.onMessage.addListener(function(request, sender) {
     chrome.tabs.query({ windowId: request.winID }, function(tabs) {
       tabs.forEach(function(tab) {
         if (tab.url !== request.url && isVideoPage(tab.url)) {
-          chrome.tabs.sendMessage(tab.id, {
-            pause: true,
-          }, {}, function(wasPaused) {
-            if (wasPaused) {
+          chrome.tabs.executeScript(tab.id, {
+            file: 'content/pause.js',
+          }, function(results) {
+            if (results[0]) {
               pausedTabs[request.tabID].push(tab.id);
             }
           });
@@ -411,7 +411,7 @@ chrome.tabs.onRemoved.addListener(function(tabID) {
   }
   if (pausedTabs[tabID]) {
     pausedTabs[tabID].forEach(function(tabID) {
-      chrome.tabs.sendMessage(tabID, { play: true });
+      chrome.tabs.executeScript(tabID, { file: 'content/play.js' });
     });
     delete pausedTabs[tabID];
   }
