@@ -126,7 +126,12 @@ chrome.tabs.query({ active: true, currentWindow: true }, function(results) {
 
   // See if there's another video opened in this tab.
   var openedVideo = JSON.parse(localStorage.getItem('opened'));
-  if (openedVideo) { openedVideo = openedVideo[tabID]; }
+  if (openedVideo) {
+    openedVideo = openedVideo[tabID];
+    if (openedVideo.url !== tab.url) {
+      openedVideo = null;
+    }
+  }
 
   // Find out what videos are queued.
   groups.forEach(function(group) {
