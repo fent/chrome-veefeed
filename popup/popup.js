@@ -128,7 +128,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, function(results) {
   var openedVideo = JSON.parse(localStorage.getItem('opened'));
   if (openedVideo) {
     openedVideo = openedVideo[tabID];
-    if (openedVideo.url !== tab.url) {
+    if (openedVideo && openedVideo.url !== tab.url) {
       openedVideo = null;
     }
   }
