@@ -248,7 +248,7 @@ a:hover {
   opacity: 1;
 }
 
-.left-side .queue:active {
+.video:not(.animating) .left-side .queue:active {
   background-color: #6294df;
   transform: rotate(-90deg);
 }
@@ -391,6 +391,10 @@ a.close[data-title]:hover:after {
 .video.queued .left-side .queue[data-title]:hover:after {
   content: "Remove from Queue";
   color: orange;
+}
+
+.video.animating a {
+  cursor: default;
 }
 
 .time, .starts {

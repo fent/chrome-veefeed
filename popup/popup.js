@@ -266,6 +266,7 @@ function renderVideos(group) {
     var opening = false;
     function open(inNewTab) {
       if (opening) { return; }
+      if (video.$video.classList.contains('animating')) { return; }
       opening = true;
 
       if (video.queued) {
