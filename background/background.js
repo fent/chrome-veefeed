@@ -347,7 +347,7 @@ chrome.runtime.onMessage.addListener(function(request, sender) {
     var queue = queueTabs[tabID];
     if (queue) {
       var nextVideo = queue.shift();
-      updateQueue(queue, tabID, nextVideo);
+      updateQueue(queue, tabID, nextVideo.url);
 
       localStorage.setItem('queue', JSON.stringify(queueUrlMap));
       watchedVideos[nextVideo.source].push(videoID(nextVideo.url));
