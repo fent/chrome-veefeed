@@ -26,9 +26,9 @@
   },
   "content_scripts": [
     { "matches": ["https://www.youtube.com/watch?v=*"],
-      "js": ["content/player.js", "content/youtube.js"] },
+      "js": ["content/getelement.js", "content/youtube.js"] },
     { "matches": ["https://www.twitch.tv/*/v/*"],
-      "js": ["content/twitch.js"] }
+      "js": ["content/getelement.js", "content/twitch.js"] }
   ],
   "browser_action": {
     "default_popup": "popup/popup.html"
