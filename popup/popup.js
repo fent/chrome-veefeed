@@ -367,7 +367,7 @@ function renderVideos(group) {
                       for (var i = 0, len = $children.length; i < len; i++) {
                         $children[i].style.display = null;
                       }
-                    }, 10);
+                    }, 20);
                     setTimeout(function() {
                       for (var i = 0, len = $children.length; i < len; i++) {
                         $children[i].style.opacity = null;
