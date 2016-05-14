@@ -402,11 +402,13 @@ function renderVideos(group) {
                 g.$badge.textContent = (--g.group.unwatched) || '';
               }
               g.video.watched = true;
+              g.video.queued = false;
               var $video = g.video.$video;
               if (!$video) { return; }
 
               if (options.show_watched) {
                 $video.classList.add('watched');
+                $video.classList.remove('queued');
 
               } else {
                 if ($video.offsetParent === null) {
