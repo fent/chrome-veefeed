@@ -1,6 +1,6 @@
-body {
+html, body {
   font-family: Roboto,arial,sans-serif;
-  width: 600px;
+  min-width: 600px;
 }
 
 ul {
