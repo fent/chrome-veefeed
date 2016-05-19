@@ -11,8 +11,7 @@ util.ajax = function(url, callback) {
   var xhr = new XMLHttpRequest();
   xhr.open('GET', url, true);
   xhr.onreadystatechange = function() {
-    if (xhr.readyState === 2 && xhr.status >= 300 ||
-        xhr.readyState === 4) {
+    if (xhr.readyState === 4 && xhr.status >= 200) {
       callback(xhr);
     }
   };
