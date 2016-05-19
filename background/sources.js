@@ -81,7 +81,7 @@ sources.twitch = function(callback) {
               url: 'https://www.twitch.tv/' + video.channel.name,
               name: video.channel.display_name,
             },
-            url: video.url,
+            url: video.url.replace(/^https:\/\/secure\./, 'https://www.'),
             thumbnail: video.preview,
             length: video.length,
             title: video.title,
