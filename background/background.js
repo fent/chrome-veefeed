@@ -13,6 +13,7 @@ var options = {
   use_same_tab: true,
   pause_other_tabs: true,
   ignore: [],
+  ignore_live: false,
   show_ignored_tab: false,
   show_notifications: false,
   play_sound: '',
@@ -67,6 +68,7 @@ function updateVideos() {
       video.watched = video.watched ||
         watchedVideos[video.source].has(videoID(video.url));
       var ignoreIt = matchRules(ignoreRules, video);
+      ignoreIt = ignoreIt || options.ignore_live && video.live;
       if (ignoreIt) { ignoredVideos.push(video); }
       return !ignoreIt;
     });
