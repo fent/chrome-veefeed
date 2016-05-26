@@ -49,6 +49,7 @@ a:hover {
   background-color: lightgrey;
   opacity: 0.5;
   cursor: pointer;
+  -webkit-user-select: none;
 }
 
 #tabs .tab.selected {
@@ -64,7 +65,7 @@ a:hover {
 }
 
 #tabs .tab:active .label {
-  color: orange;
+  color: #2a5ead;
 }
 
 #tabs .tab .badge {
