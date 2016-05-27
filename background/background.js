@@ -14,6 +14,7 @@ var options = {
   pause_other_tabs: true,
   ignore: [],
   ignore_live: false,
+  ignore_future: false,
   show_ignored_tab: false,
   show_notifications: false,
   play_sound: '',
@@ -61,6 +62,7 @@ function mergeMatch(source, username, video) {
 
 function updateVideos() {
   ignoredVideos = [];
+  var now = Date.now();
 
   var results = allVideos
     .filter(function(video) {
@@ -68,7 +70,9 @@ function updateVideos() {
       video.watched = video.watched ||
         watchedVideos[video.source].has(videoID(video.url));
       var ignoreIt = matchRules(ignoreRules, video);
-      ignoreIt = ignoreIt || options.ignore_live && video.live;
+      ignoreIt = ignoreIt ||
+        options.ignore_live && video.live ||
+        options.ignore_future && now < video.timestamp;
       if (ignoreIt) { ignoredVideos.push(video); }
       return !ignoreIt;
     });

@@ -53,6 +53,7 @@ chrome.options.set([
     desc: 'Ignore videos matching the following ' +
           '(Use * to match any string)' },
   { name: 'ignore_live', desc: 'Ignore live videos' },
+  { name: 'ignore_future', desc: 'Ignore future videos' },
   { name: 'show_ignored_tab', preview: 'png',
     desc: 'Show tab for ignored videos' },
   { type: 'h3', desc: 'Groups' },
