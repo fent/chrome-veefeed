@@ -276,6 +276,13 @@ function renderVideos(group) {
           g.video.queued = false;
           if (g.video.$video) { g.video.$video.classList.remove('queued'); }
         });
+
+        chrome.runtime.sendMessage({
+          unqueue: true,
+          url: video.url,
+          tabID: tabID,
+        });
+
         setTimeout(function() {
           opening = false;
           open(inNewTab);
@@ -298,11 +305,6 @@ function renderVideos(group) {
           if (!tab) {
             openNewTab();
           } else {
-            chrome.runtime.sendMessage({
-              play: true,
-              url: video.url,
-              tabID: tab.id,
-            });
             window.close();
           }
         });

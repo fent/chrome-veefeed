@@ -277,6 +277,16 @@ function unqueue(tabID, url) {
   }
 }
 
+function markAsWatched(source, url) {
+  watchedVideos[source].push(videoID(url));
+
+  // Watched videos is updated in storage since there is a listener
+  // for this storage key.
+  chrome.storage.sync.set({
+    ['watched_' + source]: watchedVideos[source].list
+  });
+}
+
 function markAsPlaying(tabID, url) {
   openedVideos[tabID] = { url: url, playing: true };
   localStorage.setItem('opened', JSON.stringify(openedVideos));
@@ -292,24 +302,27 @@ function isVideoPage(url) {
   return /https?:\/\/(www\.)?(youtube\.com\/(watch|embed)|twitch\.tv\/[a-z0-9_]+\/[cv]\/[0-9]+)/i.test(url);
 }
 
+function getSourceFromURL(url) {
+  var hostname = new URL(url).hostname;
+  for (var source in sources) {
+    if (hostname.indexOf(source) > -1) {
+      return source;
+    }
+  }
+  return null;
+}
+
 chrome.runtime.onMessage.addListener(function(request, sender) {
   if (request.watched) {
     // Remove this video from queue if opened from a tab that has a queue.
     if (request.tabID) { unqueue(request.tabID, request.url); }
-    watchedVideos[request.source].push(videoID(request.url));
+    markAsWatched(request.source, request.url);
 
-    // Watched videos is updated in storage since there is a listener
-    // for this storage key.
-    chrome.storage.sync.set({
-      ['watched_' + request.source]: watchedVideos[request.source].list
-    });
-
-  } else if (request.play) {
-    markAsPlaying(request.tabID, request.url);
+  } else if (request.started) {
+    markAsWatched(getSourceFromURL(sender.tab.url), sender.tab.url);
+    markAsPlaying(sender.tab.id, sender.tab.url);
 
   } else if (request.newTab) {
-    markAsPlaying(request.tabID, request.url);
-
     // When a new tab is created for a video,
     // check if the same videos has other video tabs opened
     // pause them if they are playing.
@@ -354,12 +367,7 @@ chrome.runtime.onMessage.addListener(function(request, sender) {
     if (queue) {
       var nextVideo = queue.shift();
       updateQueue(queue, tabID, nextVideo.url);
-
       localStorage.setItem('queue', JSON.stringify(queueUrlMap));
-      watchedVideos[nextVideo.source].push(videoID(nextVideo.url));
-      chrome.storage.sync.set({
-        ['watched_' + nextVideo.source]: watchedVideos[nextVideo.source].list
-      });
 
       // Play the next video in a few secs...
       setTimeout(function() {
