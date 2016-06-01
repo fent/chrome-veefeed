@@ -216,7 +216,7 @@ function renderContent() {
           if (!group.rendered) {
             renderVideos(group);
           } else {
-            group.$videos.classList.add('selected');
+            group.$container.classList.add('selected');
           }
           document.body.scrollTop = group.scrollTop;
         }
@@ -241,27 +241,55 @@ function renderContent() {
 function renderVideos(group) {
   group.rendered = true;
   if (!group.videos.length) {
-    $content.appendChild(group.$videos = m('div.no-videos', {
+    $content.appendChild(group.$container = m('div.no-videos', {
       className: group.selected && 'selected',
     }, 'No new videos'));
     return;
   }
 
-  group.$videos = m('ul', {
-    className: group.selected && 'selected',
-  }, group.videos.map(function(video) {
-    if (!options.show_watched && video.watched) { return; }
-
-    function openNewTab() {
-      chrome.tabs.create({ url: video.url }, function(tab) {
+  group.$queueAll = m('div.queue-all', {
+    className: videoIsPlaying && 'video-is-playing',
+    onclick: function() {
+      if (videoIsPlaying) {
         chrome.runtime.sendMessage({
-          newTab: true,
-          url: video.url,
-          tabID: tab.id,
-          winID: winID,
+          queueAll: true,
+          tabID: tabID,
+          videos: group.queueable,
         });
-      });
-    }
+
+        group.queueable.forEach(function(video) {
+          videosMap[video.url].forEach(function(g) {
+            g.video.queued = !video.queued;
+            if (g.video.$video) {
+              g.video.$video.classList.toggle('queued');
+            }
+            setTimeout(function() {
+              getQueue();
+              setVideoPositions(g.group);
+            }, SET_POS_WAIT);
+          });
+        });
+
+      } else {
+        openVideo(group.queueable.shift(), false, function(tab) {
+          chrome.runtime.sendMessage({
+            queueAll: true,
+            tabID: tab.id,
+            videos: group.queueable,
+          });
+        });
+
+      }
+    },
+  }, [
+    m('span.play-icon', '▶'),
+    m('span.queue-icon'),
+    m('span.label',
+      (videoIsPlaying ? 'Q' : 'Play and q') + 'ueue all unwatched')
+  ]);
+
+  group.$videos = m('ul', group.videos.map(function(video) {
+    if (!options.show_watched && video.watched) { return; }
 
     var opening = false;
     function open(inNewTab) {
@@ -290,27 +318,7 @@ function renderVideos(group) {
         return;
       }
 
-      chrome.runtime.sendMessage({
-        watched: true,
-        url: video.url,
-        source: video.source,
-        tabID: tabID,
-      });
-
-      if (options.use_same_tab && videoIsOpened && !inNewTab) {
-        chrome.tabs.update(parseInt(tabID), {
-          url: video.url,
-          active: true
-        }, function(tab) {
-          if (!tab) {
-            openNewTab();
-          } else {
-            window.close();
-          }
-        });
-      } else {
-        openNewTab();
-      }
+      openVideo(video, inNewTab);
     }
 
     var vidClass = '.source-' + video.source;
@@ -352,6 +360,7 @@ function renderVideos(group) {
               g.video.queued = !video.queued;
               if (g.video.$video) {
                 g.video.$video.classList.toggle('queued');
+
                 setTimeout(function() {
                   getQueue();
                   setVideoPositions(g.group);
@@ -361,24 +370,25 @@ function renderVideos(group) {
                     // animation, activate.
                     var $children = g.group.$videos.querySelectorAll(
                       '.animating .queue, .animating .open-new-tab');
-                    for (var i = 0, len = $children.length; i < len; i++) {
-                      $children[i].style.opacity = '0';
-                      $children[i].style.display = 'none';
-                    }
-                    setTimeout(function() {
                       for (var i = 0, len = $children.length; i < len; i++) {
-                        $children[i].style.display = null;
+                        $children[i].style.opacity = '0';
+                        $children[i].style.display = 'none';
                       }
-                    }, 20);
-                    setTimeout(function() {
-                      for (var i = 0, len = $children.length; i < len; i++) {
-                        $children[i].style.opacity = null;
-                      }
-                    }, 100);
+                      setTimeout(function() {
+                        for (var i = 0, len = $children.length; i < len; i++) {
+                          $children[i].style.display = null;
+                        }
+                      }, 20);
+                      setTimeout(function() {
+                        for (var i = 0, len = $children.length; i < len; i++) {
+                          $children[i].style.opacity = null;
+                        }
+                      }, 100);
                   }, POS_ANIM_TIME);
                 }, SET_POS_WAIT);
               }
             });
+
           },
         }),
         videoIsOpened && options.use_same_tab && m('span.open-new-tab', {
@@ -468,9 +478,48 @@ function renderVideos(group) {
     return $video;
   }));
 
+  group.$container = m('div.videos.selected');
   lazyload.addImages(group.$videos);
   setVideoPositions(group);
-  $content.appendChild(group.$videos);
+  group.$container.appendChild(group.$queueAll);
+  group.$container.appendChild(group.$videos);
+  $content.appendChild(group.$container);
+}
+
+function openVideo(video, inNewTab, callback) {
+  chrome.runtime.sendMessage({
+    watched: true,
+    url: video.url,
+    source: video.source,
+    tabID: tabID,
+  });
+
+  if (options.use_same_tab && videoIsOpened && !inNewTab) {
+    chrome.tabs.update(parseInt(tabID), {
+      url: video.url,
+      active: true
+    }, function(tab) {
+      if (!tab) {
+        openNewTab(video, callback);
+      } else {
+        window.close();
+      }
+    });
+  } else {
+    openNewTab(video, callback);
+  }
+}
+
+function openNewTab(video, callback) {
+  chrome.tabs.create({ url: video.url }, function(tab) {
+    chrome.runtime.sendMessage({
+      newTab: true,
+      url: video.url,
+      tabID: tab.id,
+      winID: winID,
+    });
+    if (callback) { callback(tab); }
+  });
 }
 
 function setVideoPositions(group) {
@@ -493,6 +542,11 @@ function setVideoPositions(group) {
       return b.timestamp - a.timestamp;
     }
   });
+
+  group.queueable = group.videos.filter(function(v) {
+    return !v.watched && !v.queued;
+  }).reverse();
+  group.$queueAll.classList.toggle('hidden', group.queueable.length < 2);
 
   group.$videos.style.height = (VIDEO_HEIGHT * group.videos.length) + 'px';
   group.videos.forEach(function(video, i) {

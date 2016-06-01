@@ -95,12 +95,8 @@ a:hover {
   margin-top: calc(1em + 25px);
 }
 
-#content > * {
+#content > div:not(.selected) {
   display: none;
-}
-
-#content > *.selected {
-  display: block;
 }
 
 .video {
@@ -181,11 +177,17 @@ a:hover {
  content: "QUEUED";
 }
 
-.playing .left-side:before {
+.playing .left-side:before, .play-icon {
+  padding: 2px 4px;
+  font-weight: 500;
   font-size: 14px;
   border-radius: 4px;
+  background-color: #000;
   color: #C31313;
   content: "▶";
+}
+
+.playing .left-side:before {
   animation-duration: 700ms;
   animation-iteration-count: infinite;
   animation-name: backAndForth;
@@ -217,7 +219,7 @@ a:hover {
   height: 55px;
 }
 
-.left-side .queue {
+.left-side .queue, .queue-icon {
   left: 4px;
   background: no-repeat url(https://s.ytimg.com/yts/imgbin/www-hitchhiker-vflsIkBw3.webp) -73px -398px;
   background-size: auto;
@@ -231,9 +233,7 @@ a:hover {
   color: #B15656;
 }
 
-.left-side .queue, .left-side .open-new-tab {
-  position: absolute;
-  bottom: 4px;
+.left-side .queue, .left-side .open-new-tab, .queue-icon {
   display: inline-block;
   width: 20px;
   height: 20px;
@@ -241,6 +241,11 @@ a:hover {
   border: 1px solid #ccc;
   border-radius: 50%;
   background-color: #ccc;
+}
+
+.left-side .queue, .left-side .open-new-tab {
+  position: absolute;
+  bottom: 4px;
   opacity: 0;
   transition: opacity 100ms, transform 250ms, background-color 100ms;
 }
@@ -438,4 +443,41 @@ a.close[data-title]:hover:after {
 .no-videos {
   white-space: pre;
   font-size: 200%;
+}
+
+.queue-all {
+  display: flex;
+  align-items: center;
+  height: 21px;
+  overflow: hidden;
+  transition: all 250ms, visibility 100ms step-end;
+  padding: 2px;
+  border: 1px solid darkblue;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.queue-all:active {
+  border-color: darkgreen;
+}
+
+.queue-all.hidden {
+  height: 0;
+  padding: 0;
+  border-width: 0;
+  visibility: hidden;
+  transition: all 250ms, visibility 100ms;
+}
+
+.queue-all .play-icon {
+  margin-right: 5px;
+}
+
+.queue-all .label {
+  margin-left: 5px;
+  font-size: 16px;
+}
+
+.queue-all.video-is-playing .play-icon {
+  display: none;
 }

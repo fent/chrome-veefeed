@@ -266,7 +266,21 @@ function updateQueue(queue, tabID, url) {
   }
 }
 
-function unqueue(tabID, url) {
+function queueVideo(tabID, url, source) {
+  var pos = (queueTabs[tabID] = queueTabs[tabID] || [])
+    .push({ url: url, source: source });
+  (queueUrlMap[tabID] = queueUrlMap[tabID] || {})[url] = pos - 1;
+}
+
+function afterQueue(tabID) {
+  localStorage.setItem('queue', JSON.stringify(queueUrlMap));
+  chrome.browserAction.setBadgeBackgroundColor({
+    color: BADGE_COLOR_QUEUED,
+    tabId: +tabID,
+  });
+}
+
+function unqueueVideo(tabID, url) {
   var queue = queueTabs[tabID];
   if (!queue) { return; }
   var i = queue.findIndex(function(o) { return o.url === url; });
@@ -315,7 +329,7 @@ function getSourceFromURL(url) {
 chrome.runtime.onMessage.addListener(function(request, sender) {
   if (request.watched) {
     // Remove this video from queue if opened from a tab that has a queue.
-    if (request.tabID) { unqueue(request.tabID, request.url); }
+    if (request.tabID) { unqueueVideo(request.tabID, request.url); }
     markAsWatched(request.source, request.url);
 
   } else if (request.started) {
@@ -339,23 +353,21 @@ chrome.runtime.onMessage.addListener(function(request, sender) {
             }
           });
         }
-
       });
     });
 
   } else if (request.queue) {
-    var pos = (queueTabs[request.tabID] = queueTabs[request.tabID] || [])
-      .push({ url: request.url, source: request.source });
-    (queueUrlMap[request.tabID] = queueUrlMap[request.tabID] || {})
-      [request.url] = pos - 1;
-    localStorage.setItem('queue', JSON.stringify(queueUrlMap));
-    chrome.browserAction.setBadgeBackgroundColor({
-      color: BADGE_COLOR_QUEUED,
-      tabId: +request.tabID,
+    queueVideo(request.tabID, request.url, request.source);
+    afterQueue(request.tabID);
+
+  } else if (request.queueAll) {
+    request.videos.forEach(function(video) {
+      queueVideo(request.tabID, video.url, video.source);
     });
+    afterQueue(request.tabID);
 
   } else if (request.unqueue) {
-    unqueue(request.tabID, request.url);
+    unqueueVideo(request.tabID, request.url);
 
   } else if (request.ended) {
     var tabID = sender.tab.id;
