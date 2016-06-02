@@ -6,6 +6,10 @@ function removeChildClasses($node, className) {
   }
 }
 
+function numberWithCommas(num) {
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
 var VIDEO_HEIGHT = 119;
 var SET_POS_WAIT = 100;
 var POS_ANIM_TIME = 500;
@@ -389,7 +393,7 @@ function renderVideos(group) {
             m('span.starts', showTime(video.timestamp)) :
             now >= video.timestamp &&
               m('span.time', timeAgo(video.timestamp)) : null,
-          video.views && m('span.views', video.views),
+          video.views && m('span.views', numberWithCommas(video.views)),
         ]),
         video.desc ? m('div', { innerHTML: video.desc }) : null
       ])

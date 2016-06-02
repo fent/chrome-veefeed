@@ -4,28 +4,25 @@ var sources = {};
 
 sources.youtube = function(callback) {
   util.ajax('https://www.youtube.com/feed/subscriptions', function(xhr) {
-    var $items = xhr.response.getElementsByClassName('yt-shelf-grid-item');
-    if (!$items.length) {
+    var $items = xhr.response.getElementById('browse-items-primary');
+    if (!$items) {
       console.error('Not logged in');
       return;
     }
+    $items = $items.children[0];
     var items = [];
-    for (var i = 0, len = $items.length; i < len; i++) {
-      var $item = $items[i];
-      var $thumb = $item.getElementsByClassName('yt-lockup-thumbnail')[0];
-      var $length = $thumb.getElementsByClassName('video-time')[0];
-
-      var $content = $item.getElementsByClassName('yt-lockup-content')[0];
-      var $title = $content.getElementsByClassName('yt-lockup-title')[0]
-        .children[0];
+    for (var i = 0, len = $items.children.length; i < len; i++) {
+      var $item = $items.children[i];
       var $user = $item
-        .getElementsByClassName('yt-lockup-byline')[0];
-      var $userLink = $user.getElementsByTagName('a')[0];
-      var $userThumb = $user.getElementsByTagName('img')[0];
+        .getElementsByClassName('branded-page-module-title')[0].children[0];
+      var $thumb = $item.getElementsByClassName('yt-lockup-thumbnail')[1];
+      var $length = $thumb.getElementsByClassName('video-time')[0];
+      var $content = $item.getElementsByClassName('yt-lockup-content')[0];
       var $meta = $content.getElementsByClassName('yt-lockup-meta-info')[0];
       var hasMeta = $meta.children.length > 1;
-      var views = hasMeta ? parseInt($meta.children[0].textContent, 10) : null;
-      var time = hasMeta ? $meta.children[1].textContent : null;
+      var time = hasMeta ? $meta.children[0].textContent : null;
+      var views = hasMeta ?
+        parseInt($meta.children[1].textContent.replace(/,/g, ''), 0) : null;
       var $starts = $meta.getElementsByClassName('localized-date')[0];
       var timestamp = $starts ?
         parseInt($starts.getAttribute('data-timestamp'), 10) * 1000 :
@@ -36,8 +33,8 @@ sources.youtube = function(callback) {
       var $desc = $content.getElementsByClassName('yt-lockup-description')[0];
 
       // YouTube videos sometimes don't have thumbnails loaded until
-      // the page is scrolled down.
-      var url = $thumb.getElementsByTagName('a')[0].href;
+      // the page is scrolle down.
+      var url = $thumb.children[0].href;
       var $img = $thumb.getElementsByTagName('img')[0];
       var thumbnail =
         $img.src === 'https://s.ytimg.com/yts/img/pixel-vfl3z5WfW.gif' ?
@@ -49,16 +46,16 @@ sources.youtube = function(callback) {
       items.push({
         source: 'youtube',
         user: {
-          url: $userLink.href,
-          thumbnail: $userThumb && $userThumb.src,
-          name: $userLink.textContent,
-          verified: !!$user
+          url: $user.href,
+          thumbnail: $user.getElementsByTagName('img')[0].src,
+          name: $user.children[1].textContent,
+          verified: !!$content
             .getElementsByClassName('yt-channel-title-icon-verified').length
         },
         url: url,
         thumbnail: thumbnail,
         length: $length ? util.timeToSeconds($length.textContent) : null,
-        title: $title.getAttribute('title'),
+        title: $content.children[0].children[0].textContent,
         timestamp: timestamp, 
         live: !!$content.getElementsByClassName('yt-badge-live').length,
         views: views,
