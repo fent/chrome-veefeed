@@ -27,12 +27,13 @@
 .veefeed-next-video {
   position: absolute;
   left: -3em;
-  bottom: 4em;
+  bottom: calc(4em + 20px);
   display: none;
   width: 250px;
   height: 59px;
   padding: 2px;
   background-color: rgba(50, 50, 50, 0.5);
+  overflow: hidden;
 }
 
 .veefeed-next-button:hover .veefeed-next-video {
