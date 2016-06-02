@@ -20,7 +20,14 @@ getElement('player', function($player) {
 
   // Prepend all class names with app name to avoid collisions.
   var $thumbnail, $length, $title;
-  var $nextButton = m('a.veefeed-next-button', [
+  var $nextButton = m('a.veefeed-next-button', {
+    onclick: function(e) {
+      if ($nextButton.classList.contains('veefeed-show')) {
+        window.location = $nextButton.href;
+      }
+      e.preventDefault();
+    }
+  }, [
     m('svg', {
       'xmlns:xlink': 'http://www.w3.org/1999/xlink',
       width: '100%',
