@@ -266,10 +266,13 @@ function updateQueue(queue, tabID, url) {
   }
 }
 
-function queueVideo(tabID, url, source) {
+function queueVideo(tabID, video) {
   var pos = (queueTabs[tabID] = queueTabs[tabID] || [])
-    .push({ url: url, source: source });
-  (queueUrlMap[tabID] = queueUrlMap[tabID] || {})[url] = pos - 1;
+    .push(video);
+  (queueUrlMap[tabID] = queueUrlMap[tabID] || {})[video.url] = pos - 1;
+  if (pos === 1) {
+    chrome.tabs.sendMessage(+tabID, { setQueue: true, video: video });
+  }
 }
 
 function afterQueue(tabID) {
@@ -288,6 +291,9 @@ function unqueueVideo(tabID, url) {
     queue.splice(i, 1);
     updateQueue(queue, tabID, url);
     localStorage.setItem('queue', JSON.stringify(queueUrlMap));
+    if (i === 0 || !queue.length) {
+      chrome.tabs.sendMessage(+tabID, { setQueue: true, video: queue[0] });
+    }
   }
 }
 
@@ -326,13 +332,16 @@ function getSourceFromURL(url) {
   return null;
 }
 
-chrome.runtime.onMessage.addListener(function(request, sender) {
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+  var queue, tabID;
+
   if (request.watched) {
     // Remove this video from queue if opened from a tab that has a queue.
     if (request.tabID) { unqueueVideo(request.tabID, request.url); }
     markAsWatched(request.source, request.url);
 
   } else if (request.started) {
+    unqueueVideo(sender.tab.id, sender.tab.url);
     markAsWatched(getSourceFromURL(sender.tab.url), sender.tab.url);
     markAsPlaying(sender.tab.id, sender.tab.url);
 
@@ -357,25 +366,23 @@ chrome.runtime.onMessage.addListener(function(request, sender) {
     });
 
   } else if (request.queue) {
-    queueVideo(request.tabID, request.url, request.source);
+    queueVideo(request.tabID, request.video);
     afterQueue(request.tabID);
 
   } else if (request.queueAll) {
-    request.videos.forEach(function(video) {
-      queueVideo(request.tabID, video.url, video.source);
-    });
+    request.videos.forEach(queueVideo.bind(null, request.tabID));
     afterQueue(request.tabID);
 
   } else if (request.unqueue) {
-    unqueueVideo(request.tabID, request.url);
+    unqueueVideo(request.tabID, request.video.url);
 
   } else if (request.ended) {
-    var tabID = sender.tab.id;
+    tabID = sender.tab.id;
     if (!openedVideos[tabID]) { return; }
     openedVideos[tabID].playing = false;
     localStorage.setItem('opened', JSON.stringify(openedVideos));
 
-    var queue = queueTabs[tabID];
+    queue = queueTabs[tabID];
     if (queue) {
       var nextVideo = queue.shift();
       updateQueue(queue, tabID, nextVideo.url);
@@ -389,6 +396,12 @@ chrome.runtime.onMessage.addListener(function(request, sender) {
           active: true
         });
       }, QUEUE_WAIT_MS);
+    }
+
+  } else if (request.getQueueFront) {
+    queue = queueTabs[sender.tab.id];
+    if (queue) {
+      sendResponse(queue[0]);
     }
   }
 });

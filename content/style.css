@@ -1,0 +1,78 @@
+.veefeed-next-button {
+  position: relative;
+  width: 0;
+  height: 4em;
+  visibility: hidden;
+  transition: width 200ms, visibility 200ms step-end;
+  padding: 0 0 1em;
+  font-size: 1em;
+  float: left;
+  z-index: 9999;
+}
+
+.veefeed-next-button.veefeed-show {
+  width: 3em;
+  visibility: visible;
+}
+
+.veefeed-next-button svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3em;
+  height: 3em;
+  fill: #fff;
+}
+
+.veefeed-next-video {
+  position: absolute;
+  left: -3em;
+  bottom: 4em;
+  display: none;
+  width: 250px;
+  height: 59px;
+  padding: 2px;
+  background-color: rgba(50, 50, 50, 0.5);
+}
+
+.veefeed-next-button:hover .veefeed-next-video {
+  display: flex;
+}
+
+.veefeed-next-video .veefeed-left-side {
+  position: relative;
+}
+
+.veefeed-next-video .veefeed-left-side img {
+  width: 98px;
+  min-width: 98px;
+  height: 55px;
+}
+
+.veefeed-next-video .veefeed-left-side .veefeed-length {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  padding: 0 4px;
+  background-color: #000;
+  color: #fff;
+  height: 16px;
+  line-height: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  vertical-align: top;
+  opacity: 0.75;
+}
+
+.veefeed-right-side {
+  padding-left: 10px;
+  font-size: 12px;
+}
+
+.veefeed-next-video .veefeed-right-side .veefeed-title-head {
+  color: #aaa;
+}
+
+.veefeed-next-video .veefeed-right-side .veefeed-title {
+  color: #fff;
+}
