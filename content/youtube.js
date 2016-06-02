@@ -26,6 +26,16 @@ getElement('ytp-play-button', function($playButton) {
         url: $nextButton.href,
       };
 
+      // Since we are hijacking YouTube's own next button,
+      // it's already assigned to go to a video programmatically,
+      // even if the link's `href` property is changed.
+      $nextButton.addEventListener('click', function(e) {
+        if ($nextButton.href !== original.url) {
+          window.location = $nextButton.href;
+          e.preventDefault();
+        }
+      });
+
       onQueueUpdate(function(video) {
         video = video || original;
         $nextButton.setAttribute('data-duration',
