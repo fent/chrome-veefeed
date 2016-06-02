@@ -197,10 +197,10 @@ function renderVideos(group) {
         });
 
       } else {
-        openVideo(group.queueable.shift(), false, function(tab) {
+        openVideo(group.queueable.shift(), false, function(tabID) {
           chrome.runtime.sendMessage({
             queueAll: true,
-            tabID: tab.id,
+            tabID: tabID,
             videos: group.queueable,
           });
         });
@@ -427,6 +427,7 @@ function openVideo(video, inNewTab, callback) {
       if (!tab) {
         openNewTab(video, callback);
       } else {
+        callback(tabID);
         window.close();
       }
     });
@@ -443,7 +444,7 @@ function openNewTab(video, callback) {
       tabID: tab.id,
       winID: winID,
     });
-    if (callback) { callback(tab); }
+    if (callback) { callback(tab.id); }
   });
 }
 
