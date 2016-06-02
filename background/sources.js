@@ -21,7 +21,8 @@ sources.youtube = function(callback) {
       var $meta = $content.getElementsByClassName('yt-lockup-meta-info')[0];
       var hasMeta = $meta.children.length > 1;
       var time = hasMeta ? $meta.children[0].textContent : null;
-      var views = hasMeta ? parseInt($meta.children[1].textContent, 0) : null;
+      var views = hasMeta ?
+        parseInt($meta.children[1].textContent.replace(/,/g, ''), 0) : null;
       var $starts = $meta.getElementsByClassName('localized-date')[0];
       var timestamp = $starts ?
         parseInt($starts.getAttribute('data-timestamp'), 10) * 1000 :
