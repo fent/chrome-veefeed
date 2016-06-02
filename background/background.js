@@ -19,6 +19,7 @@ var options = {
   show_notifications: false,
   play_sound: '',
   show_watched: false,
+  only_play_queued_at_top: true,
   show_ungrouped: false,
   merge: [],
   hide_empty_tabs: false,
@@ -382,6 +383,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     openedVideos[tabID].playing = false;
     localStorage.setItem('opened', JSON.stringify(openedVideos));
 
+    if (options.only_play_queued_at_top && request.scrollTop) { return; }
     queue = queueTabs[tabID];
     if (queue) {
       var nextVideo = queue.shift();

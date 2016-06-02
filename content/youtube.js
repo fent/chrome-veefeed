@@ -7,7 +7,10 @@ getElement('ytp-play-button', function($playButton) {
     // swirly replay arrow.
     if ($playButton.getAttribute('title') === 'Replay') {
       observer.disconnect();
-      chrome.runtime.sendMessage({ ended: true });
+      chrome.runtime.sendMessage({
+        ended: true,
+        scrollTop: document.body.scrollTop,
+      });
     }
   });
   observer.observe($playButton, { attributes: true });
