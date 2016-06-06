@@ -233,7 +233,7 @@ function renderVideos(group) {
 
         chrome.runtime.sendMessage({
           unqueue: true,
-          url: video.url,
+          video: video,
           tabID: tabID,
         });
 
