@@ -427,7 +427,7 @@ function openVideo(video, inNewTab, callback) {
       if (!tab) {
         openNewTab(video, callback);
       } else {
-        callback(tabID);
+        if (callback) { callback(tabID); }
         window.close();
       }
     });
