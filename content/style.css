@@ -77,3 +77,8 @@
 .veefeed-next-video .veefeed-right-side .veefeed-title {
   color: #fff;
 }
+
+.veefeed-video-ended path {
+  stroke: #6294df;
+  fill: #6294df;
+}

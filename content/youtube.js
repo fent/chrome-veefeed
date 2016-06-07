@@ -2,6 +2,7 @@
 
 getElement('ytp-play-button', function($playButton) {
   chrome.runtime.sendMessage({ started: true });
+  var $nextButton = document.getElementsByClassName('ytp-next-button')[0];
   var observer = new MutationObserver(function() {
     // if the video has ended, the play button will change to a
     // swirly replay arrow.
@@ -11,12 +12,13 @@ getElement('ytp-play-button', function($playButton) {
         ended: true,
         scrollTop: document.body.scrollTop,
       });
+      $nextButton.getElementsByTagName('path')[0].style.fill = '#6294df';
     }
   });
   observer.observe($playButton, { attributes: true });
 
-  var $nextButton = document.getElementsByClassName('ytp-next-button')[0];
-  var nextObserver = new MutationObserver(function() {
+  var nextObserver = new MutationObserver(checkNextButton);
+  function checkNextButton() {
     if ($nextButton.getAttribute('data-duration')) {
       nextObserver.disconnect();
       var original = {
@@ -45,6 +47,8 @@ getElement('ytp-play-button', function($playButton) {
         $nextButton.href = video.url;
       });
     }
-  });
+  }
+
   nextObserver.observe($nextButton, { attributes: true });
+  checkNextButton();
 });
