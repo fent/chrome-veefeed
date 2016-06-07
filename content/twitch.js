@@ -2,7 +2,7 @@
 
 getElement('player', function($player) {
   chrome.runtime.sendMessage({ started: true });
-
+  var hasNextVideo = false;
   var $buttons = document.getElementsByClassName('player-buttons-left')[0];
 
   // Prepend all class names with app name to avoid collisions.
@@ -39,12 +39,14 @@ getElement('player', function($player) {
 
   onQueueUpdate(function(video) {
     if (video) {
+      hasNextVideo = true;
       $nextButton.href = video.url;
       $nextButton.classList.add('veefeed-show');
       $thumbnail.src = video.thumbnail;
       $length.textContent = toHumanLength(video.length);
       $title.textContent = video.title;
     } else {
+      hasNextVideo = false;
       $nextButton.classList.remove('veefeed-show');
     }
   });
@@ -59,7 +61,9 @@ getElement('player', function($player) {
         ended: true,
         scrollTop: $scroll.scrollTop,
       });
-      $nextButton.getElementsByTagName('path')[0].style.fill = '#6294df';
+      if (hasNextVideo) {
+        $nextButton.getElementsByTagName('path')[0].style.fill = '#6294df';
+      }
     }
   });
   observer.observe($player, { attributes: true });

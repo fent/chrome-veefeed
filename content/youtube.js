@@ -2,6 +2,7 @@
 
 getElement('ytp-play-button', function($playButton) {
   chrome.runtime.sendMessage({ started: true });
+  var hasNextVideo = false;
   var $nextButton = document.getElementsByClassName('ytp-next-button')[0];
   var observer = new MutationObserver(function() {
     // if the video has ended, the play button will change to a
@@ -12,7 +13,9 @@ getElement('ytp-play-button', function($playButton) {
         ended: true,
         scrollTop: document.body.scrollTop,
       });
-      $nextButton.getElementsByTagName('path')[0].style.fill = '#6294df';
+      if (hasNextVideo) {
+        $nextButton.getElementsByTagName('path')[0].style.fill = '#6294df';
+      }
     }
   });
   observer.observe($playButton, { attributes: true });
@@ -39,6 +42,7 @@ getElement('ytp-play-button', function($playButton) {
       });
 
       onQueueUpdate(function(video) {
+        hasNextVideo = !!video;
         video = video || original;
         $nextButton.setAttribute('data-duration',
           video.duration || toHumanLength(video.length));
