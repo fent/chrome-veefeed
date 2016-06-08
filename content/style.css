@@ -1,18 +1,29 @@
+/* Since the original website's button classes are used to help style
+ * the next button, some of these properties need to be set as `!important` */
 .veefeed-next-button {
   position: relative;
-  width: 0;
-  height: 4em;
+  width: 0 !important;
   visibility: hidden;
   transition: width 200ms, visibility 200ms step-end;
-  padding: 0 0 1em;
   font-size: 1em;
-  float: left;
   z-index: 9999;
+  overflow: visible !important;
 }
 
 .veefeed-next-button.veefeed-show {
-  width: 3em;
+  width: 3em !important;
   visibility: visible;
+  transition: width 200ms;
+}
+
+/* On YouTube, its own next button will be hidden when veefeed's is shown. */
+.veefeed-next-button + .ytp-next-button {
+  transition: width 200ms, visibility 200ms step-end;
+}
+
+.veefeed-next-button.veefeed-show + .ytp-next-button {
+  width: 0;
+  visibility: none;
 }
 
 .veefeed-next-button svg {
@@ -32,12 +43,8 @@
   width: 250px;
   height: 59px;
   padding: 2px;
-  background-color: rgba(50, 50, 50, 0.5);
+  background-color: rgba(50, 50, 50, 0.7);
   overflow: hidden;
-}
-
-.veefeed-next-button:hover .veefeed-next-video {
-  display: flex;
 }
 
 .veefeed-next-video .veefeed-left-side {
@@ -68,17 +75,25 @@
 .veefeed-right-side {
   padding-left: 10px;
   font-size: 12px;
+  line-height: 20px;
 }
 
 .veefeed-next-video .veefeed-right-side .veefeed-title-head {
-  color: #aaa;
+  color: #aaa !important;
 }
 
 .veefeed-next-video .veefeed-right-side .veefeed-title {
-  color: #fff;
+  color: #fff !important;
 }
 
-.veefeed-video-ended path {
+.player[data-ended="true"] .veefeed-next-video path,
+.ytp-play-button[title="Replay"] + .veefeed-next-video path {
   stroke: #6294df;
   fill: #6294df;
+}
+
+.veefeed-next-button:hover .veefeed-next-video,
+.player[data-ended="true"] .veefeed-next-video,
+.ytp-play-button[title="Replay"] + .veefeed-next-video {
+  display: flex;
 }

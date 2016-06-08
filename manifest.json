@@ -26,7 +26,8 @@
   },
   "content_scripts": [
     { "matches": ["https://www.youtube.com/watch?v=*"],
-      "js": ["util/util.js", "content/shared.js", "content/youtube.js"] },
+      "js": ["util/util.js", "content/shared.js", "content/youtube.js"],
+      "css": ["content/style.css"] },
     { "matches": ["https://www.twitch.tv/*/v/*"],
       "js": ["util/util.js", "content/shared.js", "content/twitch.js"],
       "css": ["content/style.css"] }
