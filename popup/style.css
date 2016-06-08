@@ -71,6 +71,7 @@ a:hover {
 #tabs .tab .badge {
   display: inline-block;
   width: 14px;
+  height: 14px;
   line-height: 14px;
   font-size: 11px;
   padding: 2px;
@@ -79,13 +80,15 @@ a:hover {
   background-color: #225F86;
   color: #ddd;
   text-align: center;
+  vertical-align: text-bottom;
   position: relative;
   top: -2px;
-  transition: all 100ms;
+  transition: all 250ms;
 }
 
 #tabs .tab .badge:empty {
   width: 0;
+  height: 0;
   padding: 0;
   margin: 0;
 }
