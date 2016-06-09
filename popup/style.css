@@ -82,7 +82,6 @@ a:hover {
   text-align: center;
   vertical-align: text-bottom;
   position: relative;
-  top: -2px;
   transition: all 250ms;
 }
 
