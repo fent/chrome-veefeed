@@ -142,7 +142,7 @@ a:hover {
   opacity: 0.75;
 }
 
-.source-twitch .left-side .length {
+.left-side .game + .length {
   top: 4px;
   bottom: auto;
 }
@@ -316,7 +316,7 @@ a:hover {
   margin-bottom: 3px;
 }
 
-.favicon {
+.favicon, .collection {
   display: inline-block;
   width: 12px;
   height: 12px;
@@ -325,7 +325,7 @@ a:hover {
   margin-right: 4px;
 }
 
- .favicon.source-youtube {
+.favicon.source-youtube {
   background-image: url(https://www.youtube.com/favicon.ico);
 }
 
@@ -333,7 +333,11 @@ a:hover {
   background-image: url(https://www.twitch.tv/favicon.ico);
 }
 
-.user:before {
+.collection.source-haloruns {
+  background-image: url(http://haloruns.com/favicon.png);
+}
+
+.user:before, .collections:after {
   content: '\002022';
   margin-right: 4px;
   color: #ccc;

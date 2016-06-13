@@ -1,4 +1,5 @@
-var util = window.util = {};
+/* exported util */
+var util = {};
 
 util.ajax = function(url, callback) {
   if (window.location.protocol.indexOf('http') === 0 &&
@@ -38,31 +39,42 @@ util.relativeToTimestamp = function(str) {
   return Date.now() - n * multiplier * 1000;
 };
 
-var sizedMap = util.sizedMap = function(limit, list) {
+var SizedMap = util.SizedMap = function(limit, list) {
   this.limit = limit;
   this.list = [];
   this.map = {};
   if (list) {
-    list = list.slice(-limit);
-    for (var i = 0, len = list.length; i < len; i++) {
-      this.push(list[i]);
+    if (Array.isArray(list)) {
+      list = list.slice(-limit);
+      for (var i = 0, len = list.length; i < len; i++) {
+        this.push(list[i]);
+      }
+    } else {
+      for (var key in list) {
+        this.push(key, list[key]);
+      }
     }
   }
 };
 
-sizedMap.prototype.push = function(key) {
+SizedMap.prototype.push = function(key, val, noUpdate) {
   if (this.has(key)) {
+    if (noUpdate) { return; }
     this.list.splice(this.list.indexOf(key), 1);
   }
   this.list.push(key);
-  this.map[key] = true;
+  this.map[key] = val || true;
   if (this.list.length > this.limit) {
     delete this.map[this.list.shift()];
   }
 };
 
-sizedMap.prototype.has = function(key) {
-  return this.map[key] === true;
+SizedMap.prototype.has = function(key) {
+  return key in this.map;
+};
+
+SizedMap.prototype.get = function(key) {
+  return this.map[key];
 };
 
 // Converts from 00:00:00 or 00:00 to seconds.
@@ -81,7 +93,7 @@ util.isSameVideo = function(video1, video2) {
     return false;
   }
 
-  // If the titles are exact, then they sare the same.
+  // If the titles are exact, then they are the same.
   if (video1.title === video2.title) { return true; }
 
   var wordsMap = {};
@@ -101,4 +113,26 @@ util.isSameVideo = function(video1, video2) {
   return video2.title.split(/\s+/).filter(function(word) {
     return word && wordsMap[word.toLowerCase()];
   }).length >= 2;
+};
+
+util.parallel = function(funcs, callback) {
+  if (!funcs.length) { return callback([]); }
+  var callsDone = 0;
+  var results = [];
+  funcs.forEach(function(func, i) {
+    func(function(result) {
+      results[i] = result;
+      if (++callsDone === funcs.length) {
+        callback(results);
+      }
+    });
+  });
+};
+
+util.parallelMap = function(args, func, callback) {
+  util.parallel(args.map(function(arg) {
+    return function(callback) {
+      func(arg, callback);
+    };
+  }), callback);
 };
