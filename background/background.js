@@ -138,7 +138,7 @@ function updateVideos() {
       var video = newVideos
         .find(function(video) { return video.thumbnail; });
       if (video) { notification.iconUrl = video.thumbnail; }
-      chrome.notifications.create('vee', notification);
+      chrome.notifications.create('veefeed' + Date.now(), notification);
     }
 
     if (options.play_sound && newVideos.length) {
