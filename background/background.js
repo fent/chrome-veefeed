@@ -1,6 +1,6 @@
 /* global chrome, sources, util */
 
-var MAX_WATCHED   = 180;  // Max watched videos to keep in storage.
+var MAX_WATCHED   = 200;  // Max watched videos to keep in storage.
 var MAX_KNOWN     = 200;  // Max videos in memory to "know" about, to notify.
 var MAX_VIDEOS    = 50;   // Max videos to display for each group.
 var QUEUE_WAIT_MS = 2500; // How long to wait to play queued up videos.
@@ -28,7 +28,7 @@ var options = {
 
 var allVideos;
 var watchedVideos = {};
-var knownVideos = new util.sizedMap(MAX_KNOWN);
+var knownVideos = new util.SizedMap(MAX_KNOWN);
 var ignoredVideos;
 var ignoreRules = [];
 var groups = [];
@@ -38,22 +38,9 @@ var openedVideos = {};
 var pausedTabs = {};
 
 function checkForUpdates() {
-  var keys = Object.keys(sources);
-  var totalCalls = 0;
-  var callsDone = 0;
-  var results = [];
-
-  keys.forEach(function(source) {
-    if (!options.sources[source]) { return; }
-    totalCalls++;
-    sources[source](function(items) {
-      results = results.concat(items);
-      if (++callsDone === totalCalls) {
-        allVideos = results;
-        allVideos.sort(function(a, b) { return b.timestamp - a.timestamp; });
-        updateVideos();
-      }
-    });
+  sources.getVideos(options.sources, function(results) {
+    allVideos = results;
+    updateVideos();
   });
 }
 
@@ -69,7 +56,7 @@ function updateVideos() {
     .filter(function(video) {
       delete video.otherSource;
       video.watched = video.watched ||
-        watchedVideos[video.source].has(videoID(video.url));
+        watchedVideos[sources.sourceFromURL(video.url)].has(videoID(video.url));
       var ignoreIt = matchRules(ignoreRules, video);
       ignoreIt = ignoreIt ||
         options.ignore_live && video.live ||
@@ -105,6 +92,9 @@ function updateVideos() {
   results = results.filter(function(video) {
     return !video.watched || options.show_watched;
   });
+
+  // Sort.
+  allVideos.sort(function(a, b) { return b.timestamp - a.timestamp; });
 
   // Check if there are any new videos, only after the first fetch of videos.
   if (knownVideos.list.length) {
@@ -153,6 +143,7 @@ function updateVideos() {
     results.forEach(function(video) { knownVideos.push(video.url); });
   }
 
+  var unwatched = 0;
   var matchedMap = {};
   var matchedOnlyMap = {};
   var groupedVideos = groups.map(function(group) {
@@ -163,14 +154,18 @@ function updateVideos() {
       matchedMap[video.url] = true;
       if (group.only) { matchedOnlyMap[video.url] = true; }
     });
-    return { name: group.name, videos: matched.slice(0, MAX_VIDEOS) };
+    group = { name: group.name, videos: matched.slice(0, MAX_VIDEOS) };
+    unwatched += group.videos.filter(function(video) {
+      return !video.watched;
+    }).length;
+    return group;
   });
 
   var ungroupedVideos = results.filter(function(video) {
     return !matchedMap[video.url];
   }).slice(0, MAX_VIDEOS);
 
-  var unwatched = results.filter(function(video) {
+  unwatched += ungroupedVideos.filter(function(video) {
     return !video.watched;
   }).length;
 
@@ -188,6 +183,7 @@ function updateVideos() {
 var timeoutID;
 function checkEveryNowAndThen() {
   timeoutID = setTimeout(function() {
+    clearTimeout(timeoutID);
     checkForUpdates();
     checkEveryNowAndThen();
   }, options.interval * 1000 * 60);
@@ -198,13 +194,16 @@ chrome.browserAction.setBadgeBackgroundColor({ color: BADGE_COLOR });
 
 var optionsKeys = ['groups']
   .concat(Object.keys(options))
-  .concat(Object.keys(sources).map(function(s) { return 'watched_'+ s; }));
+  .concat(Object.keys(sources.videos).map(function(s) {
+    return 'watched_' + s;
+  }));
+
 chrome.storage.sync.get(optionsKeys, function(items) {
   // Keep track of watched videos in storage so that this extension
   // works across computers.
-  for (var source in sources) {
+  for (var source in sources.videos) {
     watchedVideos[source] =
-      new util.sizedMap(MAX_WATCHED, items['watched_' + source] || []);
+      new util.SizedMap(MAX_WATCHED, items['watched_' + source] || []);
   }
 
   ignoreRules = generateRules(items.ignore || []);
@@ -298,7 +297,8 @@ function unqueueVideo(tabID, url) {
   }
 }
 
-function markAsWatched(source, url) {
+function markAsWatched(url) {
+  var source = sources.sourceFromURL(url);
   watchedVideos[source].push(videoID(url));
 
   // Watched videos is updated in storage since there is a listener
@@ -323,27 +323,17 @@ function isVideoPage(url) {
   return /https?:\/\/(www\.)?(youtube\.com\/(watch|embed)|twitch\.tv\/[a-z0-9_]+\/[cv]\/[0-9]+)/i.test(url);
 }
 
-function getSourceFromURL(url) {
-  var hostname = new URL(url).hostname;
-  for (var source in sources) {
-    if (hostname.indexOf(source) > -1) {
-      return source;
-    }
-  }
-  return null;
-}
-
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   var queue, tabID;
 
   if (request.watched) {
     // Remove this video from queue if opened from a tab that has a queue.
     if (request.tabID) { unqueueVideo(request.tabID, request.url); }
-    markAsWatched(request.source, request.url);
+    markAsWatched(request.url);
 
   } else if (request.started) {
     unqueueVideo(sender.tab.id, sender.tab.url);
-    markAsWatched(getSourceFromURL(sender.tab.url), sender.tab.url);
+    markAsWatched(sender.tab.url);
     markAsPlaying(sender.tab.id, sender.tab.url);
 
   } else if (request.newTab) {
@@ -409,22 +399,27 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 });
 
 chrome.storage.onChanged.addListener(function(changes) {
-  var watchedFound = false;
-  for (var source in sources) {
+  for (var source in sources.videos) {
     // Watched videos are in storage so that they are remembered
     // across the same account.
     if (changes['watched_' + source]) {
       watchedVideos[source] =
-        new util.sizedMap(MAX_WATCHED, changes['watched_' + source].newValue);
-      watchedFound = true;
+        new util.SizedMap(MAX_WATCHED, changes['watched_' + source].newValue);
+      updateVideos();
+      return;
     }
   }
 
-  if (!watchedFound) {
-    for (var key in changes) {
-      options[key] = changes[key].newValue;
-    }
-    localStorage.setItem('options', JSON.stringify(options));
+  for (var key in changes) {
+    options[key] = changes[key].newValue;
+  }
+  localStorage.setItem('options', JSON.stringify(options));
+
+  if (changes.sources) {
+    checkForUpdates();
+    checkEveryNowAndThen();
+
+  } else {
     if (changes.interval) {
       checkEveryNowAndThen();
     }
@@ -435,9 +430,9 @@ chrome.storage.onChanged.addListener(function(changes) {
       groups = changes.groups.newValue;
       groups.forEach(function(group) { generateRules(group.rules); });
     }
-  }
 
-  updateVideos();
+    updateVideos();
+  }
 });
 
 chrome.tabs.onRemoved.addListener(function(tabID) {

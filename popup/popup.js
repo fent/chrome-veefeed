@@ -254,11 +254,10 @@ function renderVideos(group) {
     var $video = m('li.video' + vidClass, [
       m('a.left-side', { href: video.url, disabled: true }, [
         m('img.lazy', {
-          'data-src': video.thumbnail,
+          'data-src': video.thumbnail || '',
           onclick: open.bind(null, false),
         }),
-        video.length && m('span.length', toHumanLength(video.length)),
-        video.source === 'twitch' && video.game ?
+        video.game ?
           m('a.game', {
             href: 'https://www.twitch.tv/directory/game/' +
               encodeURIComponent(video.game) + '/videos/week',
@@ -268,6 +267,7 @@ function renderVideos(group) {
             'data-src': 'http://static-cdn.jtvnw.net/ttv-boxart/' +
               encodeURIComponent(video.game) + '-138x190.jpg',
           })) : null,
+        video.length && m('span.length', toHumanLength(video.length)),
         videoIsPlaying && m('span.queue', {
           'data-title': 'Add to Queue',
           onclick: function() {
@@ -331,7 +331,6 @@ function renderVideos(group) {
             chrome.runtime.sendMessage({
               watched: true,
               url: video.url,
-              source: video.source,
               tabID: tabID,
             });
             videosMap[video.url].forEach(function(g) {
@@ -369,6 +368,12 @@ function renderVideos(group) {
           onclick: open.bind(null, false)
         }, video.title),
         m('div', [
+          video.collections &&
+            m('span.collections', video.collections.map(function(source) {
+              return m('span.collection', {
+                className: 'source-' + source.source,
+              });
+            })),
           m('span.favicon', { className: 'source-' + video.source }),
           video.otherSource && m('a.favicon', {
             className: 'source-' + video.otherSource.source,
@@ -415,7 +420,6 @@ function openVideo(video, inNewTab, callback) {
   chrome.runtime.sendMessage({
     watched: true,
     url: video.url,
-    source: video.source,
     tabID: tabID,
   });
 

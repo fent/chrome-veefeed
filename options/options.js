@@ -2,8 +2,9 @@
 
 chrome.options.opts.autoSave = false;
 var sources = [
-  { value: 'youtube', desc: 'YouTube' },
-  { value: 'twitch', desc: 'Twitch' },
+  { value: 'youtube', desc: 'YouTube', default: true },
+  { value: 'twitch', desc: 'Twitch', default: false },
+  { value: 'haloruns', desc: 'HaloRuns', default: false },
 ];
 
 // Used for ignore and group rules.
@@ -19,10 +20,13 @@ var rules = [
 var mergeSources = [{ value: '', desc: 'Select' }].concat(sources);
 
 chrome.options.set([
-  { name: 'sources', type: 'object', options: [
-    { name: 'youtube', default: true, desc: 'Enable YouTube' },
-    { name: 'twitch', default: false, desc: 'Enable Twitch' },
-    ],
+  { name: 'sources', type: 'object', options: sources.map(function(source) {
+    return {
+      name: source.value,
+      desc: 'Enable ' + source.desc,
+      default: source.default,
+    };
+  }),
     desc: 'Must be logged in to be able to retrieve videos' },
   { name: 'interval', type: 'select', default: 15, options: [
     { value: 5,  desc: '5 minutes' },
