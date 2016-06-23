@@ -183,6 +183,7 @@ function updateVideos() {
 var timeoutID;
 function checkEveryNowAndThen() {
   timeoutID = setTimeout(function() {
+    clearTimeout(timeoutID);
     checkForUpdates();
     checkEveryNowAndThen();
   }, options.interval * 1000 * 60);
@@ -398,22 +399,27 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 });
 
 chrome.storage.onChanged.addListener(function(changes) {
-  var watchedFound = false;
   for (var source in sources.videos) {
     // Watched videos are in storage so that they are remembered
     // across the same account.
     if (changes['watched_' + source]) {
       watchedVideos[source] =
         new util.SizedMap(MAX_WATCHED, changes['watched_' + source].newValue);
-      watchedFound = true;
+      updateVideos();
+      return;
     }
   }
 
-  if (!watchedFound) {
-    for (var key in changes) {
-      options[key] = changes[key].newValue;
-    }
-    localStorage.setItem('options', JSON.stringify(options));
+  for (var key in changes) {
+    options[key] = changes[key].newValue;
+  }
+  localStorage.setItem('options', JSON.stringify(options));
+
+  if (changes.sources) {
+    checkForUpdates();
+    checkEveryNowAndThen();
+
+  } else {
     if (changes.interval) {
       checkEveryNowAndThen();
     }
@@ -424,9 +430,9 @@ chrome.storage.onChanged.addListener(function(changes) {
       groups = changes.groups.newValue;
       groups.forEach(function(group) { generateRules(group.rules); });
     }
-  }
 
-  updateVideos();
+    updateVideos();
+  }
 });
 
 chrome.tabs.onRemoved.addListener(function(tabID) {
