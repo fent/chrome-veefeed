@@ -4,7 +4,7 @@ chrome.options.opts.autoSave = false;
 var sources = [
   { value: 'youtube', desc: 'YouTube', default: true },
   { value: 'twitch', desc: 'Twitch', default: false },
-  { value: 'haloruns', desc: 'HaloRuns', default: false },
+  { value: 'haloruns', desc: 'HaloRuns', default: false, col: true },
 ];
 
 // Used for ignore and group rules.
@@ -14,10 +14,11 @@ var rules = [
   { type: 'text', name: 'user', desc: 'User' },
   { type: 'text', name: 'title', desc: 'Title' },
   { type: 'text', name: 'game', desc: 'Game',
-    bindTo: { field: 'source', value: ['twitch', ''] } },
+    bindTo: { field: 'source', value: ['twitch', 'haloruns', ''] } },
 ];
 
-var mergeSources = [{ value: '', desc: 'Select' }].concat(sources);
+var mergeSources = [{ value: '', desc: 'Select' }]
+  .concat(sources.filter(function(source) { return !source.col; }));
 
 chrome.options.set([
   { name: 'sources', type: 'object', options: sources.map(function(source) {

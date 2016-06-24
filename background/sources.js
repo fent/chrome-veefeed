@@ -71,6 +71,15 @@ var sources = {
                 }
               } else if (!video[key]) {
                 video[key] = colVideo[key];
+
+                // Keeping a copy of the collection username and title
+                // for filtering.
+              } else if (key === 'user') {
+                colVideo.collections[0].username = colVideo.user.name;
+
+              } else if (key === 'title') {
+                colVideo.collections[0].title = colVideo.title;
+
               }
             }
           } else {
