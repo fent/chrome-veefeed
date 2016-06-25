@@ -1,6 +1,8 @@
 /* global chrome, m, toHumanLength */
 /* exported getElement, setNextButton */
 
+chrome.runtime.sendMessage({ started: true });
+
 // Element may not be available right away when the page loads.
 function getElement(className, callback) {
   function search() {

@@ -1,8 +1,6 @@
 /* global chrome, getElement, setNextButton  */
 
 getElement('player', function($player) {
-  chrome.runtime.sendMessage({ started: true });
-
   var $scroll = document.querySelector('#main_col .tse-scroll-content');
   var observer = new MutationObserver(function() {
     // If the video has ended, not just paused, the player will have its
