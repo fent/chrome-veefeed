@@ -33,7 +33,7 @@ var $tabs = document.getElementById('tabs').children[0];
 var $content = document.getElementById('content');
 
 
-var tabID, winID, queue, videoIsOpened = false, videoIsPlaying = false;
+var tabID, winID, queue, openedVideo;
 function getQueue() {
   queue = JSON.parse(localStorage.getItem('queue'));
   if (queue) { queue = queue[tabID]; }
@@ -51,7 +51,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, function(results) {
   getQueue();
 
   // See if there's another video opened in this tab.
-  var openedVideo = JSON.parse(localStorage.getItem('opened'));
+  openedVideo = JSON.parse(localStorage.getItem('opened'));
   if (openedVideo) {
     openedVideo = openedVideo[tabID];
     if (openedVideo && openedVideo.url !== tab.url) {
@@ -65,9 +65,6 @@ chrome.tabs.query({ active: true, currentWindow: true }, function(results) {
       video.queued = queue && queue[video.url] != null;
       video.playing = openedVideo &&
         openedVideo.url === video.url && openedVideo.playing;
-      videoIsOpened = videoIsOpened ||
-        openedVideo && openedVideo.url === video.url;
-      videoIsPlaying = videoIsPlaying || video.playing;
     });
   });
 
@@ -174,9 +171,9 @@ function renderVideos(group) {
   }
 
   group.$queueAll = m('div.queue-all', {
-    className: videoIsPlaying && 'video-is-playing',
+    className: openedVideo && openedVideo.playing && 'video-is-playing',
     onclick: function() {
-      if (videoIsPlaying) {
+      if (openedVideo && openedVideo.playing) {
         chrome.runtime.sendMessage({
           queueAll: true,
           tabID: tabID,
@@ -211,7 +208,8 @@ function renderVideos(group) {
     m('span.play-icon', '▶'),
     m('span.queue-icon'),
     m('span.label',
-      (videoIsPlaying ? 'Q' : 'Play and q') + 'ueue all unwatched')
+      (openedVideo && openedVideo.playing ?
+      'Q' : 'Play and q') + 'ueue all unwatched')
   ]);
 
   group.$videos = m('ul', group.videos.map(function(video) {
@@ -268,7 +266,7 @@ function renderVideos(group) {
               encodeURIComponent(video.game) + '-138x190.jpg',
           })) : null,
         video.length && m('span.length', toHumanLength(video.length)),
-        videoIsPlaying && m('span.queue', {
+        openedVideo && openedVideo.playing && m('span.queue', {
           'data-title': 'Add to Queue',
           onclick: function() {
             var message = {
@@ -316,9 +314,9 @@ function renderVideos(group) {
 
           },
         }),
-        videoIsOpened && options.use_same_tab && m('span.open-new-tab', {
+        openedVideo && options.use_same_tab && m('span.open-new-tab', {
           'data-title': 'Open in new tab' +
-            (options.pause_other_tabs && videoIsPlaying?
+            (options.pause_other_tabs && openedVideo && openedVideo.playing ?
              ', pause current video' : ''),
           onclick: open.bind(null, true),
         }, '⇗')
@@ -423,7 +421,7 @@ function openVideo(video, inNewTab, callback) {
     tabID: tabID,
   });
 
-  if (options.use_same_tab && videoIsOpened && !inNewTab) {
+  if (options.use_same_tab && openedVideo && !inNewTab) {
     chrome.tabs.update(parseInt(tabID), {
       url: video.url,
       active: true
