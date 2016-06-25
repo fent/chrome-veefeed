@@ -256,7 +256,7 @@ sources.collections.haloruns = function(callback) {
     }
     $items = $items.children[0];
     var items = [];
-    for (var i = 1, len = $items.children.length; i < len; i++) {
+    for (var i = 1, len = Math.min($items.children.length, 21); i < len; i++) {
       var $item = $items.children[i];
       var $col1 = $item.children[0];
       var $col2 = $item.children[1];
