@@ -321,7 +321,6 @@ function queueMenuClicked(tabID, info) {
     if (!video) { return; }
     queueVideo(tabID, video);
     afterQueue(tabID);
-    sources.saveCache();
   });
 }
 

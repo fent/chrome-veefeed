@@ -1,9 +1,11 @@
 /* global chrome, util */
 /* exported sources */
 
-// Keep a local cache of videos, since some sources link to Twitch,
-// but there isn't a way to get a vod's thumbnail only from its id,
-// we'll get it by making a request to the Twitch API.
+// Keep a local cache of videos, since some collections link to host sites,
+// but will often not contain enough metainfo of the videos, such
+// as the thumbnail, views, even the user.
+//
+// Note that this is different from ajax cache.
 var cachedVideos = new util.SizedMap(200, 'cachedVideos');
 var patterns;
 var sources = {
@@ -91,19 +93,13 @@ var sources = {
             colVideo.source = sources.sourceFromURL(colVideo.url);
             videosMap[colVideo.url] = colVideo;
           }
-          cachedVideos.push(colVideo.url, colVideo, true);
         });
-        sources.saveCache();
 
         var allVideos = [];
         for (var url in videosMap) { allVideos.push(videosMap[url]); }
         callback(allVideos);
       });
     });
-  },
-
-  saveCache: function() {
-    cachedVideos.save();
   },
 
   sourceFromURL: function(url) {
@@ -137,11 +133,19 @@ var sources = {
       callback(cachedVideos.get(url));
 
     } else if (host === 'www.youtube.com' || host === 'youtu.be') {
-      util.ajax('https://www.youtube.com/get_video_info?video_id=' + id +
-      '&ps=default&gl=US&hl=en',
-      function(xhr, meta) {
+      util.ajax('https://www.youtube.com/get_video_info' +
+      '?ps=default&gl=US&hl=en&video_id=' + id, {
+        cache: function(response) {
+          return {
+            length: parseInt(response.length_seconds, 10),
+            title: response.title,
+            views: parseInt(response.view_count, 10),
+            user: { name: response.author },
+          };
+        },
+      }, function(xhr, meta) {
         if (!meta) { return callback(); }
-        var video = {
+        callback({
           // Canonical form of URL.
           url: 'https://www.youtube.com/watch?v=' + id,
 
@@ -150,24 +154,31 @@ var sources = {
             '/mqdefault.jpg?custom=true&w=196&h=110&stc=true&jpg444=true&' +
             'jpgq=90&sp=68',
 
-          length: parseInt(meta.length_seconds, 10),
+          length: meta.length,
           title: meta.title,
+          views: meta.views,
+          user: meta.user,
           game: null,
-          views: parseInt(meta.view_count, 10),
-          user: { name: meta.author },
-        };
-        cachedVideos.push(url, video);
-        callback(video);
+        });
       });
 
     } else if (host === 'www.twitch.tv') {
-      util.ajax('https://api.twitch.tv/kraken/videos/v' + id,
-      function(xhr, meta) {
+      util.ajax('https://api.twitch.tv/kraken/videos/v' + id, {
+        cache: function(response) {
+          return {
+            thumbnail : response.preview,
+            length    : response.length,
+            title     : response.title,
+            game      : response.game,
+            views     : response.views,
+          };
+        },
+      }, function(xhr, meta) {
         if (!meta) { return callback(null); }
-        var username = /https:\/\/www\.twitch\.tv\/([^\/]+)\//.exec(url)[1];
-        var video = {
+        var username = /twitch\.tv\/([^\/]+)\//.exec(url)[1];
+        callback({
           url       : url,
-          thumbnail : meta.preview,
+          thumbnail : meta.thumbnail,
           length    : meta.length,
           title     : meta.title,
           game      : meta.game,
@@ -176,9 +187,7 @@ var sources = {
             url: 'https://www.twitch.tv/' + username,
             name: username,
           }
-        };
-        cachedVideos.push(url, video);
-        callback(video);
+        });
       });
 
     } else {
@@ -203,24 +212,14 @@ function addMetaToVideo(video, callback) {
     video.url = meta.url;
     video.thumbnail = meta.thumbnail;
     video.length = meta.length;
-    if (meta.game) {
-      video.game = meta.game;
-    }
 
     // Views and title can update later, so don't include these when getting
     // metainfo from cache.
-    if (!video.title) {
-      video.title = meta.title;
-    }
-    if (!video.views) {
-      video.views = meta.views;
-    }
-
-    // User can be different for the same video posted in
-    // a host or collection.
-    if (!video.user) {
-      video.user = meta.user;
-    }
+    ['game', 'title', 'views', 'user'].forEach(function(field) {
+      if (meta[field] && !video[field]) {
+        video[field] = meta[field];
+      }
+    });
     callback();
   });
 }
@@ -296,28 +295,28 @@ sources.videos.twitch = function(callback) {
     url: 'https://www.twitch.tv/directory/following/videos',
     name: 'api_token',
   }, function(cookie) {
-    var xhr = util.ajax('https://api.twitch.tv/kraken/videos/followed?' +
-      'limit=40&broadcast_type=highlight&offset=0&on_site=1',
-      function(xhr, result) {
-        if (!result || !result.videos) { return callback(); }
-        callback(result.videos.map(function(video) {
-          return {
-            user: {
-              url: 'https://www.twitch.tv/' + video.channel.name,
-              name: video.channel.display_name,
-            },
-            url: video.url.replace(/^https:\/\/secure\./, 'https://www.'),
-            thumbnail: video.preview,
-            length: video.length,
-            title: video.title,
-            timestamp: new Date(video.created_at).getTime(),
-            views: video.views,
-            desc: video.description,
-            game: video.game,
-          };
-        }));
+    util.ajax('https://api.twitch.tv/kraken/videos/followed?' +
+    'limit=40&broadcast_type=highlight&offset=0&on_site=1', {
+      headers: { 'Twitch-Api-Token': cookie.value },
+    }, function(xhr, result) {
+      if (!result || !result.videos) { return callback(); }
+      callback(result.videos.map(function(video) {
+        return {
+          user: {
+            url: 'https://www.twitch.tv/' + video.channel.name,
+            name: video.channel.display_name,
+          },
+          url: video.url.replace(/^https:\/\/secure\./, 'https://www.'),
+          thumbnail: video.preview,
+          length: video.length,
+          title: video.title,
+          timestamp: new Date(video.created_at).getTime(),
+          views: video.views,
+          desc: video.description,
+          game: video.game,
+        };
+      }));
     });
-    xhr.setRequestHeader('Twitch-Api-Token', cookie.value);
   });
 };
 
@@ -381,27 +380,23 @@ sources.collections.haloruns = function(callback) {
   });
 };
 
-var speedrundotcomCache = new util.SizedMap(200, 'speedrundotcomCache');
 var speedrundotcomKey = localStorage.getItem('speedrundotcomKey');
 sources.collections.speedrundotcom = function(callback) {
-  function getMetaForRun(run, callback) {
-    if (speedrundotcomCache.has(run.id)) {
-      callback(speedrundotcomCache.get(run.id));
-    } else {
-      util.ajax(run.url, function(xhr, meta) {
-        if (!meta) { return callback(); }
-        var cache = {
-          url: meta.data.videos.links[0].uri,
-          desc: meta.data.comment,
+  function getMetaForRun(url, callback) {
+    util.ajax(url, {
+      cache: function(response) {
+        return {
+          url: response.data.videos.links[0].uri,
+          desc: response.data.comment,
         };
-        speedrundotcomCache.push(run.id, cache);
-        callback(cache);
-      });
-    }
+      },
+    }, function(xhr, meta) {
+      callback(meta);
+    });
   }
 
   function addMetaToRun(run, callback) {
-    getMetaForRun(run, function(meta) {
+    getMetaForRun(run.url, function(meta) {
       run.url = meta.url;
       run.desc = meta.desc;
       addMetaToVideo(run, callback);
@@ -409,8 +404,9 @@ sources.collections.speedrundotcom = function(callback) {
   }
 
   function getNotifications() {
-    var xhr = util.ajax('http://www.speedrun.com/api/v1/notifications',
-    function(xhr, results) {
+    util.ajax('http://www.speedrun.com/api/v1/notifications', {
+      headers: { 'X-API-Key': speedrundotcomKey },
+    }, function(xhr, results) {
       if (!results) { return callback(); }
       var runs = results.data
         .filter(function(noti) { return noti.item.rel === 'run'; })
@@ -423,12 +419,8 @@ sources.collections.speedrundotcom = function(callback) {
             timestamp: new Date(noti.created).getTime(),
           };
         });
-      util.parallelMap(runs, addMetaToRun, function() {
-        speedrundotcomCache.save();
-        callback(runs);
-      });
+      util.parallelMap(runs, addMetaToRun, callback.bind(null, runs));
     });
-    xhr.setRequestHeader('X-API-Key', speedrundotcomKey);
   }
 
   if (!speedrundotcomKey) {

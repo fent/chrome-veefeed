@@ -5,17 +5,44 @@ var util = {};
  * Helper function for requests.
  *
  * @param {String} url
+ * @param {Object?} opts
+ *   {Object} headers
+ *   {Function} cache
  * @param {Function(Object)} callback
  * @return {XMLHttpRequest}
  */
-util.ajax = function(url, callback) {
-  if (window.location.protocol.indexOf('http') === 0 &&
-      url.indexOf('http') === 0) {
-    url = new URL(url);
-    url.protocol = window.location.protocol;
-    url = url.href;
+util.ajax = function(url, opts, callback) {
+  if (util.ajax.active >= util.ajax.max) {
+    util.ajax.queue.push(arguments);
+    return;
   }
 
+  if (typeof opts === 'function') {
+    callback = opts;
+    opts = {};
+  }
+
+  var parsed = new URL(url);
+  if (window.location.protocol.indexOf('http') === 0 &&
+      url.indexOf('http') === 0) {
+    parsed.protocol = window.location.protocol;
+    url = parsed.href;
+  }
+
+  var cache, cacheKey;
+  if (opts.cache) {
+    if (!util.ajax.cache[parsed.host]) {
+      util.ajax.cache[parsed.host] = new util.SizedMap(200, parsed.host);
+    }
+    cache = util.ajax.cache[parsed.host];
+    cacheKey = parsed.pathname + parsed.search;
+    if (cache.has(cacheKey)) {
+      callback(null, cache.get(cacheKey));
+      return;
+    }
+  }
+
+  util.ajax.active++;
   var isURLEncoded = false;
   var xhr = new XMLHttpRequest();
   xhr.open('GET', url, true);
@@ -32,17 +59,37 @@ util.ajax = function(url, callback) {
       }
 
     } else if (xhr.readyState === 4 && xhr.status >= 200) {
-      var result = xhr.status >= 200 ?
-        isURLEncoded ?
-        util.parseQueryString(xhr.responseText) : xhr.response : null;
-      callback(xhr, result);
+      util.ajax.active--;
+      if (util.ajax.queue.length && util.ajax.active < util.ajax.max) {
+        util.ajax.apply(null, util.ajax.queue.shift());
+      }
+      if (xhr.status >= 200) {
+        var response = isURLEncoded ?
+          util.parseQueryString(xhr.responseText) : xhr.response;
+        if (opts.cache) {
+          var transformed = opts.cache(response);
+          cache.push(cacheKey, transformed);
+          callback(xhr, transformed);
+        } else {
+          callback(xhr, response);
+        }
+      } else {
+        callback(xhr, null);
+      }
     }
   };
-  setTimeout(function() {
-    xhr.send();
-  });
-  return xhr;
+  if (opts.headers) {
+    for (var key in opts.headers) {
+      xhr.setRequestHeader(key, opts.headers[key]);
+    }
+  }
+  xhr.send();
 };
+util.ajax.queue = [];
+util.ajax.max = 3;
+util.ajax.active = 0;
+util.ajax.cache = {};
+
 
 /*
  * Converts time formatted as '2 days ago' to a timestamp.
@@ -76,7 +123,7 @@ util.relativeToTimestamp = function(str) {
 var SizedMap = util.SizedMap = function(limit, list) {
   this.limit = limit;
   if (typeof list === 'string') {
-    this.key = list;
+    this._key = list;
     try {
       list = JSON.parse(localStorage.getItem(list)) || {};
     } catch (err) {
@@ -114,11 +161,17 @@ SizedMap.prototype.push = function(key, value, noUpdate) {
     if (noUpdate) { return; }
     this.list.splice(this.list.indexOf(key), 1);
   }
-  this._shouldSave = true;
   this.list.push(key);
   this.map[key] = value || true;
   if (this.list.length > this.limit) {
     delete this.map[this.list.shift()];
+  }
+
+  // Save this to local storage.
+  if (this._key) {
+    this._shouldSave = true;
+    clearTimeout(this._tid);
+    this._tid = setTimeout(this._save.bind(this), 1000);
   }
 };
 
@@ -141,10 +194,10 @@ SizedMap.prototype.get = function(key) {
 /**
  * Saves to local storage.
  */
-SizedMap.prototype.save = function() {
-  if (!this.key || !this._shouldSave) { return; }
+SizedMap.prototype._save = function() {
+  if (!this._key || !this._shouldSave) { return; }
   var store = this.saveList ? this.list : this.map;
-  localStorage.setItem(this.key, JSON.stringify(store));
+  localStorage.setItem(this._key, JSON.stringify(store));
   this._shouldSave = false;
 };
 
