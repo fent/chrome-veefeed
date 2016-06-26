@@ -152,6 +152,7 @@ var sources = {
 
           length: parseInt(meta.length_seconds, 10),
           title: meta.title,
+          game: null,
           views: parseInt(meta.view_count, 10),
           user: { name: meta.author },
         };
@@ -169,6 +170,7 @@ var sources = {
           thumbnail : meta.preview,
           length    : meta.length,
           title     : meta.title,
+          game      : meta.game,
           views     : meta.views,
           user      : {
             url: 'https://www.twitch.tv/' + username,
@@ -201,6 +203,9 @@ function addMetaToVideo(video, callback) {
     video.url = meta.url;
     video.thumbnail = meta.thumbnail;
     video.length = meta.length;
+    if (meta.game) {
+      video.game = meta.game;
+    }
 
     // Views and title can update later, so don't include these when getting
     // metainfo from cache.
