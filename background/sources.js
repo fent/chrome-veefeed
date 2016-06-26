@@ -12,7 +12,14 @@ try {
   cachedVideos = new util.SizedMap(200);
 }
 
+var patterns;
 var sources = {
+  patterns: [
+    '*://www.youtube.com/watch?v=*',
+    '*://youtu.be/*',
+    '*://www.twitch.tv/*/v/*'
+  ],
+
   // Sources which directly host videos.
   videos: {},
 
@@ -26,7 +33,7 @@ var sources = {
         .map(function(source) {
           return function(callback) {
             sources[type][source](function(videos) {
-              callback({ source: source, videos: videos });
+              callback({ source: source, videos: videos || [] });
             });
           };
         });
@@ -88,13 +95,17 @@ var sources = {
           }
           cachedVideos.push(colVideo.url, colVideo, true);
         });
-        localStorage.setItem('cachedVideos', JSON.stringify(cachedVideos.map));
+        sources.saveCache();
 
         var allVideos = [];
         for (var url in videosMap) { allVideos.push(videosMap[url]); }
         callback(allVideos);
       });
     });
+  },
+
+  saveCache: function() {
+    localStorage.setItem('cachedVideos', JSON.stringify(cachedVideos.map));
   },
 
   sourceFromURL: function(url) {
@@ -106,58 +117,106 @@ var sources = {
     }
     return null;
   },
+
+  getMetaForVideo: function(url, callback) {
+    var parsed = new URL(url);
+    var host = parsed.host;
+    var id;
+    if (host === 'youtu.be' || host === 'www.twitch.tv') {
+      var s = parsed.pathname.split(/\//);
+      id = s[s.length - 1];
+    } else if (host === 'www.youtube.com') {
+      var r = /v=([^&$]+)/.exec(parsed.search);
+      if (r) {
+        id = r[1];
+      } else {
+        console.warn('Could not get video ID of URL: ' + url);
+        return null;
+      }
+    }
+
+    if (cachedVideos.has(url)) {
+      callback(cachedVideos.get(url));
+
+    } else if (host === 'www.youtube.com' || host === 'youtu.be') {
+      util.ajax('https://www.youtube.com/get_video_info?video_id=' + id +
+      '&ps=default&gl=US&hl=en',
+      function(xhr, meta) {
+        if (!meta) { return callback(); }
+        var video = {
+          // Canonical form of URL.
+          url: 'https://www.youtube.com/watch?v=' + id,
+
+          // Using medium quality gives a screenshot without black bars.
+          thumbnail: 'https://i.ytimg.com/vi/' + id +
+            '/mqdefault.jpg?custom=true&w=196&h=110&stc=true&jpg444=true&' +
+            'jpgq=90&sp=68',
+
+          length: parseInt(meta.length_seconds, 10),
+          title: meta.title,
+          views: parseInt(meta.view_count, 10),
+        };
+        cachedVideos.push(url, video);
+        callback(video);
+      });
+
+    } else if (host === 'www.twitch.tv') {
+      util.ajax('https://api.twitch.tv/kraken/videos/v' + id,
+      function(xhr, meta) {
+        if (!meta) { return callback(null); }
+        var video = {
+          url       : url,
+          thumbnail : meta.preview,
+          length    : meta.length,
+          title     : meta.title,
+          views     : meta.views,
+        };
+        cachedVideos.push(url, video);
+        callback(video);
+      });
+
+    } else {
+      console.warn('No thumbnail generated from URL: ' + url);
+      callback();
+    }
+  },
+
+  isVideoPage: function(url) {
+    return patterns.some(function(pattern) {
+      return pattern.test(url);
+    });
+  },
+
 };
 
-function getMetaForVideo(video, callback) {
-  var parsed = new URL(video.url);
-  var host = parsed.host;
-  var id;
-  if (host === 'youtu.be' || host === 'www.twitch.tv') {
-    var s = parsed.pathname.split(/\//);
-    id = s[s.length - 1];
-  } else if (host === 'www.youtube.com') {
-    var r = /v=([^&$]+)/.exec(parsed.search);
-    if (r) {
-      id = r[1];
-    } else {
-      console.warn('Could not get video ID of URL: ' + video.url);
-      return null;
-    }
-  }
-  if (host === 'www.youtube.com' || host === 'youtu.be') {
-    video.url = 'https://www.youtube.com/watch?v=' + id;
+patterns = sources.patterns.map(util.minimatch);
 
-    // Using medium quality gives a screenshot without black bars.
-    video.thumbnail = 'https://i.ytimg.com/vi/' + id +
-      '/mqdefault.jpg?custom=true&w=196&h=110&stc=true&jpg444=true&' +
-      'jpgq=90&sp=68';
-    callback();
-  } else if (host === 'www.twitch.tv') {
-    if (cachedVideos.has(video.url)) {
-      video.thumbnail = cachedVideos.get(video.url).thumbnail;
-      callback();
-    } else {
-      var url = 'https://api.twitch.tv/kraken/videos/v' + id;
-      var xhr = util.ajax(url, function(xhr) {
-        var videoMeta = xhr.response;
-        if (!videoMeta) { return callback(null); }
-        video.thumbnail = videoMeta.preview;
-        cachedVideos.push(video.url, video);
-        callback();
-      });
-      xhr.responseType = 'json';
+function addMetaToVideo(video, callback) {
+  sources.getMetaForVideo(video.url, function(meta) {
+    if (!meta) { return callback(); }
+    video.url = meta.url;
+    video.thumbnail = meta.thumbnail;
+    video.length = meta.length;
+
+    // Views and title can update later, so don't include these when getting
+    // metainfo from cache.
+    if (!video.title) {
+      video.title = meta.title;
     }
-  } else {
-    console.warn('No thumbnail generated from URL: ' + video.url);
+    if (video.views) {
+      video.views = meta.views;
+    }
     callback();
-  }
+  });
 }
 
 sources.videos.youtube = function(callback) {
-  util.ajax('https://www.youtube.com/feed/subscriptions', function(xhr) {
-    var $items = xhr.response.getElementById('browse-items-primary');
+  util.ajax('https://www.youtube.com/feed/subscriptions', function(xhr, body) {
+    if (!body) { return callback(); }
+    var $items = body.getElementById('browse-items-primary');
     if (!$items) {
       console.error('Not logged in');
+      callback();
       return;
     }
     $items = $items.children[0];
@@ -223,9 +282,10 @@ sources.videos.twitch = function(callback) {
     name: 'api_token',
   }, function(cookie) {
     var xhr = util.ajax('https://api.twitch.tv/kraken/videos/followed?' +
-      'limit=40&broadcast_type=highlight&offset=0&on_site=1', function(xhr) {
-        if (!xhr.response || !xhr.response.videos) { return; }
-        callback(xhr.response.videos.map(function(video) {
+      'limit=40&broadcast_type=highlight&offset=0&on_site=1',
+      function(xhr, result) {
+        if (!result || !result.videos) { return callback(); }
+        callback(result.videos.map(function(video) {
           return {
             user: {
               url: 'https://www.twitch.tv/' + video.channel.name,
@@ -243,15 +303,16 @@ sources.videos.twitch = function(callback) {
         }));
     });
     xhr.setRequestHeader('Twitch-Api-Token', cookie.value);
-    xhr.responseType = 'json';
   });
 };
 
 sources.collections.haloruns = function(callback) {
-  util.ajax('http://haloruns.com/records?recent', function(xhr) {
-    var $items = xhr.response.getElementById('recentWRTable');
+  util.ajax('http://haloruns.com/records?recent', function(xhr, body) {
+    if (!body) { return callback(); }
+    var $items = body.getElementById('recentWRTable');
     if (!$items) {
       console.warn('Error retrieving videos');
+      callback();
       return;
     }
     $items = $items.children[0];
@@ -301,6 +362,6 @@ sources.collections.haloruns = function(callback) {
         game: game,
       });
     }
-    util.parallelMap(items, getMetaForVideo, callback.bind(null, items));
+    util.parallelMap(items, addMetaToVideo, callback.bind(null, items));
   });
 };

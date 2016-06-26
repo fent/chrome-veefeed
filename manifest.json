@@ -11,9 +11,11 @@
     "https://api.twitch.tv/*",
     "https://static-cdn.jtvnw.net/v1/AUTH_system/*",
     "https://www.youtube.com/feed/subscriptions",
+    "https://www.youtube.com/get_video_info?*",
     "https://i.ytimg.com/vi/*/hqdefault.jpg?*",
     "https://i.ytimg.com/vi/*/mqdefault.jpg?*",
     "http://haloruns.com/records?recent",
+    "contextMenus",
     "cookies",
     "notifications",
     "storage"

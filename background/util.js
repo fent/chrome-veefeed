@@ -1,6 +1,13 @@
 /* exported util */
 var util = {};
 
+/*
+ * Helper function for requests.
+ *
+ * @param {String} url
+ * @param {Function(Object)} callback
+ * @return {XMLHttpRequest}
+ */
 util.ajax = function(url, callback) {
   if (window.location.protocol.indexOf('http') === 0 &&
       url.indexOf('http') === 0) {
@@ -9,20 +16,40 @@ util.ajax = function(url, callback) {
     url = url.href;
   }
 
+  var isURLEncoded = false;
   var xhr = new XMLHttpRequest();
   xhr.open('GET', url, true);
   xhr.onreadystatechange = function() {
-    if (xhr.readyState === 4 && xhr.status >= 200) {
-      callback(xhr);
+    if (xhr.readyState === 2) {
+      var type = xhr.getResponseHeader('content-type');
+      if (type.includes('application/json')) {
+        xhr.responseType = 'json';
+      } else if (type.includes('text/html')) {
+        xhr.responseType = 'document';
+      } else if (type.includes('application/x-www-form-urlencoded')) {
+        xhr.responseType = 'text';
+        isURLEncoded = true;
+      }
+
+    } else if (xhr.readyState === 4 && xhr.status >= 200) {
+      var result = xhr.status >= 200 ?
+        isURLEncoded ?
+        util.parseQueryString(xhr.responseText) : xhr.response : null;
+      callback(xhr, result);
     }
   };
-  xhr.responseType = 'document';
   setTimeout(function() {
     xhr.send();
   });
   return xhr;
 };
 
+/*
+ * Converts time formatted as '2 days ago' to a timestamp.
+ *
+ * @param {String} str
+ * @return {Number}
+ */
 util.relativeToTimestamp = function(str) {
   var s = str.trim().split(' ');
   var n = parseInt(s[0], 10);
@@ -39,6 +66,13 @@ util.relativeToTimestamp = function(str) {
   return Date.now() - n * multiplier * 1000;
 };
 
+/**
+ * A list that only keeps the last `limit` items added.
+ *
+ * @constructor
+ * @param {Number} limit
+ * @param {Array.<Object>?} list
+ */
 var SizedMap = util.SizedMap = function(limit, list) {
   this.limit = limit;
   this.list = [];
@@ -57,27 +91,49 @@ var SizedMap = util.SizedMap = function(limit, list) {
   }
 };
 
-SizedMap.prototype.push = function(key, val, noUpdate) {
+/**
+ * Add an item to the list. `key` is used to identify the uniqueness of the
+ * item. If an item with the same key is already on the list, it will instead
+ * be moved to the top of the list with the new value.
+ *
+ * @param {String} key
+ * @param {Object} value
+ * @param {Boolean} noUpdate If this is `true`, item won't be moved to the top.
+ */
+SizedMap.prototype.push = function(key, value, noUpdate) {
   if (this.has(key)) {
     if (noUpdate) { return; }
     this.list.splice(this.list.indexOf(key), 1);
   }
   this.list.push(key);
-  this.map[key] = val || true;
+  this.map[key] = value || true;
   if (this.list.length > this.limit) {
     delete this.map[this.list.shift()];
   }
 };
 
+/*
+ * @param {String} key
+ * @return {Boolean}
+ */
 SizedMap.prototype.has = function(key) {
   return key in this.map;
 };
 
+/*
+ * @param {String} key
+ * @return {Object}
+ */
 SizedMap.prototype.get = function(key) {
   return this.map[key];
 };
 
-// Converts from 00:00:00 or 00:00 to seconds.
+/**
+ * Converts from 00:00:00 or 00:00 to seconds.
+ *
+ * @param {String} str
+ * @return {Number}
+ */
 util.timeToSeconds = function(str) {
   var s = str.split(':');
   return s.length === 2 ?
@@ -85,6 +141,11 @@ util.timeToSeconds = function(str) {
     ~~s[0] * 3600 + ~~s[1] * 60 + ~~s[2];
 };
 
+/*
+ * @param {Object} video1
+ * @param {Object} video2
+ * @return {Boolean}
+ */
 util.isSameVideo = function(video1, video2) {
   // If the videos are within a few seconds of each other,
   // they might be the same video...
@@ -115,6 +176,15 @@ util.isSameVideo = function(video1, video2) {
   }).length >= 2;
 };
 
+/*
+ * Calls a list of functions in parallel, waits until all of them have
+ * called their respective callback function before calling the given callback.
+ *
+ * @param {Array.<Function(Function(Object))} funcs
+ * @param {Function(Array.<Object>)} callback Will be called with a list of
+ *   the objects for which each of the callbacks were given, in the order
+ *   in which the functions were originally laid out.
+ */
 util.parallel = function(funcs, callback) {
   if (!funcs.length) { return callback([]); }
   var callsDone = 0;
@@ -129,10 +199,58 @@ util.parallel = function(funcs, callback) {
   });
 };
 
+/**
+ * Calls one function with each of the items in `args` in parallel.
+ *
+ * @param {Array.<Object>} args
+ * @param {Function(Object, Function(Object))} func
+ * @param {Function(Array.<Object>)} callback
+ */
 util.parallelMap = function(args, func, callback) {
   util.parallel(args.map(function(arg) {
     return function(callback) {
       func(arg, callback);
     };
   }), callback);
+};
+
+
+/**
+ * Returns ony the ID portion of a video URL. Because saving just the id
+ * in storage takes up much less space than the entire URL.
+ *
+ * @param {String} url
+ * @return {String}
+ */
+util.videoID = function(url) {
+  var result = /([a-z0-9_-]+)$/i.exec(url);
+  return result && result[1] || url;
+};
+
+/**
+ * @param {String} str
+ * @return {Object}
+ */
+util.parseQueryString = function(str) {
+  var obj = {};
+  var pairs = str.split('&');
+  pairs.forEach(function(pair) {
+    var s = pair.split('=');
+    obj[decodeURIComponent(s[0])] =
+      decodeURIComponent(s[1].replace(/\+/g, '%20'));
+  });
+  return obj;
+};
+
+/**
+ * Generates a regexp for a minimatch string.
+ *
+ * @param {String} str
+ * @param {Return} RegExp
+ */
+util.minimatch = function(str) {
+  var exp = str
+    .replace(/[-[\]{}()+?.\\^$|]/g, '\\$&')
+    .replace(/\*/g, '.*');
+  return new RegExp('^' + exp + '$', 'i');
 };

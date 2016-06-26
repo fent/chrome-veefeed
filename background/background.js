@@ -56,7 +56,8 @@ function updateVideos() {
     .filter(function(video) {
       delete video.otherSource;
       video.watched = video.watched ||
-        watchedVideos[sources.sourceFromURL(video.url)].has(videoID(video.url));
+        watchedVideos[sources.sourceFromURL(video.url)]
+          .has(util.videoID(video.url));
       var ignoreIt = matchRules(ignoreRules, video);
       ignoreIt = ignoreIt ||
         options.ignore_live && video.live ||
@@ -226,10 +227,7 @@ function generateRules(rules) {
   return rules.map(function(rule) {
     ['user', 'title', 'game'].forEach(function(key) {
       if (!rule[key]) { return; }
-      var exp = rule[key]
-        .replace(/[-[\]{}()+?.\\^$|]/g, '\\$&')
-        .replace(/\*/g, '.*');
-      rule[key] = new RegExp('^' + exp + '$', 'i');
+      rule[key] = util.minimatch(rule[key]);
     });
     return rule;
   });
@@ -270,12 +268,16 @@ function updateQueue(queue, tabID, url) {
     queue.forEach(function(o, i) { queueUrlMap[tabID][o.url] = i; });
     delete queueUrlMap[tabID][url];
   }
+  localStorage.setItem('queue', JSON.stringify(queueUrlMap));
 }
 
 function queueVideo(tabID, video) {
   var pos = (queueTabs[tabID] = queueTabs[tabID] || [])
     .push(video);
   (queueUrlMap[tabID] = queueUrlMap[tabID] || {})[video.url] = pos - 1;
+
+  // If this is the next video up, let the playing tab know
+  // so that it can update the contents of its "Next" button.
   if (pos === 1) {
     chrome.tabs.sendMessage(+tabID, { setQueue: true, video: video });
   }
@@ -296,7 +298,6 @@ function unqueueVideo(tabID, url) {
   if (i > -1) {
     queue.splice(i, 1);
     updateQueue(queue, tabID, url);
-    localStorage.setItem('queue', JSON.stringify(queueUrlMap));
     if (i === 0 || !queue.length) {
       chrome.tabs.sendMessage(+tabID, { setQueue: true, video: queue[0] });
     }
@@ -304,8 +305,9 @@ function unqueueVideo(tabID, url) {
 }
 
 function markAsWatched(url) {
+  if (!knownVideos.has(url)) { return; }
   var source = sources.sourceFromURL(url);
-  watchedVideos[source].push(videoID(url));
+  watchedVideos[source].push(util.videoID(url));
 
   // Watched videos is updated in storage since there is a listener
   // for this storage key.
@@ -314,23 +316,47 @@ function markAsWatched(url) {
   });
 }
 
-function markAsPlaying(tabID, url) {
+function queueMenuClicked(tabID, info) {
+  sources.getMetaForVideo(info.linkUrl, function(video) {
+    if (!video) { return; }
+    queueVideo(tabID, video);
+    afterQueue(tabID);
+    sources.saveCache();
+  });
+}
+
+function markAsPlaying(tabID, url, title) {
   openedVideos[tabID] = { url: url, playing: true };
   localStorage.setItem('opened', JSON.stringify(openedVideos));
+
+  chrome.contextMenus.update('queue', { enabled: true });
+  chrome.contextMenus.update('queue-' + tabID, { title: title }, function() {
+    if (chrome.runtime.lastError) {
+      chrome.contextMenus.create({
+        id: 'queue-' + tabID,
+        parentId: 'queue',
+        title: title,
+        onclick: queueMenuClicked.bind(null, tabID),
+        contexts: ['link'],
+        targetUrlPatterns: sources.patterns,
+      });
+    }
+  });
 }
 
-function videoID(url) {
-  var result = /([a-z0-9_-]+)$/i.exec(url);
-  return result && result[1] || url;
-}
+function removeMenu(tabID) {
+  chrome.contextMenus.remove('queue-' + tabID);
 
-function isVideoPage(url) {
-  /* jshint maxlen: false */
-  return /https?:\/\/(www\.)?(youtube\.com\/(watch|embed)|twitch\.tv\/[a-z0-9_]+\/[cv]\/[0-9]+)/i.test(url);
+  // If there are no more videos that are playing, disable the queue menu.
+  if (Object.keys(openedVideos).every(function(key) {
+    return !openedVideos[key].playing;
+  })) {
+    chrome.contextMenus.update('queue', { enabled: false });
+  }
 }
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-  var queue, tabID;
+  var queue;
 
   if (request.watched) {
     // Remove this video from queue if opened from a tab that has a queue.
@@ -340,7 +366,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   } else if (request.started) {
     unqueueVideo(sender.tab.id, sender.tab.url);
     markAsWatched(sender.tab.url);
-    markAsPlaying(sender.tab.id, sender.tab.url);
+    markAsPlaying(sender.tab.id, sender.tab.url, sender.tab.title);
 
   } else if (request.newTab) {
     // When a new tab is created for a video,
@@ -350,7 +376,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     pausedTabs[request.tabID] = [];
     chrome.tabs.query({ windowId: request.winID }, function(tabs) {
       tabs.forEach(function(tab) {
-        if (tab.url !== request.url && isVideoPage(tab.url)) {
+        if (tab.url !== request.url && sources.isVideoPage(tab.url)) {
           chrome.tabs.executeScript(tab.id, {
             file: 'content/pause.js',
           }, function(results) {
@@ -374,26 +400,25 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     unqueueVideo(request.tabID, request.video.url);
 
   } else if (request.ended) {
-    tabID = sender.tab.id;
-    if (!openedVideos[tabID]) { return; }
-    openedVideos[tabID].playing = false;
+    if (!openedVideos[sender.tab.id]) { return; }
+    openedVideos[sender.tab.id].playing = false;
     localStorage.setItem('opened', JSON.stringify(openedVideos));
 
-    if (options.only_play_queued_at_top && request.scrollTop) { return; }
-    queue = queueTabs[tabID];
+    queue = queueTabs[sender.tab.id];
     if (queue) {
+      if (options.only_play_queued_at_top && request.scrollTop) { return; }
       var nextVideo = queue.shift();
-      updateQueue(queue, tabID, nextVideo.url);
-      localStorage.setItem('queue', JSON.stringify(queueUrlMap));
+      updateQueue(queue, sender.tab.id, nextVideo.url);
 
       // Play the next video in a few secs...
       setTimeout(function() {
-        markAsPlaying(tabID, nextVideo.url);
-        chrome.tabs.update(parseInt(tabID), {
+        chrome.tabs.update(parseInt(sender.tab.id), {
           url: nextVideo.url,
           active: true
         });
       }, QUEUE_WAIT_MS);
+    } else {
+      removeMenu(sender.tab.id);
     }
 
   } else if (request.getQueueFront) {
@@ -401,7 +426,15 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     if (queue) {
       sendResponse(queue[0]);
     }
+
+  } else if (request.title) {
+    if (openedVideos[sender.tab.id] && openedVideos[sender.tab.id].playing) {
+      chrome.contextMenus.update('queue-' + sender.tab.id, {
+        title: request.title,
+      });
+    }
   }
+
 });
 
 chrome.storage.onChanged.addListener(function(changes) {
@@ -450,6 +483,7 @@ chrome.tabs.onRemoved.addListener(function(tabID) {
   if (openedVideos[tabID]) {
     delete openedVideos[tabID];
     localStorage.setItem('opened', JSON.stringify(openedVideos));
+    removeMenu(tabID);
   }
   if (pausedTabs[tabID]) {
     setTimeout(function() {
@@ -473,5 +507,16 @@ chrome.runtime.onInstalled.addListener(function() {
     if (!Object.keys(items).length) {
       chrome.runtime.openOptionsPage();
     }
+  });
+});
+
+// Add context menu so links to videos can be queued up from any page.
+chrome.contextMenus.removeAll(function() {
+  chrome.contextMenus.create({
+    id: 'queue',
+    title: 'Queue Video',
+    contexts: ['link'],
+    targetUrlPatterns: sources.patterns,
+    enabled: false,
   });
 });
