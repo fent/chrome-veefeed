@@ -86,14 +86,14 @@
   color: #fff !important;
 }
 
-.player[data-ended="true"] .veefeed-next-video path,
-.ytp-play-button[title="Replay"] + .veefeed-next-video path {
+.player[data-ended="true"] .veefeed-next-button path,
+.ytp-play-button[title="Replay"] + .veefeed-next-button path {
   stroke: #6294df;
   fill: #6294df;
 }
 
 .veefeed-next-button:hover .veefeed-next-video,
 .player[data-ended="true"] .veefeed-next-video,
-.ytp-play-button[title="Replay"] + .veefeed-next-video {
+.ytp-play-button[title="Replay"] + .veefeed-next-button .veefeed-next-video {
   display: flex;
 }
