@@ -71,14 +71,23 @@ util.relativeToTimestamp = function(str) {
  *
  * @constructor
  * @param {Number} limit
- * @param {Array.<Object>?} list
+ * @param {Array.<Object>|String?} list
  */
 var SizedMap = util.SizedMap = function(limit, list) {
   this.limit = limit;
+  if (typeof list === 'string') {
+    this.key = list;
+    try {
+      list = JSON.parse(localStorage.getItem(list)) || {};
+    } catch (err) {
+      list = {};
+    }
+  }
   this.list = [];
   this.map = {};
   if (list) {
     if (Array.isArray(list)) {
+      this.saveList = true;
       list = list.slice(-limit);
       for (var i = 0, len = list.length; i < len; i++) {
         this.push(list[i]);
@@ -105,6 +114,7 @@ SizedMap.prototype.push = function(key, value, noUpdate) {
     if (noUpdate) { return; }
     this.list.splice(this.list.indexOf(key), 1);
   }
+  this._shouldSave = true;
   this.list.push(key);
   this.map[key] = value || true;
   if (this.list.length > this.limit) {
@@ -126,6 +136,16 @@ SizedMap.prototype.has = function(key) {
  */
 SizedMap.prototype.get = function(key) {
   return this.map[key];
+};
+
+/**
+ * Saves to local storage.
+ */
+SizedMap.prototype.save = function() {
+  if (!this.key || !this._shouldSave) { return; }
+  var store = this.saveList ? this.list : this.map;
+  localStorage.setItem(this.key, JSON.stringify(store));
+  this._shouldSave = false;
 };
 
 /**

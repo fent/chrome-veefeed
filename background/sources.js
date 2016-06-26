@@ -4,14 +4,7 @@
 // Keep a local cache of videos, since some sources link to Twitch,
 // but there isn't a way to get a vod's thumbnail only from its id,
 // we'll get it by making a request to the Twitch API.
-var cachedVideos;
-try {
-  cachedVideos = JSON.parse(localStorage.getItem('cachedVideos'));
-  cachedVideos = new util.SizedMap(200, cachedVideos);
-} catch (err) {
-  cachedVideos = new util.SizedMap(200);
-}
-
+var cachedVideos = new util.SizedMap(200, 'cachedVideos');
 var patterns;
 var sources = {
   patterns: [
@@ -56,7 +49,12 @@ var sources = {
       util.parallel(filterEnabled('collections'), function(results) {
         var colVideos = [].concat.apply([], results.map(function(result) {
           result.videos.forEach(function(video) {
-            video.collections = [{ source: result.source }];
+            var col = { source: result.source };
+            if (video.colUrl) {
+              col.url = video.colUrl;
+              delete video.colUrl;
+            }
+            video.collections = [col];
           });
           return result.videos;
         }));
@@ -105,7 +103,7 @@ var sources = {
   },
 
   saveCache: function() {
-    localStorage.setItem('cachedVideos', JSON.stringify(cachedVideos.map));
+    cachedVideos.save();
   },
 
   sourceFromURL: function(url) {
@@ -155,6 +153,7 @@ var sources = {
           length: parseInt(meta.length_seconds, 10),
           title: meta.title,
           views: parseInt(meta.view_count, 10),
+          user: { name: meta.author },
         };
         cachedVideos.push(url, video);
         callback(video);
@@ -164,12 +163,17 @@ var sources = {
       util.ajax('https://api.twitch.tv/kraken/videos/v' + id,
       function(xhr, meta) {
         if (!meta) { return callback(null); }
+        var username = /https:\/\/www\.twitch\.tv\/([^\/]+)\//.exec(url)[1];
         var video = {
           url       : url,
           thumbnail : meta.preview,
           length    : meta.length,
           title     : meta.title,
           views     : meta.views,
+          user      : {
+            url: 'https://www.twitch.tv/' + username,
+            name: username,
+          }
         };
         cachedVideos.push(url, video);
         callback(video);
@@ -203,8 +207,14 @@ function addMetaToVideo(video, callback) {
     if (!video.title) {
       video.title = meta.title;
     }
-    if (video.views) {
+    if (!video.views) {
       video.views = meta.views;
+    }
+
+    // User can be different for the same video posted in
+    // a host or collection.
+    if (!video.user) {
+      video.user = meta.user;
     }
     callback();
   });
@@ -364,4 +374,73 @@ sources.collections.haloruns = function(callback) {
     }
     util.parallelMap(items, addMetaToVideo, callback.bind(null, items));
   });
+};
+
+var speedrundotcomCache = new util.SizedMap(200, 'speedrundotcomCache');
+var speedrundotcomKey = localStorage.getItem('speedrundotcomKey');
+sources.collections.speedrundotcom = function(callback) {
+  function getMetaForRun(run, callback) {
+    if (speedrundotcomCache.has(run.id)) {
+      callback(speedrundotcomCache.get(run.id));
+    } else {
+      var xhr = util.ajax(run.url, function(xhr, meta) {
+        if (!meta) { return callback(); }
+        var cache = {
+          url: meta.data.videos.links[0].uri,
+          desc: meta.data.comment,
+        };
+        speedrundotcomCache.push(run.id, cache);
+        callback(cache);
+      });
+      xhr.setRequestHeader('X-API-Key', speedrundotcomKey);
+    }
+  }
+
+  function addMetaToRun(run, callback) {
+    getMetaForRun(run, function(meta) {
+      run.url = meta.url;
+      run.desc = meta.desc;
+      addMetaToVideo(run, callback);
+    });
+  }
+
+  function getNotifications() {
+    var xhr = util.ajax('http://www.speedrun.com/api/v1/notifications',
+    function(xhr, results) {
+      if (!results) { return callback(); }
+      var runs = results.data
+        .filter(function(noti) { return noti.item.rel === 'run'; })
+        .map(function(noti) {
+          return {
+            id: noti.id,
+            title: noti.text,
+            url: noti.links[0].uri,
+            colUrl: noti.item.uri,
+            timestamp: new Date(noti.created).getTime(),
+          };
+        });
+      util.parallelMap(runs, addMetaToRun, function() {
+        speedrundotcomCache.save();
+        callback(runs);
+      });
+    });
+    xhr.setRequestHeader('X-API-Key', speedrundotcomKey);
+  }
+
+  if (!speedrundotcomKey) {
+    util.ajax('http://www.speedrun.com/settings', function(xhr, body) {
+      if (!body) { return callback(); }
+      var $code = body.getElementsByTagName('code')[0];
+      if (!$code) {
+        console.warn('Unable to retrieve API token from speedrun.com');
+        return callback();
+      }
+      var key = $code.textContent;
+      speedrundotcomKey = key;
+      localStorage.setItem('speedrundotcomKey', key);
+      getNotifications();
+    });
+  } else {
+    getNotifications();
+  }
 };

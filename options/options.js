@@ -5,6 +5,7 @@ var sources = [
   { value: 'youtube', desc: 'YouTube', default: true },
   { value: 'twitch', desc: 'Twitch', default: false },
   { value: 'haloruns', desc: 'HaloRuns', default: false, col: true },
+  { value: 'speedrundotcom', desc: 'speedrun.com', default: false, col: true },
 ];
 
 // Used for ignore and group rules.

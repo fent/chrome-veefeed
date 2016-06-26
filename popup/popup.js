@@ -367,9 +367,11 @@ function renderVideos(group) {
         }, video.title),
         m('div', [
           video.collections &&
-            m('span.collections', video.collections.map(function(source) {
-              return m('span.collection', {
-                className: 'source-' + source.source,
+            m('span.collections', video.collections.map(function(col) {
+              return m('a.collection', {
+                className: 'source-' + col.source,
+                href: col.url,
+                target: '_blank',
               });
             })),
           m('span.favicon', { className: 'source-' + video.source }),
