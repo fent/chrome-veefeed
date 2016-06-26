@@ -388,7 +388,7 @@ sources.collections.speedrundotcom = function(callback) {
     if (speedrundotcomCache.has(run.id)) {
       callback(speedrundotcomCache.get(run.id));
     } else {
-      var xhr = util.ajax(run.url, function(xhr, meta) {
+      util.ajax(run.url, function(xhr, meta) {
         if (!meta) { return callback(); }
         var cache = {
           url: meta.data.videos.links[0].uri,
@@ -397,7 +397,6 @@ sources.collections.speedrundotcom = function(callback) {
         speedrundotcomCache.push(run.id, cache);
         callback(cache);
       });
-      xhr.setRequestHeader('X-API-Key', speedrundotcomKey);
     }
   }
 
