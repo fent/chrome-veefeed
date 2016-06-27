@@ -7,14 +7,7 @@
 //
 // Note that this is different from ajax cache.
 var cachedVideos = new util.SizedMap(200, 'cachedVideos');
-var patterns;
 var sources = {
-  patterns: [
-    '*://www.youtube.com/watch?v=*',
-    '*://youtu.be/*',
-    '*://www.twitch.tv/*/v/*'
-  ],
-
   // Sources which directly host videos.
   videos: {},
 
@@ -22,12 +15,16 @@ var sources = {
   collections: {},
 
   getVideos: function(options, callback) {
-    function filterEnabled(type) {
+    function filterEnabled(type, isHost) {
       return Object.keys(sources[type])
         .filter(function(source) { return options[source]; })
         .map(function(source) {
           return function(callback) {
-            sources[type][source](function(videos) {
+            var fn = sources[type][source];
+            if (isHost) {
+              fn = fn.getAllVideos;
+            }
+            fn(function(videos) {
               callback({ source: source, videos: videos || [] });
             });
           };
@@ -36,7 +33,7 @@ var sources = {
 
     // First, get videos directly from where they're hosted,
     // in case any of them are included in collection sites.
-    util.parallel(filterEnabled('videos'), function(results) {
+    util.parallel(filterEnabled('videos', true), function(results) {
       var videos = [].concat.apply([], results.map(function(result) {
         result.videos.forEach(function(video) {
           video.source = result.source;
@@ -48,7 +45,7 @@ var sources = {
         videosMap[video.url] = video;
         cachedVideos.push(video.url, video, true);
       });
-      util.parallel(filterEnabled('collections'), function(results) {
+      util.parallel(filterEnabled('collections', false), function(results) {
         var colVideos = [].concat.apply([], results.map(function(result) {
           result.videos.forEach(function(video) {
             var col = { source: result.source };
@@ -102,222 +99,232 @@ var sources = {
     });
   },
 
+  getMetaForVideo: function(url, callback) {
+    if (cachedVideos.has(url)) {
+      callback(cachedVideos.get(url));
+    } else {
+      var source = sources.sourceFromURL(url);
+      if (source) {
+        sources.videos[source].getVideo(url, callback);
+      } else {
+        console.warn('No thumbnail generated from URL: ' + url);
+        callback();
+      }
+    }
+  },
+
+  addMetaToVideo: function(video, callback) {
+    sources.getMetaForVideo(video.url, function(meta) {
+      if (!meta) { return callback(); }
+      video.url = meta.url;
+      video.thumbnail = meta.thumbnail;
+      video.length = meta.length;
+
+      // Views and title can update later, so don't include these when getting
+      // metainfo from cache.
+      ['game', 'title', 'views', 'user'].forEach(function(field) {
+        if (meta[field] && !video[field]) {
+          video[field] = meta[field];
+        }
+      });
+      callback();
+    });
+  },
+
   sourceFromURL: function(url) {
-    var hostname = new URL(url).hostname;
     for (var source in sources.videos) {
-      if (hostname.indexOf(source) > -1) {
+      if (sources.videos[source]._patterns.some(function(pattern) {
+        return pattern.test(url);
+      })) {
         return source;
       }
     }
     return null;
   },
 
-  getMetaForVideo: function(url, callback) {
-    var parsed = new URL(url);
-    var host = parsed.host;
-    var id;
-    if (host === 'youtu.be' || host === 'www.twitch.tv') {
-      var s = parsed.pathname.split(/\//);
-      id = s[s.length - 1];
-    } else if (host === 'www.youtube.com') {
-      var r = /v=([^&$]+)/.exec(parsed.search);
-      if (r) {
-        id = r[1];
-      } else {
-        console.warn('Could not get video ID of URL: ' + url);
-        return null;
-      }
-    }
-
-    if (cachedVideos.has(url)) {
-      callback(cachedVideos.get(url));
-
-    } else if (host === 'www.youtube.com' || host === 'youtu.be') {
-      util.ajax('https://www.youtube.com/get_video_info' +
-      '?ps=default&gl=US&hl=en&video_id=' + id, {
-        cache: function(response) {
-          return {
-            length: parseInt(response.length_seconds, 10),
-            title: response.title,
-            views: parseInt(response.view_count, 10),
-            user: { name: response.author },
-          };
-        },
-      }, function(xhr, meta) {
-        if (!meta) { return callback(); }
-        callback({
-          // Canonical form of URL.
-          url: 'https://www.youtube.com/watch?v=' + id,
-
-          // Using medium quality gives a screenshot without black bars.
-          thumbnail: 'https://i.ytimg.com/vi/' + id +
-            '/mqdefault.jpg?custom=true&w=196&h=110&stc=true&jpg444=true&' +
-            'jpgq=90&sp=68',
-
-          length: meta.length,
-          title: meta.title,
-          views: meta.views,
-          user: meta.user,
-          game: null,
-        });
-      });
-
-    } else if (host === 'www.twitch.tv') {
-      util.ajax('https://api.twitch.tv/kraken/videos/v' + id, {
-        cache: function(response) {
-          return {
-            thumbnail : response.preview,
-            length    : response.length,
-            title     : response.title,
-            game      : response.game,
-            views     : response.views,
-          };
-        },
-      }, function(xhr, meta) {
-        if (!meta) { return callback(null); }
-        var username = /twitch\.tv\/([^\/]+)\//.exec(url)[1];
-        callback({
-          url       : url,
-          thumbnail : meta.thumbnail,
-          length    : meta.length,
-          title     : meta.title,
-          game      : meta.game,
-          views     : meta.views,
-          user      : {
-            url: 'https://www.twitch.tv/' + username,
-            name: username,
-          }
-        });
-      });
-
-    } else {
-      console.warn('No thumbnail generated from URL: ' + url);
-      callback();
-    }
-  },
-
   isVideoPage: function(url) {
-    return patterns.some(function(pattern) {
-      return pattern.test(url);
+    return !!sources.sourceFromURL(url);
+  },
+};
+
+sources.videos.youtube = {
+  patterns: [
+    '*://www.youtube.com/watch?v=*',
+    '*://youtu.be/*',
+  ],
+  getVideo: function(url, callback) {
+    var r = /(?:v=|youtu\.be\/)([^?&$]+)/.exec(url);
+    var id;
+    if (r) {
+      id = r[1];
+    } else {
+      console.warn('Could not get video ID of URL: ' + url);
+      return callback();
+    }
+    util.ajax('https://www.youtube.com/get_video_info' +
+    '?ps=default&gl=US&hl=en&video_id=' + id, {
+      cache: function(response) {
+        if (response.status === 'fail') {
+          return callback();
+        }
+        return {
+          length: parseInt(response.length_seconds, 10),
+          title: response.title,
+          views: parseInt(response.view_count, 10),
+          user: { name: response.author },
+        };
+      },
+    }, function(xhr, meta) {
+      if (!meta) { return callback(); }
+      callback({
+        // Canonical form of URL.
+        url: 'https://www.youtube.com/watch?v=' + id,
+
+        // Using medium quality gives a screenshot without black bars.
+        thumbnail: 'https://i.ytimg.com/vi/' + id +
+          '/mqdefault.jpg?custom=true&w=196&h=110&stc=true&jpg444=true&' +
+          'jpgq=90&sp=68',
+
+        length: meta.length,
+        title: meta.title,
+        views: meta.views,
+        user: meta.user,
+        game: null,
+      });
     });
   },
-
-};
-
-patterns = sources.patterns.map(util.minimatch);
-
-function addMetaToVideo(video, callback) {
-  sources.getMetaForVideo(video.url, function(meta) {
-    if (!meta) { return callback(); }
-    video.url = meta.url;
-    video.thumbnail = meta.thumbnail;
-    video.length = meta.length;
-
-    // Views and title can update later, so don't include these when getting
-    // metainfo from cache.
-    ['game', 'title', 'views', 'user'].forEach(function(field) {
-      if (meta[field] && !video[field]) {
-        video[field] = meta[field];
+  getAllVideos: function(callback) {
+    util.ajax('https://www.youtube.com/feed/subscriptions',
+    function(xhr, body) {
+      if (!body) { return callback(); }
+      var $items = body.getElementById('browse-items-primary');
+      if (!$items) {
+        console.error('Not logged in');
+        callback();
+        return;
       }
-    });
-    callback();
-  });
-}
+      $items = $items.children[0];
+      var items = [];
+      for (var i = 0, len = $items.children.length; i < len; i++) {
+        var $item = $items.children[i];
+        var $user = $item
+          .getElementsByClassName('branded-page-module-title')[0].children[0];
+        var $thumb = $item.getElementsByClassName('yt-lockup-thumbnail')[1];
+        var $length = $thumb.getElementsByClassName('video-time')[0];
+        var $content = $item.getElementsByClassName('yt-lockup-content')[0];
+        var $meta = $content.getElementsByClassName('yt-lockup-meta-info')[0];
+        var hasMeta = $meta.children.length > 1;
+        var time = hasMeta ? $meta.children[0].textContent : null;
+        var views = hasMeta ?
+          parseInt($meta.children[1].textContent.replace(/,/g, ''), 0) : null;
+        var $starts = $meta.getElementsByClassName('localized-date')[0];
+        var timestamp = $starts ?
+          parseInt($starts.getAttribute('data-timestamp'), 10) * 1000 :
+          // Add i to relative timestamp so that videos that say they were
+          // posted at the same time (relatively) are still ordered in the
+          // order that they are on the page.
+          hasMeta ? util.relativeToTimestamp(time) - i : Date.now() - i;
+        var $desc = $content.getElementsByClassName('yt-lockup-description')[0];
 
-sources.videos.youtube = function(callback) {
-  util.ajax('https://www.youtube.com/feed/subscriptions', function(xhr, body) {
-    if (!body) { return callback(); }
-    var $items = body.getElementById('browse-items-primary');
-    if (!$items) {
-      console.error('Not logged in');
-      callback();
-      return;
-    }
-    $items = $items.children[0];
-    var items = [];
-    for (var i = 0, len = $items.children.length; i < len; i++) {
-      var $item = $items.children[i];
-      var $user = $item
-        .getElementsByClassName('branded-page-module-title')[0].children[0];
-      var $thumb = $item.getElementsByClassName('yt-lockup-thumbnail')[1];
-      var $length = $thumb.getElementsByClassName('video-time')[0];
-      var $content = $item.getElementsByClassName('yt-lockup-content')[0];
-      var $meta = $content.getElementsByClassName('yt-lockup-meta-info')[0];
-      var hasMeta = $meta.children.length > 1;
-      var time = hasMeta ? $meta.children[0].textContent : null;
-      var views = hasMeta ?
-        parseInt($meta.children[1].textContent.replace(/,/g, ''), 0) : null;
-      var $starts = $meta.getElementsByClassName('localized-date')[0];
-      var timestamp = $starts ?
-        parseInt($starts.getAttribute('data-timestamp'), 10) * 1000 :
-        // Add i to relative timestamp so that videos that say they were
-        // posted at the same time (relatively) are still ordered in the
-        // order that they are on the page.
-        hasMeta ? util.relativeToTimestamp(time) - i : Date.now() - i;
-      var $desc = $content.getElementsByClassName('yt-lockup-description')[0];
+        // YouTube videos sometimes don't have thumbnails loaded until
+        // the page is scrolle down.
+        var url = $thumb.children[0].href;
+        var $img = $thumb.getElementsByTagName('img')[0];
+        var thumbnail =
+          $img.src === 'https://s.ytimg.com/yts/img/pixel-vfl3z5WfW.gif' ?
+          thumbnail = $img.getAttribute('data-thumb') : $img.src;
+        if (thumbnail.indexOf('//') === 0) {
+          thumbnail = 'https:' + thumbnail;
+        }
 
-      // YouTube videos sometimes don't have thumbnails loaded until
-      // the page is scrolle down.
-      var url = $thumb.children[0].href;
-      var $img = $thumb.getElementsByTagName('img')[0];
-      var thumbnail =
-        $img.src === 'https://s.ytimg.com/yts/img/pixel-vfl3z5WfW.gif' ?
-        thumbnail = $img.getAttribute('data-thumb') : $img.src;
-      if (thumbnail.indexOf('//') === 0) {
-        thumbnail = 'https:' + thumbnail;
-      }
-
-      items.push({
-        user: {
-          url: $user.href,
-          thumbnail: $user.getElementsByTagName('img')[0].src,
-          name: $user.children[1].textContent,
-          verified: !!$content
-            .getElementsByClassName('yt-channel-title-icon-verified').length
-        },
-        url: url,
-        thumbnail: thumbnail,
-        length: $length ? util.timeToSeconds($length.textContent) : null,
-        title: $content.children[0].children[0].textContent,
-        timestamp: timestamp, 
-        live: !!$content.getElementsByClassName('yt-badge-live').length,
-        views: views,
-        desc: $desc ? $desc.innerHTML : '',
-        watched: !!$thumb.getElementsByClassName('watched-badge').length,
-      });
-    }
-    callback(items);
-  });
-};
-
-sources.videos.twitch = function(callback) {
-  chrome.cookies.get({
-    url: 'https://www.twitch.tv/directory/following/videos',
-    name: 'api_token',
-  }, function(cookie) {
-    util.ajax('https://api.twitch.tv/kraken/videos/followed?' +
-    'limit=40&broadcast_type=highlight&offset=0&on_site=1', {
-      headers: { 'Twitch-Api-Token': cookie.value },
-    }, function(xhr, result) {
-      if (!result || !result.videos) { return callback(); }
-      callback(result.videos.map(function(video) {
-        return {
+        items.push({
           user: {
-            url: 'https://www.twitch.tv/' + video.channel.name,
-            name: video.channel.display_name,
+            url: $user.href,
+            thumbnail: $user.getElementsByTagName('img')[0].src,
+            name: $user.children[1].textContent,
+            verified: !!$content
+              .getElementsByClassName('yt-channel-title-icon-verified').length
           },
-          url: video.url.replace(/^https:\/\/secure\./, 'https://www.'),
-          thumbnail: video.preview,
-          length: video.length,
-          title: video.title,
-          timestamp: new Date(video.created_at).getTime(),
-          views: video.views,
-          desc: video.description,
-          game: video.game,
-        };
-      }));
+          url: url,
+          thumbnail: thumbnail,
+          length: $length ? util.timeToSeconds($length.textContent) : null,
+          title: $content.children[0].children[0].textContent,
+          timestamp: timestamp, 
+          live: !!$content.getElementsByClassName('yt-badge-live').length,
+          views: views,
+          desc: $desc ? $desc.innerHTML : '',
+          watched: !!$thumb.getElementsByClassName('watched-badge').length,
+        });
+      }
+      callback(items);
     });
-  });
+  },
+};
+
+sources.videos.twitch = {
+  patterns: [
+    '*://www.twitch.tv/*/v/*'
+  ],
+  getVideo: function(url, callback) {
+    var parsed = new URL(url);
+    var s = parsed.pathname.split(/\//);
+    var id = s[s.length - 1];
+    util.ajax('https://api.twitch.tv/kraken/videos/v' + id, {
+      cache: function(response) {
+        return {
+          thumbnail : response.preview,
+          length    : response.length,
+          title     : response.title,
+          game      : response.game,
+          views     : response.views,
+        };
+      },
+    }, function(xhr, meta) {
+      if (!meta) { return callback(null); }
+      var username = /twitch\.tv\/([^\/]+)\//.exec(url)[1];
+      callback({
+        url       : url,
+        thumbnail : meta.thumbnail,
+        length    : meta.length,
+        title     : meta.title,
+        game      : meta.game,
+        views     : meta.views,
+        user      : {
+          url: 'https://www.twitch.tv/' + username,
+          name: username,
+        }
+      });
+    });
+  },
+  getAllVideos: function(callback) {
+    chrome.cookies.get({
+      url: 'https://www.twitch.tv/directory/following/videos',
+      name: 'api_token',
+    }, function(cookie) {
+      util.ajax('https://api.twitch.tv/kraken/videos/followed?' +
+      'limit=40&broadcast_type=highlight&offset=0&on_site=1', {
+        headers: { 'Twitch-Api-Token': cookie.value },
+      }, function(xhr, result) {
+        if (!result || !result.videos) { return callback(); }
+        callback(result.videos.map(function(video) {
+          return {
+            user: {
+              url: 'https://www.twitch.tv/' + video.channel.name,
+              name: video.channel.display_name,
+            },
+            url: video.url.replace(/^https:\/\/secure\./, 'https://www.'),
+            thumbnail: video.preview,
+            length: video.length,
+            title: video.title,
+            timestamp: new Date(video.created_at).getTime(),
+            views: video.views,
+            desc: video.description,
+            game: video.game,
+          };
+        }));
+      });
+    });
+  },
 };
 
 sources.collections.haloruns = function(callback) {
@@ -376,7 +383,8 @@ sources.collections.haloruns = function(callback) {
         game: game,
       });
     }
-    util.parallelMap(items, addMetaToVideo, callback.bind(null, items));
+    util.parallelMap(items, sources.addMetaToVideo,
+      callback.bind(null, items));
   });
 };
 
@@ -399,7 +407,7 @@ sources.collections.speedrundotcom = function(callback) {
     getMetaForRun(run.url, function(meta) {
       run.url = meta.url;
       run.desc = meta.desc;
-      addMetaToVideo(run, callback);
+      sources.addMetaToVideo(run, callback);
     });
   }
 
@@ -440,3 +448,10 @@ sources.collections.speedrundotcom = function(callback) {
     getNotifications();
   }
 };
+
+sources.patterns = [];
+for (var source in sources.videos) {
+  sources.videos[source]._patterns =
+    sources.videos[source].patterns.map(util.minimatch);
+  sources.patterns = sources.patterns.concat(sources.videos[source].patterns);
+}
