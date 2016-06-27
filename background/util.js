@@ -1,3 +1,4 @@
+/* global URLSearchParams */
 /* exported util */
 var util = {};
 
@@ -306,12 +307,10 @@ util.videoID = function(url) {
  */
 util.parseQueryString = function(str) {
   var obj = {};
-  var pairs = str.split('&');
-  pairs.forEach(function(pair) {
-    var s = pair.split('=');
-    obj[decodeURIComponent(s[0])] =
-      decodeURIComponent(s[1].replace(/\+/g, '%20'));
-  });
+  var searchParams = new URLSearchParams(str);
+  for(var pair of searchParams.entries()) {
+    obj[pair[0]] = pair[1];
+  }
   return obj;
 };
 
