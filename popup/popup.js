@@ -89,6 +89,13 @@ chrome.tabs.query({ active: true, currentWindow: true }, function(results) {
     });
   }
 
+  // Still no? Select the first tab with any video.
+  if (!groupSelected) {
+    groupSelected = groups.find(function(group) {
+      return group.videos.length;
+    });
+  }
+
   // Otherwise, select the first tab.
   if (!groupSelected) { groupSelected = groups[0]; }
   groupSelected.selected = true;
