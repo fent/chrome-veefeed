@@ -150,6 +150,7 @@ var sources = {
 sources.videos.youtube = {
   patterns: [
     '*://www.youtube.com/watch?v=*',
+    '*://m.youtube.com/watch?v=*',
     '*://youtu.be/*',
   ],
   getVideo: function(url, callback) {
