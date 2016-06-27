@@ -480,9 +480,11 @@ chrome.tabs.onRemoved.addListener(function(tabID) {
     localStorage.setItem('queue', JSON.stringify(queueUrlMap));
   }
   if (openedVideos[tabID]) {
+    if (openedVideos[tabID].playing) {
+      removeMenu(tabID);
+    }
     delete openedVideos[tabID];
     localStorage.setItem('opened', JSON.stringify(openedVideos));
-    removeMenu(tabID);
   }
   if (pausedTabs[tabID]) {
     setTimeout(function() {
