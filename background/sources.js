@@ -107,7 +107,7 @@ var sources = {
       if (source) {
         sources.videos[source].getVideo(url, callback);
       } else {
-        console.warn('No thumbnail generated from URL: ' + url);
+        console.warn('Could not find source for URL: ' + url);
         callback();
       }
     }
