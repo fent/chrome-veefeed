@@ -370,6 +370,10 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     unqueueVideo(sender.tab.id, sender.tab.url);
     markAsWatched(sender.tab.url);
     markAsPlaying(sender.tab.id, sender.tab.url, sender.tab.title);
+    queue = queueTabs[sender.tab.id];
+    if (queue) {
+      sendResponse(queue[0]);
+    }
 
   } else if (request.newTab) {
     // When a new tab is created for a video,
@@ -422,12 +426,6 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
       }, QUEUE_WAIT_MS);
     } else {
       removeMenu(sender.tab.id);
-    }
-
-  } else if (request.getQueueFront) {
-    queue = queueTabs[sender.tab.id];
-    if (queue) {
-      sendResponse(queue[0]);
     }
 
   } else if (request.title) {
