@@ -317,8 +317,12 @@ function markAsWatched(url) {
 }
 
 function queueMenuClicked(tabID, info) {
-  sources.getMetaForVideo(info.linkUrl, function(video) {
+  var url = info.linkUrl;
+  sources.getMetaForVideo(url, function(video) {
     if (!video) { return; }
+
+    // Keep the original URL, since it might contain things like timestamps.
+    video.url = url;
     queueVideo(tabID, video);
     afterQueue(tabID);
   });
