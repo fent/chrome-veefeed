@@ -55,9 +55,12 @@ function updateVideos() {
   var results = allVideos
     .filter(function(video) {
       delete video.otherSource;
-      video.watched = video.watched ||
-        watchedVideos[sources.sourceFromURL(video.url)]
-          .has(util.videoID(video.url));
+      if (!video.watched) {
+        var source = sources.sourceFromURL(video.url);
+        if (source) {
+          video.watched = watchedVideos[source].has(util.videoID(video.url));
+        }
+      }
       var ignoreIt = matchRules(ignoreRules, video);
       ignoreIt = ignoreIt ||
         options.ignore_live && video.live ||
@@ -307,6 +310,7 @@ function unqueueVideo(tabID, url) {
 function markAsWatched(url) {
   if (!knownVideos.has(url)) { return; }
   var source = sources.sourceFromURL(url);
+  if (!source) { return; }
   watchedVideos[source].push(util.videoID(url));
 
   // Watched videos is updated in storage since there is a listener
