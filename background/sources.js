@@ -164,16 +164,19 @@ sources.videos.youtube = {
     }
     util.ajax('https://www.youtube.com/get_video_info' +
     '?ps=default&gl=US&hl=en&video_id=' + id, {
-      cache: function(response) {
-        if (response.status === 'fail') {
-          return callback();
-        }
-        return {
-          length: parseInt(response.length_seconds, 10),
-          title: response.title,
-          views: parseInt(response.view_count, 10),
-          user: { name: response.author },
-        };
+      cache: {
+        transform: function(response) {
+          if (response.status === 'fail') {
+            return callback();
+          }
+          return {
+            length: parseInt(response.length_seconds, 10),
+            title: response.title,
+            views: parseInt(response.view_count, 10),
+            user: { name: response.author },
+          };
+        },
+        ttl: 1800000,
       },
     }, function(xhr, meta) {
       if (!meta) { return callback(); }
@@ -264,27 +267,31 @@ sources.videos.youtube = {
 
 sources.videos.twitch = {
   patterns: [
-    '*://www.twitch.tv/*/v/*'
+    '*://www.twitch.tv/*/v/*',
+    'https://secure.twitch.tv/*/v/*'
   ],
   getVideo: function(url, callback) {
     var parsed = new URL(url);
     var s = parsed.pathname.split(/\//);
     var id = s[s.length - 1];
     util.ajax('https://api.twitch.tv/kraken/videos/v' + id, {
-      cache: function(response) {
-        return {
-          thumbnail : response.preview,
-          length    : response.length,
-          title     : response.title,
-          game      : response.game,
-          views     : response.views,
-        };
+      cache: {
+        transform: function(response) {
+          return {
+            thumbnail : response.preview,
+            length    : response.length,
+            title     : response.title,
+            game      : response.game,
+            views     : response.views,
+          };
+        },
+        ttl: 1800000,
       },
     }, function(xhr, meta) {
       if (!meta) { return callback(null); }
       var username = /twitch\.tv\/([^\/]+)\//.exec(url)[1];
       callback({
-        url       : url,
+        url       : 'https://www.twitch.tv/' + username + '/v/' + id,
         thumbnail : meta.thumbnail,
         length    : meta.length,
         title     : meta.title,
@@ -393,11 +400,13 @@ var speedrundotcomKey = localStorage.getItem('speedrundotcomKey');
 sources.collections.speedrundotcom = function(callback) {
   function getMetaForRun(url, callback) {
     util.ajax(url, {
-      cache: function(response) {
-        return {
-          url: response.data.videos.links[0].uri,
-          desc: response.data.comment,
-        };
+      cache: {
+        transform: function(response) {
+          return {
+            url: response.data.videos.links[0].uri,
+            desc: response.data.comment,
+          };
+        },
       },
     }, function(xhr, meta) {
       callback(meta);

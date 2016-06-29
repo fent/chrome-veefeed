@@ -8,7 +8,9 @@ var util = {};
  * @param {String} url
  * @param {Object?} opts
  *   {Object} headers
- *   {Function} cache
+ *   {Object} cache
+ *     {Function} transform
+ *     {Number} ttl
  * @param {Function(Object)} callback
  * @return {XMLHttpRequest}
  */
@@ -30,15 +32,16 @@ util.ajax = function(url, opts, callback) {
     url = parsed.href;
   }
 
-  var cache, cacheKey;
+  var cache, cacheRequestKey;
   if (opts.cache) {
     if (!util.ajax.cache[parsed.host]) {
-      util.ajax.cache[parsed.host] = new util.SizedMap(200, parsed.host);
+      util.ajax.cache[parsed.host] =
+        new util.SizedMap(200, 'cache-' + parsed.host, opts.cache.ttl);
     }
     cache = util.ajax.cache[parsed.host];
-    cacheKey = parsed.pathname + parsed.search;
-    if (cache.has(cacheKey)) {
-      callback(null, cache.get(cacheKey));
+    cacheRequestKey = parsed.pathname + parsed.search;
+    if (cache.has(cacheRequestKey)) {
+      callback(null, cache.get(cacheRequestKey));
       return;
     }
   }
@@ -68,9 +71,11 @@ util.ajax = function(url, opts, callback) {
         var response = isURLEncoded ?
           util.parseQueryString(xhr.responseText) : xhr.response;
         if (opts.cache) {
-          var transformed = opts.cache(response);
-          cache.push(cacheKey, transformed);
-          callback(xhr, transformed);
+          if (opts.cache.transform) {
+            response = opts.cache.transform(response);
+          }
+          cache.push(cacheRequestKey, response);
+          callback(xhr, response);
         } else {
           callback(xhr, response);
         }
@@ -120,9 +125,11 @@ util.relativeToTimestamp = function(str) {
  * @constructor
  * @param {Number} limit
  * @param {Array.<Object>|String?} list
+ * @param {Number} ttl
  */
-var SizedMap = util.SizedMap = function(limit, list) {
+var SizedMap = util.SizedMap = function(limit, list, ttl) {
   this.limit = limit;
+  this._ttl = ttl;
   if (typeof list === 'string') {
     this._key = list;
     try {
@@ -136,13 +143,14 @@ var SizedMap = util.SizedMap = function(limit, list) {
   if (list) {
     if (Array.isArray(list)) {
       this.saveList = true;
-      list = list.slice(-limit);
-      for (var i = 0, len = list.length; i < len; i++) {
-        this.push(list[i]);
+      this.list = list.slice(-limit);
+      for (var i = 0, len = this.list.length; i < len; i++) {
+        this.map[this.list[i]] = true;
       }
     } else {
       for (var key in list) {
-        this.push(key, list[key]);
+        this.list.push(key);
+        this.map[key] = list[key];
       }
     }
   }
@@ -163,6 +171,9 @@ SizedMap.prototype.push = function(key, value, noUpdate) {
     this.list.splice(this.list.indexOf(key), 1);
   }
   this.list.push(key);
+  if (this._ttl) {
+    value = { v: value, t: Date.now() };
+  }
   this.map[key] = value || true;
   if (this.list.length > this.limit) {
     delete this.map[this.list.shift()];
@@ -181,7 +192,8 @@ SizedMap.prototype.push = function(key, value, noUpdate) {
  * @return {Boolean}
  */
 SizedMap.prototype.has = function(key) {
-  return key in this.map;
+  return key in this.map &&
+    (!this._ttl || Date.now() - this.map[key].t < this._ttl);
 };
 
 /*
@@ -189,7 +201,7 @@ SizedMap.prototype.has = function(key) {
  * @return {Object}
  */
 SizedMap.prototype.get = function(key) {
-  return this.map[key];
+  return this._ttl ? this.map[key].v : this.map[key];
 };
 
 /**
