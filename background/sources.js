@@ -405,6 +405,7 @@ sources.collections.speedrundotcom = function(callback) {
           return {
             url: response.data.videos.links[0].uri,
             desc: response.data.comment,
+            gameID: response.data.game,
           };
         },
       },
@@ -417,7 +418,22 @@ sources.collections.speedrundotcom = function(callback) {
     getMetaForRun(run.url, function(meta) {
       run.url = meta.url;
       run.desc = meta.desc;
-      sources.addMetaToVideo(run, callback);
+      sources.addMetaToVideo(run, function() {
+        if (!run.game) {
+          util.ajax('http://www.speedrun.com/api/v1/games/' + meta.gameID, {
+            cache: {
+              transform: function(response) {
+                return { name: response.data.names.international };
+              },
+            },
+          }, function(xhr, game) {
+            run.game = game.name;
+            callback();
+          });
+        } else {
+          callback();
+        }
+      });
     });
   }
 
