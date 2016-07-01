@@ -33,10 +33,15 @@ var $tabs = document.getElementById('tabs').children[0];
 var $content = document.getElementById('content');
 
 
-var tabID, winID, queue, openedVideo;
+var tabID, winID, fullqueue, queue, openedVideo;
 function getQueue() {
-  queue = JSON.parse(localStorage.getItem('queue'));
-  if (queue) { queue = queue[tabID]; }
+  fullqueue = JSON.parse(localStorage.getItem('queue'));
+  if (fullqueue) {
+    queue = fullqueue[tabID];
+    delete fullqueue[tabID];
+  } else {
+    queue = null;
+  }
 }
 
 chrome.tabs.query({ active: true, currentWindow: true }, function(results) {
@@ -59,10 +64,17 @@ chrome.tabs.query({ active: true, currentWindow: true }, function(results) {
     }
   }
 
+
   // Find out what videos are queued.
   groups.forEach(function(group) {
     group.videos.forEach(function(video) {
       video.queued = queue && queue[video.url] != null;
+      for (var otherTabID in fullqueue) {
+        if (fullqueue[otherTabID][video.url] != null) {
+          video.silentQueued = true;
+          break;
+        }
+      }
       video.playing = openedVideo &&
         openedVideo.url === video.url && openedVideo.playing;
     });
@@ -280,6 +292,7 @@ function renderVideos(group) {
     var vidClass = '.source-' + video.source;
     if (video.watched) { vidClass += '.watched'; }
     if (video.queued) { vidClass += '.queued'; }
+    if (video.silentQueued) { vidClass += '.silent-queued'; }
     if (video.playing) { vidClass += '.playing'; }
     var $video = m('li.video' + vidClass, [
       m('a.left-side', { href: video.url, disabled: true }, [
