@@ -366,10 +366,10 @@ sources.collections.haloruns = function(callback) {
       items.push({
         col: {
           url: $level.href,
-          user: {
+          users: [{
             url: $newUser.href,
             name: $newUser.textContent,
-          },
+          }],
         },
         url: url,
         thumbnail: null,
@@ -398,6 +398,7 @@ sources.collections.speedrundotcom = function(callback) {
             url: response.data.videos.links[0].uri,
             desc: response.data.comment,
             gameID: response.data.game,
+            users: response.data.players,
           };
         },
       },
@@ -406,26 +407,55 @@ sources.collections.speedrundotcom = function(callback) {
     });
   }
 
+  function addUsersToRun(run, meta, callback) {
+    util.parallelMap(meta.users, function(user, callback) {
+      if (user.rel === 'guest') {
+        callback({ name: user.name });
+      } else {
+        util.ajax('http://www.speedrun.com/api/v1/users/' + user.id, {
+          cache: {
+            transform: function(response) {
+              return {
+                url: response.data.weblink,
+                name: response.data.names.international,
+              };
+            }
+          }
+        }, function(xhr, response) { callback(response); });
+      }
+    }, function(users) {
+      run.col.users = users;
+      callback();
+    });
+  }
+
+  function addMetaToVideo(run, meta, callback) {
+    sources.addMetaToVideo(run, function() {
+      if (!run.game) {
+        util.ajax('http://www.speedrun.com/api/v1/games/' + meta.gameID, {
+          cache: {
+            transform: function(response) {
+              return { name: response.data.names.international };
+            },
+          },
+        }, function(xhr, game) {
+          run.game = game.name;
+          callback();
+        });
+      } else {
+        callback();
+      }
+    });
+  }
+
   function addMetaToRun(run, callback) {
     getMetaForRun(run.url, function(meta) {
       run.url = meta.url;
       run.desc = meta.desc;
-      sources.addMetaToVideo(run, function() {
-        if (!run.game) {
-          util.ajax('http://www.speedrun.com/api/v1/games/' + meta.gameID, {
-            cache: {
-              transform: function(response) {
-                return { name: response.data.names.international };
-              },
-            },
-          }, function(xhr, game) {
-            run.game = game.name;
-            callback();
-          });
-        } else {
-          callback();
-        }
-      });
+      util.parallel([
+        addUsersToRun.bind(null, run, meta),
+        addMetaToVideo.bind(null, run, meta)
+      ], callback);
     });
   }
 
@@ -440,10 +470,6 @@ sources.collections.speedrundotcom = function(callback) {
           return {
             col: {
               url: noti.item.uri,
-              user: {
-                url: '',
-                name: null,
-              }
             },
             url: noti.links[0].uri,
             title: noti.text,
