@@ -425,7 +425,6 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
       setTimeout(function() {
         chrome.tabs.update(parseInt(sender.tab.id), {
           url: nextVideo.url,
-          active: true
         });
       }, QUEUE_WAIT_MS);
     } else {
