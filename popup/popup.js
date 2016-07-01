@@ -252,6 +252,26 @@ function renderVideos(group) {
       openVideo(video, inNewTab);
     }
 
+    function userView(source) {
+      return m('span.source', [
+        m((source.url ? 'a' : 'span') + '.favicon', {
+          className: 'source-' + source.source,
+          href: source.url || '#',
+          target: '_blank',
+        }),
+        m('span.user', [
+          source.user.thumbnail ?
+            m('img.lazy', { 'data-src': source.user.thumbnail }) : null,
+          m((source.user.url ? 'a' : 'span') + '.name', {
+            href: source.user.url || '#',
+            target: '_blank',
+          }, source.user.name),
+          source.user.verified ?
+            m('span.verified', { 'data-title': 'Verified' }) : null,
+        ])
+      ]);
+    }
+
     var vidClass = '.source-' + video.source;
     if (video.watched) { vidClass += '.watched'; }
     if (video.queued) { vidClass += '.queued'; }
@@ -373,30 +393,12 @@ function renderVideos(group) {
           onclick: open.bind(null, false)
         }, video.title),
         m('div', [
-          video.collections &&
-            m('span.collections', video.collections.map(function(col) {
-              return m((col.url ? 'a' : 'span') + '.collection', {
-                className: 'source-' + col.source,
-                href: col.url || '#',
-                target: col.url ? '_blank' : '',
-              });
-            })),
-          m('span.favicon', { className: 'source-' + video.source }),
-          video.otherSource && m('a.favicon', {
-            className: 'source-' + video.otherSource.source,
-            href: video.otherSource.url,
-            target: '_blank',
-          }),
-          m('span.user', [
-            video.user.thumbnail ?
-              m('img.lazy', { 'data-src': video.user.thumbnail }) : null,
-            m('a.name', {
-              href: video.user.url,
-              target: '_blank',
-            }, video.user.name),
-            video.user.verified &&
-              m('span.verified', { 'data-title': 'Verified' })
-          ])
+          video.collections ?
+            m('span.collections', video.collections.map(userView)) : null,
+            m('span.sources', [
+              video.otherSource ? userView(video.otherSource) : null,
+              userView(video),
+            ])
         ]),
         m('div', [
           video.live ? m('span.live', 'LIVE NOW') :

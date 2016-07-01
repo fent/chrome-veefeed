@@ -86,7 +86,11 @@ function updateVideos() {
             for (var key in video2) {
               if (!video1[key]) { video1[key] = video2[key]; }
             }
-            video1.otherSource = { source: video2.source, url: video2.url };
+            video1.otherSource = {
+              source: video2.source,
+              url: video2.url,
+              user: video2.user,
+            };
           }
         }
       });
@@ -240,7 +244,7 @@ function matchRules(rules, video) {
   return rules.some(function(ignore) {
     if (video.collections && video.collections.some(function(col) {
         if (ignore.source && ignore.source !== col.source) { return false; }
-        if (ignore.user && !ignore.user.test(col.username)) { return false; }
+        if (ignore.user && !ignore.user.test(col.user.name)) { return false; }
         if (ignore.title && !ignore.title.test(col.title)) { return false; }
         return ignore.source || ignore.user || ignore.title;
       })) { return true; }

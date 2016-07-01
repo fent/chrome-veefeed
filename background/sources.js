@@ -48,11 +48,9 @@ var sources = {
       util.parallel(filterEnabled('collections', false), function(results) {
         var colVideos = [].concat.apply([], results.map(function(result) {
           result.videos.forEach(function(video) {
-            var col = { source: result.source };
-            if (video.colUrl) {
-              col.url = video.colUrl;
-              delete video.colUrl;
-            }
+            var col = video.col || {};
+            delete video.col;
+            col.source = result.source;
             video.collections = [col];
           });
           return result.videos;
@@ -66,26 +64,18 @@ var sources = {
         colVideos.forEach(function(colVideo) {
           var video = videosMap[colVideo.url];
           if (video) {
-            for (var key in colVideo) {
-              if (key === 'collections') {
-                if (video.collections) {
-                  video.collections.push(colVideo.collections[0]);
-                } else {
-                  video.collections = colVideo.collections;
-                }
-              } else if (!video[key]) {
-                video[key] = colVideo[key];
-
-                // Keeping a copy of the collection username and title
-                // for filtering.
-              } else if (key === 'user') {
-                colVideo.collections[0].username = colVideo.user.name;
-
-              } else if (key === 'title') {
-                colVideo.collections[0].title = colVideo.title;
-
-              }
+            // Keep a reference of the collection title for filtering,
+            // since the video will have its own title.
+            colVideo.collections[0].title = colVideo.title;
+            if (video.collections) {
+              // It's possible that the same video could be posted in
+              // many collectioin sites.
+              video.collections.push(colVideo.collections[0]);
+            } else {
+              video.collections = colVideo.collections.slice();
             }
+            video.desc = video.desc || colVideo.desc;
+            video.game = video.game || colVideo.game;
           } else {
             colVideo.source = sources.sourceFromURL(colVideo.url);
             videosMap[colVideo.url] = colVideo;
@@ -374,10 +364,12 @@ sources.collections.haloruns = function(callback) {
 
       var url = $newRecord.href;
       items.push({
-        user: {
-          url: $newUser.href,
-          thumbnail: null,
-          name: $newUser.textContent,
+        col: {
+          url: $level.href,
+          user: {
+            url: $newUser.href,
+            name: $newUser.textContent,
+          },
         },
         url: url,
         thumbnail: null,
@@ -446,10 +438,15 @@ sources.collections.speedrundotcom = function(callback) {
         .filter(function(noti) { return noti.item.rel === 'run'; })
         .map(function(noti) {
           return {
-            id: noti.id,
-            title: noti.text,
+            col: {
+              url: noti.item.uri,
+              user: {
+                url: '',
+                name: null,
+              }
+            },
             url: noti.links[0].uri,
-            colUrl: noti.item.uri,
+            title: noti.text,
             timestamp: new Date(noti.created).getTime(),
           };
         });
