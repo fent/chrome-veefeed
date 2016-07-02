@@ -15,6 +15,8 @@
     "https://i.ytimg.com/vi/*/hqdefault.jpg?*",
     "https://i.ytimg.com/vi/*/mqdefault.jpg?*",
     "http://haloruns.com/records?recent",
+    "http://www.speedrun.com/settings",
+    "http://www.speedrun.com/api/v1/*",
     "contextMenus",
     "cookies",
     "notifications",

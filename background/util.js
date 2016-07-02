@@ -1,3 +1,4 @@
+/* global URLSearchParams */
 /* exported util */
 var util = {};
 
@@ -5,17 +6,47 @@ var util = {};
  * Helper function for requests.
  *
  * @param {String} url
+ * @param {Object?} opts
+ *   {Object} headers
+ *   {Object} cache
+ *     {Function} transform
+ *     {Number} ttl
  * @param {Function(Object)} callback
  * @return {XMLHttpRequest}
  */
-util.ajax = function(url, callback) {
-  if (window.location.protocol.indexOf('http') === 0 &&
-      url.indexOf('http') === 0) {
-    url = new URL(url);
-    url.protocol = window.location.protocol;
-    url = url.href;
+util.ajax = function(url, opts, callback) {
+  if (util.ajax.active >= util.ajax.max) {
+    util.ajax.queue.push(arguments);
+    return;
   }
 
+  if (typeof opts === 'function') {
+    callback = opts;
+    opts = {};
+  }
+
+  var parsed = new URL(url);
+  if (window.location.protocol.indexOf('http') === 0 &&
+      url.indexOf('http') === 0) {
+    parsed.protocol = window.location.protocol;
+    url = parsed.href;
+  }
+
+  var cache, cacheRequestKey;
+  if (opts.cache) {
+    if (!util.ajax.cache[parsed.host]) {
+      util.ajax.cache[parsed.host] =
+        new util.SizedMap(200, 'cache-' + parsed.host, opts.cache.ttl);
+    }
+    cache = util.ajax.cache[parsed.host];
+    cacheRequestKey = parsed.pathname + parsed.search;
+    if (cache.has(cacheRequestKey)) {
+      callback(null, cache.get(cacheRequestKey));
+      return;
+    }
+  }
+
+  util.ajax.active++;
   var isURLEncoded = false;
   var xhr = new XMLHttpRequest();
   xhr.open('GET', url, true);
@@ -32,17 +63,39 @@ util.ajax = function(url, callback) {
       }
 
     } else if (xhr.readyState === 4 && xhr.status >= 200) {
-      var result = xhr.status >= 200 ?
-        isURLEncoded ?
-        util.parseQueryString(xhr.responseText) : xhr.response : null;
-      callback(xhr, result);
+      util.ajax.active--;
+      if (util.ajax.queue.length && util.ajax.active < util.ajax.max) {
+        util.ajax.apply(null, util.ajax.queue.shift());
+      }
+      if (xhr.status >= 200) {
+        var response = isURLEncoded ?
+          util.parseQueryString(xhr.responseText) : xhr.response;
+        if (opts.cache) {
+          if (opts.cache.transform) {
+            response = opts.cache.transform(response);
+          }
+          cache.push(cacheRequestKey, response);
+          callback(xhr, response);
+        } else {
+          callback(xhr, response);
+        }
+      } else {
+        callback(xhr, null);
+      }
     }
   };
-  setTimeout(function() {
-    xhr.send();
-  });
-  return xhr;
+  if (opts.headers) {
+    for (var key in opts.headers) {
+      xhr.setRequestHeader(key, opts.headers[key]);
+    }
+  }
+  xhr.send();
 };
+util.ajax.queue = [];
+util.ajax.max = 3;
+util.ajax.active = 0;
+util.ajax.cache = {};
+
 
 /*
  * Converts time formatted as '2 days ago' to a timestamp.
@@ -71,21 +124,33 @@ util.relativeToTimestamp = function(str) {
  *
  * @constructor
  * @param {Number} limit
- * @param {Array.<Object>?} list
+ * @param {Array.<Object>|String?} list
+ * @param {Number} ttl
  */
-var SizedMap = util.SizedMap = function(limit, list) {
+var SizedMap = util.SizedMap = function(limit, list, ttl) {
   this.limit = limit;
+  this._ttl = ttl;
+  if (typeof list === 'string') {
+    this._key = list;
+    try {
+      list = JSON.parse(localStorage.getItem(list)) || {};
+    } catch (err) {
+      list = {};
+    }
+  }
   this.list = [];
   this.map = {};
   if (list) {
     if (Array.isArray(list)) {
-      list = list.slice(-limit);
-      for (var i = 0, len = list.length; i < len; i++) {
-        this.push(list[i]);
+      this.saveList = true;
+      this.list = list.slice(-limit);
+      for (var i = 0, len = this.list.length; i < len; i++) {
+        this.map[this.list[i]] = true;
       }
     } else {
       for (var key in list) {
-        this.push(key, list[key]);
+        this.list.push(key);
+        this.map[key] = list[key];
       }
     }
   }
@@ -106,9 +171,19 @@ SizedMap.prototype.push = function(key, value, noUpdate) {
     this.list.splice(this.list.indexOf(key), 1);
   }
   this.list.push(key);
+  if (this._ttl) {
+    value = { v: value, t: Date.now() };
+  }
   this.map[key] = value || true;
   if (this.list.length > this.limit) {
     delete this.map[this.list.shift()];
+  }
+
+  // Save this to local storage.
+  if (this._key) {
+    this._shouldSave = true;
+    clearTimeout(this._tid);
+    this._tid = setTimeout(this._save.bind(this), 1000);
   }
 };
 
@@ -117,7 +192,8 @@ SizedMap.prototype.push = function(key, value, noUpdate) {
  * @return {Boolean}
  */
 SizedMap.prototype.has = function(key) {
-  return key in this.map;
+  return key in this.map &&
+    (!this._ttl || Date.now() - this.map[key].t < this._ttl);
 };
 
 /*
@@ -125,7 +201,17 @@ SizedMap.prototype.has = function(key) {
  * @return {Object}
  */
 SizedMap.prototype.get = function(key) {
-  return this.map[key];
+  return this._ttl ? this.map[key].v : this.map[key];
+};
+
+/**
+ * Saves to local storage.
+ */
+SizedMap.prototype._save = function() {
+  if (!this._key || !this._shouldSave) { return; }
+  var store = this.saveList ? this.list : this.map;
+  localStorage.setItem(this._key, JSON.stringify(store));
+  this._shouldSave = false;
 };
 
 /**
@@ -233,12 +319,10 @@ util.videoID = function(url) {
  */
 util.parseQueryString = function(str) {
   var obj = {};
-  var pairs = str.split('&');
-  pairs.forEach(function(pair) {
-    var s = pair.split('=');
-    obj[decodeURIComponent(s[0])] =
-      decodeURIComponent(s[1].replace(/\+/g, '%20'));
-  });
+  var searchParams = new URLSearchParams(str);
+  for(var pair of searchParams.entries()) {
+    obj[pair[0]] = pair[1];
+  }
   return obj;
 };
 

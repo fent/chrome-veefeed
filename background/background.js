@@ -55,9 +55,12 @@ function updateVideos() {
   var results = allVideos
     .filter(function(video) {
       delete video.otherSource;
-      video.watched = video.watched ||
-        watchedVideos[sources.sourceFromURL(video.url)]
-          .has(util.videoID(video.url));
+      if (!video.watched) {
+        var source = sources.sourceFromURL(video.url);
+        if (source) {
+          video.watched = watchedVideos[source].has(util.videoID(video.url));
+        }
+      }
       var ignoreIt = matchRules(ignoreRules, video);
       ignoreIt = ignoreIt ||
         options.ignore_live && video.live ||
@@ -83,7 +86,11 @@ function updateVideos() {
             for (var key in video2) {
               if (!video1[key]) { video1[key] = video2[key]; }
             }
-            video1.otherSource = { source: video2.source, url: video2.url };
+            video1.otherSource = {
+              source: video2.source,
+              url: video2.url,
+              user: video2.user,
+            };
           }
         }
       });
@@ -237,7 +244,10 @@ function matchRules(rules, video) {
   return rules.some(function(ignore) {
     if (video.collections && video.collections.some(function(col) {
         if (ignore.source && ignore.source !== col.source) { return false; }
-        if (ignore.user && !ignore.user.test(col.username)) { return false; }
+        if (ignore.user && col.users && col.users.length &&
+          col.users.every(function(user) {
+          return !ignore.user.test(user.name);
+        })) { return false; }
         if (ignore.title && !ignore.title.test(col.title)) { return false; }
         return ignore.source || ignore.user || ignore.title;
       })) { return true; }
@@ -307,6 +317,7 @@ function unqueueVideo(tabID, url) {
 function markAsWatched(url) {
   if (!knownVideos.has(url)) { return; }
   var source = sources.sourceFromURL(url);
+  if (!source) { return; }
   watchedVideos[source].push(util.videoID(url));
 
   // Watched videos is updated in storage since there is a listener
@@ -317,11 +328,14 @@ function markAsWatched(url) {
 }
 
 function queueMenuClicked(tabID, info) {
-  sources.getMetaForVideo(info.linkUrl, function(video) {
+  var url = info.linkUrl;
+  sources.getMetaForVideo(url, function(video) {
     if (!video) { return; }
+
+    // Keep the original URL, since it might contain things like timestamps.
+    video.url = url;
     queueVideo(tabID, video);
     afterQueue(tabID);
-    sources.saveCache();
   });
 }
 
@@ -367,6 +381,10 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     unqueueVideo(sender.tab.id, sender.tab.url);
     markAsWatched(sender.tab.url);
     markAsPlaying(sender.tab.id, sender.tab.url, sender.tab.title);
+    queue = queueTabs[sender.tab.id];
+    if (queue) {
+      sendResponse(queue[0]);
+    }
 
   } else if (request.newTab) {
     // When a new tab is created for a video,
@@ -414,17 +432,10 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
       setTimeout(function() {
         chrome.tabs.update(parseInt(sender.tab.id), {
           url: nextVideo.url,
-          active: true
         });
       }, QUEUE_WAIT_MS);
     } else {
       removeMenu(sender.tab.id);
-    }
-
-  } else if (request.getQueueFront) {
-    queue = queueTabs[sender.tab.id];
-    if (queue) {
-      sendResponse(queue[0]);
     }
 
   } else if (request.title) {
@@ -481,9 +492,11 @@ chrome.tabs.onRemoved.addListener(function(tabID) {
     localStorage.setItem('queue', JSON.stringify(queueUrlMap));
   }
   if (openedVideos[tabID]) {
+    if (openedVideos[tabID].playing) {
+      removeMenu(tabID);
+    }
     delete openedVideos[tabID];
     localStorage.setItem('opened', JSON.stringify(openedVideos));
-    removeMenu(tabID);
   }
   if (pausedTabs[tabID]) {
     setTimeout(function() {

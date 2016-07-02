@@ -33,10 +33,15 @@ var $tabs = document.getElementById('tabs').children[0];
 var $content = document.getElementById('content');
 
 
-var tabID, winID, queue, openedVideo;
+var tabID, winID, fullqueue, queue, openedVideo;
 function getQueue() {
-  queue = JSON.parse(localStorage.getItem('queue'));
-  if (queue) { queue = queue[tabID]; }
+  fullqueue = JSON.parse(localStorage.getItem('queue'));
+  if (fullqueue) {
+    queue = fullqueue[tabID];
+    delete fullqueue[tabID];
+  } else {
+    queue = null;
+  }
 }
 
 chrome.tabs.query({ active: true, currentWindow: true }, function(results) {
@@ -59,10 +64,17 @@ chrome.tabs.query({ active: true, currentWindow: true }, function(results) {
     }
   }
 
+
   // Find out what videos are queued.
   groups.forEach(function(group) {
     group.videos.forEach(function(video) {
       video.queued = queue && queue[video.url] != null;
+      for (var otherTabID in fullqueue) {
+        if (fullqueue[otherTabID][video.url] != null) {
+          video.silentQueued = true;
+          break;
+        }
+      }
       video.playing = openedVideo &&
         openedVideo.url === video.url && openedVideo.playing;
     });
@@ -86,6 +98,13 @@ chrome.tabs.query({ active: true, currentWindow: true }, function(results) {
   if (!groupSelected) {
     groupSelected = groups.find(function(group) {
       return group.videos.some(function(video) { return !video.watched; });
+    });
+  }
+
+  // Still no? Select the first tab with any video.
+  if (!groupSelected) {
+    groupSelected = groups.find(function(group) {
+      return group.videos.length;
     });
   }
 
@@ -245,9 +264,35 @@ function renderVideos(group) {
       openVideo(video, inNewTab);
     }
 
+    function userView(user) {
+      return m('span.user', [
+        user.thumbnail ?
+          m('img.lazy', { 'data-src': user.thumbnail }) : null,
+          m((user.url ? 'a' : 'span') + '.name', {
+            href: user.url || '#',
+            target: '_blank',
+          }, user.name),
+        user.verified ?
+        m('span.verified', { 'data-title': 'Verified' }) : null,
+      ]);
+    }
+
+    function sourceView(source) {
+      return m('span.source', [
+        m((source.url ? 'a' : 'span') + '.favicon', {
+          className: 'source-' + source.source,
+          href: source.url || '#',
+          target: '_blank',
+        })
+      ].concat(source.users ?
+        source.users.map(userView) : userView(source.user))
+      );
+    }
+
     var vidClass = '.source-' + video.source;
     if (video.watched) { vidClass += '.watched'; }
     if (video.queued) { vidClass += '.queued'; }
+    if (video.silentQueued) { vidClass += '.silent-queued'; }
     if (video.playing) { vidClass += '.playing'; }
     var $video = m('li.video' + vidClass, [
       m('a.left-side', { href: video.url, disabled: true }, [
@@ -366,28 +411,12 @@ function renderVideos(group) {
           onclick: open.bind(null, false)
         }, video.title),
         m('div', [
-          video.collections &&
-            m('span.collections', video.collections.map(function(source) {
-              return m('span.collection', {
-                className: 'source-' + source.source,
-              });
-            })),
-          m('span.favicon', { className: 'source-' + video.source }),
-          video.otherSource && m('a.favicon', {
-            className: 'source-' + video.otherSource.source,
-            href: video.otherSource.url,
-            target: '_blank',
-          }),
-          m('span.user', [
-            video.user.thumbnail ?
-              m('img.lazy', { 'data-src': video.user.thumbnail }) : null,
-            m('a.name', {
-              href: video.user.url,
-              target: '_blank',
-            }, video.user.name),
-            video.user.verified &&
-              m('span.verified', { 'data-title': 'Verified' })
-          ])
+          video.collections ?
+            m('span.collections', video.collections.map(sourceView)) : null,
+            m('span.sources', [
+              video.otherSource ? sourceView(video.otherSource) : null,
+              sourceView(video),
+            ])
         ]),
         m('div', [
           video.live ? m('span.live', 'LIVE NOW') :

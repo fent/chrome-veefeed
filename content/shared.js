@@ -1,7 +1,10 @@
 /* global chrome, m, toHumanLength */
 /* exported getElement, setNextButton */
 
-chrome.runtime.sendMessage({ started: true });
+var queuedVideo;
+chrome.runtime.sendMessage({ started: true }, {}, function(response) {
+  queuedVideo = response;
+});
 
 // Element may not be available right away when the page loads.
 function getElement(className, callback) {
@@ -55,17 +58,14 @@ function setNextButton($playButton, buttonClass) {
   // Place button to the right of play button.
   $playButton.parentNode.insertBefore($nextButton, $playButton.nextSibling);
 
-  var hasQueuedVideo = false;
   function onQueueUpdate(video) {
     if (video) {
-      hasQueuedVideo = true;
       $nextButton.href = video.url;
       $nextButton.classList.add('veefeed-show');
       $thumbnail.src = video.thumbnail;
       $length.textContent = toHumanLength(video.length);
       $title.textContent = video.title;
     } else {
-      hasQueuedVideo = false;
       $nextButton.classList.remove('veefeed-show');
     }
   }
@@ -76,11 +76,7 @@ function setNextButton($playButton, buttonClass) {
     }
   });
 
-  chrome.runtime.sendMessage({ getQueueFront: true }, {}, function(response) {
-    if (response) {
-      onQueueUpdate(response);
-    }
-  });
+  onQueueUpdate(queuedVideo);
 
   return $nextButton;
 }
