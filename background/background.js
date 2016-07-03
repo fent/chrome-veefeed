@@ -363,7 +363,7 @@ function removeMenu(tabID) {
 
   // If there are no more videos that are playing, disable the queue menu.
   if (Object.keys(openedVideos).every(function(key) {
-    return !openedVideos[key].playing;
+    return key !== tabID || !openedVideos[key].playing;
   })) {
     chrome.contextMenus.update('queue', { enabled: false });
   }
