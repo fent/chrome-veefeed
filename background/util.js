@@ -62,7 +62,7 @@ util.ajax = function(url, opts, callback) {
         isURLEncoded = true;
       }
 
-    } else if (xhr.readyState === 4 && xhr.status >= 200) {
+    } else if (xhr.readyState === 4) {
       util.ajax.active--;
       if (util.ajax.queue.length && util.ajax.active < util.ajax.max) {
         util.ajax.apply(null, util.ajax.queue.shift());
