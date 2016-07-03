@@ -89,6 +89,7 @@ util.ajax = function(url, opts, callback) {
       xhr.setRequestHeader(key, opts.headers[key]);
     }
   }
+  xhr.timeout = 30000;
   xhr.send();
 };
 util.ajax.queue = [];
