@@ -188,7 +188,7 @@ sources.videos.youtube = {
     });
   },
   getAllVideos: function(callback) {
-    util.ajax('https://www.youtube.com/feed/subscriptions',
+    util.ajax('https://www.youtube.com/feed/subscriptions?flow=2',
     function(xhr, body) {
       if (!body) { return callback(); }
       var $items = body.getElementById('browse-items-primary');
