@@ -67,21 +67,18 @@ util.ajax = function(url, opts, callback) {
       if (util.ajax.queue.length && util.ajax.active < util.ajax.max) {
         util.ajax.apply(null, util.ajax.queue.shift());
       }
+      var response = null;
       if (xhr.status >= 200) {
-        var response = isURLEncoded ?
+        response = isURLEncoded ?
           util.parseQueryString(xhr.responseText) : xhr.response;
         if (opts.cache) {
           if (opts.cache.transform) {
             response = opts.cache.transform(response);
           }
           cache.push(cacheRequestKey, response);
-          callback(xhr, response);
-        } else {
-          callback(xhr, response);
         }
-      } else {
-        callback(xhr, null);
       }
+      callback(xhr, response);
     }
   };
   if (opts.headers) {
