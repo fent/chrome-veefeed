@@ -203,6 +203,7 @@ sources.videos.youtube = {
         var $item = $items.children[i];
         var $user = $item
           .getElementsByClassName('branded-page-module-title')[0].children[0];
+        var $userthumb = $user.getElementsByTagName('img')[0];
         var $thumb = $item.getElementsByClassName('yt-lockup-thumbnail')[1];
         var $length = $thumb.getElementsByClassName('video-time')[0];
         var $content = $item.getElementsByClassName('yt-lockup-content')[0];
@@ -234,7 +235,7 @@ sources.videos.youtube = {
         items.push({
           user: {
             url: $user.href,
-            thumbnail: $user.getElementsByTagName('img')[0].src,
+            thumbnail: $userthumb ? $userthumb.src : null,
             name: $user.children[1].textContent,
             verified: !!$content
               .getElementsByClassName('yt-channel-title-icon-verified').length
