@@ -96,6 +96,6 @@ chrome.options.set([
     desc: 'If you\'re following a user who uploads videos on more ' +
           'than one site, they may sometimes upload the same ' +
           'video on both accounts. ' +
-          'Merged videos will have two source icons next to the username.',
+          'Merged videos will have multiple accounts listed.',
     preview: 'png'}
 ]);
