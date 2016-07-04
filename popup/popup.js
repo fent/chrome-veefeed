@@ -235,10 +235,12 @@ function renderVideos(group) {
     if (!options.show_watched && video.watched) { return; }
 
     var opening = false;
-    function open(inNewTab) {
+    function open(inNewTab, event) {
+      if (event) { event.preventDefault(); }
       if (opening) { return; }
       if (video.$video.classList.contains('animating')) { return; }
       opening = true;
+      inNewTab = inNewTab || event && (event.which === 2 || event.metaKey);
 
       if (video.queued) {
         // If video is in queue, wait a little to let the user know that
