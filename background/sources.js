@@ -7,6 +7,12 @@
 //
 // Note that this is different from ajax cache.
 var cachedVideos = new util.SizedMap(200, 'cachedVideos');
+
+// Keep an in memory cache in case there are errors retrieving videos
+// in the future. If that happens, it will use the last successful result
+// from that source.
+var cachedResults = { videos: {}, collections: {} };
+
 var sources = {
   // Sources which directly host videos.
   videos: {},
@@ -25,7 +31,9 @@ var sources = {
               fn = fn.getAllVideos;
             }
             fn(function(videos) {
-              callback({ source: source, videos: videos || [] });
+              videos = videos || cachedResults[type][source] || [];
+              cachedResults[type][source] = videos;
+              callback({ source: source, videos: videos });
             });
           };
         });
