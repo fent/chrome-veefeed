@@ -96,4 +96,5 @@
 .player[data-ended="true"] .veefeed-next-video,
 .ytp-play-button[title="Replay"] + .veefeed-next-button .veefeed-next-video {
   display: flex;
+  border: 1px solid #6294df;
 }
