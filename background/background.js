@@ -424,7 +424,9 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
     queue = queueTabs[sender.tab.id];
     if (queue) {
-      if (options.only_play_queued_at_top && request.scrollTop) { return; }
+      if (options.only_play_queued_at_top && request.scrollTop > 10) {
+        return;
+      }
       var nextVideo = queue.shift();
       updateQueue(queue, sender.tab.id, nextVideo.url);
 
