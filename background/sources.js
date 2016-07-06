@@ -35,8 +35,9 @@ var sources = {
     // in case any of them are included in collection sites.
     util.parallel(filterEnabled('videos', true), function(results) {
       var videos = [].concat.apply([], results.map(function(result) {
-        result.videos.forEach(function(video) {
+        result.videos.forEach(function(video, i) {
           video.source = result.source;
+          video.index = i;
         });
         return result.videos;
       }));
@@ -47,11 +48,12 @@ var sources = {
       });
       util.parallel(filterEnabled('collections', false), function(results) {
         var colVideos = [].concat.apply([], results.map(function(result) {
-          result.videos.forEach(function(video) {
+          result.videos.forEach(function(video, i) {
             var col = video.col || {};
             delete video.col;
             col.source = result.source;
             video.collections = [col];
+            video.index = i;
           });
           return result.videos;
         }));
@@ -215,10 +217,7 @@ sources.videos.youtube = {
         var $starts = $meta.getElementsByClassName('localized-date')[0];
         var timestamp = $starts ?
           parseInt($starts.getAttribute('data-timestamp'), 10) * 1000 :
-          // Add i to relative timestamp so that videos that say they were
-          // posted at the same time (relatively) are still ordered in the
-          // order that they are on the page.
-          hasMeta ? util.relativeToTimestamp(time) - i : Date.now() - i;
+          hasMeta ? util.relativeToTimestamp(time) : Date.now();
         var $desc = $content.getElementsByClassName('yt-lockup-description')[0];
 
         // YouTube videos sometimes don't have thumbnails loaded until

@@ -102,7 +102,13 @@ function updateVideos() {
   });
 
   // Sort.
-  allVideos.sort(function(a, b) { return b.timestamp - a.timestamp; });
+  allVideos.sort(function(a, b) {
+    if (b.timestamp !== a.timestamp) {
+      return b.timestamp - a.timestamp;
+    } else {
+      return a.index - b.index;
+    }
+  });
 
   // Check if there are any new videos, only after the first fetch of videos.
   if (knownVideos.list.length) {

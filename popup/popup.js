@@ -498,7 +498,11 @@ function setVideoPositions(group) {
     } else {
       var watched = !!a.watched - !!b.watched;
       if (watched !== 0) { return watched; }
-      return b.timestamp - a.timestamp;
+      if (b.timestamp !== a.timestamp) {
+        return b.timestamp - a.timestamp;
+      } else {
+        return a.index - b.index;
+      }
     }
   });
 
