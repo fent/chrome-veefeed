@@ -41,14 +41,24 @@ util.ajax = function(url, opts, callback) {
     cache = util.ajax.cache[parsed.host];
     cacheRequestKey = parsed.pathname + parsed.search;
     if (cache.has(cacheRequestKey)) {
+      util.ajax.next();
       callback(null, cache.get(cacheRequestKey));
       return;
     }
   }
 
   util.ajax.active++;
-  var isURLEncoded = false;
+  var isURLEncoded = false, ended = false;
   var xhr = new XMLHttpRequest();
+
+  function end(response) {
+    if (ended) { return; }
+    ended = true;
+    util.ajax.active--;
+    util.ajax.next();
+    callback(xhr, response || null);
+  }
+
   xhr.open('GET', url, true);
   xhr.onreadystatechange = function() {
     if (xhr.readyState === 2) {
@@ -63,11 +73,7 @@ util.ajax = function(url, opts, callback) {
       }
 
     } else if (xhr.readyState === 4) {
-      util.ajax.active--;
-      if (util.ajax.queue.length && util.ajax.active < util.ajax.max) {
-        util.ajax.apply(null, util.ajax.queue.shift());
-      }
-      var response = null;
+      var response;
       if (xhr.status >= 200) {
         response = isURLEncoded ?
           util.parseQueryString(xhr.responseText) : xhr.response;
@@ -78,7 +84,7 @@ util.ajax = function(url, opts, callback) {
           cache.push(cacheRequestKey, response);
         }
       }
-      callback(xhr, response);
+      end(response);
     }
   };
   if (opts.headers) {
@@ -87,12 +93,22 @@ util.ajax = function(url, opts, callback) {
     }
   }
   xhr.timeout = 30000;
+  xhr.ontimeout = end;
   xhr.send();
 };
+
 util.ajax.queue = [];
-util.ajax.max = 3;
+util.ajax.max = 5;
 util.ajax.active = 0;
 util.ajax.cache = {};
+util.ajax.next = function() {
+  if (util.ajax.queue.length && util.ajax.active < util.ajax.max) {
+    var args = util.ajax.queue.shift();
+    setTimeout(function() {
+      util.ajax.apply(null, args);
+    });
+  }
+};
 
 
 /*
