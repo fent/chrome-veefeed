@@ -54,6 +54,7 @@ function updateVideos() {
 
   var results = allVideos
     .filter(function(video) {
+      if (!video.source) { return false; }
       delete video.otherSource;
       if (!video.watched) {
         var source = sources.sourceFromURL(video.url);
@@ -258,7 +259,8 @@ function matchRules(rules, video) {
         return ignore.source || ignore.user || ignore.title;
       })) { return true; }
     if (ignore.source && ignore.source !== video.source) { return false; }
-    if (ignore.user && !ignore.user.test(video.user.name)) { return false; }
+    if (ignore.user && video.user && !ignore.user.test(video.user.name)) {
+      return false; }
     if (ignore.title && !ignore.title.test(video.title)) { return false; }
     if (ignore.game && !ignore.game.test(video.game)) { return false; }
     return ignore.source || ignore.user || ignore.title || ignore.game;
