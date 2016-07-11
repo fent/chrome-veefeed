@@ -265,8 +265,7 @@ sources.videos.youtube = {
 
 sources.videos.twitch = {
   patterns: [
-    '*://www.twitch.tv/*/v/*',
-    'https://secure.twitch.tv/*/v/*'
+    '*://*.twitch.tv/*/v/*'
   ],
   getVideo: function(url, callback) {
     var parsed = new URL(url);
