@@ -15,7 +15,11 @@ var rules = [
   { type: 'text', name: 'user', desc: 'User' },
   { type: 'text', name: 'title', desc: 'Title' },
   { type: 'text', name: 'game', desc: 'Game',
-    bindTo: { field: 'source', value: ['twitch', 'haloruns', ''] } },
+    bindTo: {
+      field: 'source',
+      value: ['twitch', 'haloruns', 'speedrundotcom', '']
+    }
+  },
 ];
 
 var mergeSources = [{ value: '', desc: 'Select' }]
