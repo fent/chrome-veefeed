@@ -401,6 +401,9 @@ sources.collections.speedrundotcom = function(callback) {
     util.ajax(url, {
       cache: {
         transform: function(response) {
+          if (!response.data.videos || !response.data.videos.links.length) {
+            return null;
+          }
           return {
             url: response.data.videos.links[0].uri,
             desc: response.data.comment,
@@ -415,6 +418,7 @@ sources.collections.speedrundotcom = function(callback) {
   }
 
   function addUsersToRun(run, meta, callback) {
+    if (!meta.users) { return callback(); }
     util.parallelMap(meta.users, function(user, callback) {
       if (user.rel === 'guest') {
         callback({ name: user.name });
@@ -438,7 +442,7 @@ sources.collections.speedrundotcom = function(callback) {
 
   function addMetaToVideo(run, meta, callback) {
     sources.addMetaToVideo(run, function() {
-      if (!run.game) {
+      if (!run.game && meta.gameID) {
         util.ajax('http://www.speedrun.com/api/v1/games/' + meta.gameID, {
           cache: {
             transform: function(response) {
@@ -457,6 +461,7 @@ sources.collections.speedrundotcom = function(callback) {
 
   function addMetaToRun(run, callback) {
     getMetaForRun(run.url, function(meta) {
+      if (!meta) { return callback(); }
       run.url = meta.url;
       run.desc = meta.desc;
       util.parallel([

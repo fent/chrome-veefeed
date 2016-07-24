@@ -74,14 +74,16 @@ util.ajax = function(url, opts, callback) {
 
     } else if (xhr.readyState === 4) {
       var response;
-      if (xhr.status >= 200) {
+      if (xhr.status >= 200 && xhr.status < 300) {
         response = isURLEncoded ?
           util.parseQueryString(xhr.responseText) : xhr.response;
         if (opts.cache) {
           if (opts.cache.transform) {
             response = opts.cache.transform(response);
           }
-          cache.push(cacheRequestKey, response);
+          if (response) {
+            cache.push(cacheRequestKey, response);
+          }
         }
       }
       end(response);

@@ -267,6 +267,7 @@ function renderVideos(group) {
     }
 
     function userView(user) {
+      if (!user) { return null; }
       return m('span.user', [
         user.thumbnail ?
           m('img.lazy', { 'data-src': user.thumbnail }) : null,
