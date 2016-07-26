@@ -263,52 +263,66 @@ sources.videos.youtube = {
   },
 };
 
+var twitchToken = null;
+function getTwitchToken(callback) {
+  if (twitchToken) {
+    callback(twitchToken);
+  } else {
+    chrome.cookies.get({
+      url: 'https://www.twitch.tv/directory/following/videos',
+      name: 'api_token',
+    }, function(cookie) {
+      twitchToken = cookie && cookie.value;
+      callback(twitchToken);
+    });
+  }
+}
 sources.videos.twitch = {
   patterns: [
     '*://*.twitch.tv/*/v/*'
   ],
   getVideo: function(url, callback) {
-    var parsed = new URL(url);
-    var s = parsed.pathname.split(/\//);
-    var id = s[s.length - 1];
-    util.ajax('https://api.twitch.tv/kraken/videos/v' + id, {
-      cache: {
-        transform: function(response) {
-          return {
-            thumbnail : response.preview,
-            length    : response.length,
-            title     : response.title,
-            game      : response.game,
-            views     : response.views,
-          };
+    getTwitchToken(function(token) {
+      var parsed = new URL(url);
+      var s = parsed.pathname.split(/\//);
+      var id = s[s.length - 1];
+      util.ajax('https://api.twitch.tv/kraken/videos/v' + id, {
+        cache: {
+          transform: function(response) {
+            return {
+              thumbnail : response.preview,
+              length    : response.length,
+              title     : response.title,
+              game      : response.game,
+              views     : response.views,
+            };
+          },
+          ttl: 1800000,
         },
-        ttl: 1800000,
-      },
-    }, function(xhr, meta) {
-      if (!meta) { return callback(null); }
-      var username = /twitch\.tv\/([^\/]+)\//.exec(url)[1];
-      callback({
-        url       : 'https://www.twitch.tv/' + username + '/v/' + id,
-        thumbnail : meta.thumbnail,
-        length    : meta.length,
-        title     : meta.title,
-        game      : meta.game,
-        views     : meta.views,
-        user      : {
-          url: 'https://www.twitch.tv/' + username,
-          name: username,
-        }
+        headers: { 'Twitch-Api-Token': token },
+      }, function(xhr, meta) {
+        if (!meta) { return callback(null); }
+        var username = /twitch\.tv\/([^\/]+)\//.exec(url)[1];
+        callback({
+          url       : 'https://www.twitch.tv/' + username + '/v/' + id,
+          thumbnail : meta.thumbnail,
+          length    : meta.length,
+          title     : meta.title,
+          game      : meta.game,
+          views     : meta.views,
+          user      : {
+            url: 'https://www.twitch.tv/' + username,
+            name: username,
+          }
+        });
       });
     });
   },
   getAllVideos: function(callback) {
-    chrome.cookies.get({
-      url: 'https://www.twitch.tv/directory/following/videos',
-      name: 'api_token',
-    }, function(cookie) {
+    getTwitchToken(function(token) {
       util.ajax('https://api.twitch.tv/kraken/videos/followed?' +
       'limit=40&broadcast_type=highlight&offset=0&on_site=1', {
-        headers: { 'Twitch-Api-Token': cookie.value },
+        headers: { 'Twitch-Api-Token': token },
       }, function(xhr, result) {
         if (!result || !result.videos) { return callback(); }
         callback(result.videos.map(function(video) {
