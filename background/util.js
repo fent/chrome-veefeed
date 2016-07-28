@@ -316,6 +316,29 @@ util.parallelMap = function(args, func, callback) {
   }), callback);
 };
 
+/**
+ * Calls one function in parallel, and calls the callback with the
+ * items in `args` for which the async function is true.
+ *
+ * @param {Array.<Object>} args
+ * @param {Function(Object, Function(Object))} func
+ * @param {Function(Array.<Object>)} callback
+ */
+util.parallelFilter = function(args, func, callback) {
+  var filteredList = [];
+  util.parallel(args.map(function(arg, i) {
+    return function(callback) {
+      func(arg, function(success) {
+        if (success) {
+          filteredList[i] = arg;
+        }
+        callback();
+      });
+    };
+  }), function() {
+    callback(filteredList.filter(function(d) { return !!d; }));
+  });
+};
 
 /**
  * Returns ony the ID portion of a video URL. Because saving just the id

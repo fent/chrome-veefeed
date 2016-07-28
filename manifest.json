@@ -17,6 +17,7 @@
     "http://haloruns.com/records?recent",
     "http://www.speedrun.com/settings",
     "http://www.speedrun.com/api/v1/*",
+    "https://t.co/*",
     "contextMenus",
     "cookies",
     "notifications",
@@ -26,6 +27,7 @@
   "background": {
     "scripts": [
       "background/util.js",
+      "background/shorteners.js",
       "background/sources.js",
       "background/background.js"
     ]

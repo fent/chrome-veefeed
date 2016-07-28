@@ -1,4 +1,4 @@
-/* global chrome, util */
+/* global chrome, util, shorteners */
 /* exported sources */
 
 // Keep a local cache of videos, since some collections link to host sites,
@@ -100,8 +100,18 @@ var sources = {
   },
 
   getMetaForVideo: function(url, callback) {
-    if (cachedVideos.has(url)) {
+    if (shorteners.isShortened(url)) {
+      shorteners.getRealURL(url, function(realurl) {
+        if (realurl) {
+          sources.getMetaForVideo(realurl, callback);
+        } else {
+          callback();
+        }
+      });
+
+    } else if (cachedVideos.has(url)) {
       callback(cachedVideos.get(url));
+
     } else {
       var source = sources.sourceFromURL(url);
       if (source) {
@@ -115,7 +125,7 @@ var sources = {
 
   addMetaToVideo: function(video, callback) {
     sources.getMetaForVideo(video.url, function(meta) {
-      if (!meta) { return callback(); }
+      if (!meta) { return callback(null); }
       video.url = meta.url;
       video.thumbnail = meta.thumbnail;
       video.length = meta.length;
@@ -127,7 +137,7 @@ var sources = {
           video[field] = meta[field];
         }
       });
-      callback();
+      callback(true);
     });
   },
 
@@ -404,8 +414,7 @@ sources.collections.haloruns = function(callback) {
         game: game,
       });
     }
-    util.parallelMap(items, sources.addMetaToVideo,
-      callback.bind(null, items));
+    util.parallelFilter(items, sources.addMetaToVideo, callback);
   });
 };
 
@@ -450,12 +459,13 @@ sources.collections.speedrundotcom = function(callback) {
       }
     }, function(users) {
       run.col.users = users;
-      callback();
+      callback(!!users.filter(function(u) { return !!u; }).length);
     });
   }
 
   function addMetaToVideo(run, meta, callback) {
-    sources.addMetaToVideo(run, function() {
+    sources.addMetaToVideo(run, function(success) {
+      if (!success) { return callback(); }
       if (!run.game && meta.gameID) {
         util.ajax('http://www.speedrun.com/api/v1/games/' + meta.gameID, {
           cache: {
@@ -465,10 +475,10 @@ sources.collections.speedrundotcom = function(callback) {
           },
         }, function(xhr, game) {
           run.game = game.name;
-          callback();
+          callback(true);
         });
       } else {
-        callback();
+        callback(true);
       }
     });
   }
@@ -481,7 +491,9 @@ sources.collections.speedrundotcom = function(callback) {
       util.parallel([
         addUsersToRun.bind(null, run, meta),
         addMetaToVideo.bind(null, run, meta)
-      ], callback);
+      ], function(results) {
+        callback(results[0] && results[1]);
+      });
     });
   }
 
@@ -502,7 +514,7 @@ sources.collections.speedrundotcom = function(callback) {
             timestamp: new Date(noti.created).getTime(),
           };
         });
-      util.parallelMap(runs, addMetaToRun, callback.bind(null, runs));
+      util.parallelFilter(runs, addMetaToRun, callback);
     });
   }
 
