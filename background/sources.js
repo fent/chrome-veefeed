@@ -289,7 +289,8 @@ function getTwitchToken(callback) {
 }
 sources.videos.twitch = {
   patterns: [
-    '*://*.twitch.tv/*/v/*'
+    '*://*.twitch.tv/*/v/*',
+    '*://twitch.tv/*/v/*',
   ],
   getVideo: function(url, callback) {
     getTwitchToken(function(token) {
