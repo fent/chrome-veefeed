@@ -391,7 +391,7 @@ sources.collections.haloruns = function(callback) {
       var $previousUser = $col3.children[1].children[0];
       var $newRecord = $col4.children[0];
       var $newUser = $col4.children[1].children[0];
-      var timeSaved = $col5.textContent;
+      var timeSaved = $col5.textContent.replace(/ /g, '');
 
       var url = $newRecord.href;
       items.push({
