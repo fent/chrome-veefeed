@@ -1,7 +1,7 @@
 /* global chrome, sources, util */
 
 var MAX_WATCHED   = 400;  // Max watched videos to keep in storage.
-var MAX_KNOWN     = 200;  // Max videos in memory to "know" about, to notify.
+var MAX_KNOWN     = 400;  // Max videos in memory to "know" about, to notify.
 var MAX_VIDEOS    = 50;   // Max videos to display for each group.
 var QUEUE_WAIT_MS = 2500; // How long to wait to play queued up videos.
 var BADGE_COLOR        = '#225F86';
@@ -216,10 +216,10 @@ var optionsKeys = ['groups']
 chrome.storage.sync.get(optionsKeys, function(items) {
   // Keep track of watched videos in storage so that this extension
   // works across computers.
-  for (var source in sources.videos) {
+  Object.keys(sources.videos).forEach(function(source) {
     watchedVideos[source] =
       new util.SizedMap(MAX_WATCHED, items['watched_' + source] || []);
-  }
+  });
 
   ignoreRules = generateRules(items.ignore || []);
   groups = items.groups || [];
