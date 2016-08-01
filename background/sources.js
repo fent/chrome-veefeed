@@ -261,7 +261,7 @@ sources.videos.youtube = {
           thumbnail: thumbnail,
           length: $length ? util.timeToSeconds($length.textContent) : null,
           title: $content.children[0].children[0].textContent,
-          timestamp: timestamp, 
+          timestamp: timestamp,
           live: !!$content.getElementsByClassName('yt-badge-live').length,
           views: views,
           desc: $desc ? $desc.innerHTML : '',
