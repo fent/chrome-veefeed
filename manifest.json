@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "veefeed",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "Keep track of your YouTube and Twitch subscriptions",
   "icons": {
     "128": "img/icon-128.png"
