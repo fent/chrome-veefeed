@@ -251,8 +251,10 @@ util.timeToSeconds = function(str) {
 util.isSameVideo = function(video1, video2) {
   // If the videos are within a few seconds of each other,
   // they might be the same video...
-  if (video1.length - 10 > video2.length ||
-      video2.length > video1.length + 10) {
+  // Compare using percent since for longer videos,
+  // the difference in length tends to be higher.
+  var percent = Math.abs(1 - (video1.length / video2.length));
+  if (percent > 0.01) {
     return false;
   }
 
