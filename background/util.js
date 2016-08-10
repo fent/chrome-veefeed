@@ -254,7 +254,7 @@ util.isSameVideo = function(video1, video2) {
   // Compare using percent since for longer videos,
   // the difference in length tends to be higher.
   var percent = Math.abs(1 - (video1.length / video2.length));
-  if (percent > 0.01) {
+  if (percent > 0.02) {
     return false;
   }
 
