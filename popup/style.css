@@ -187,14 +187,16 @@ a:hover {
   content: "QUEUED";
 }
 
-.playing .left-side:before, .play-icon {
-  padding: 2px 4px;
+.playing .left-side:before, .play-icon:before {
+  display: inline-block;
+  padding: 2px 6px;
   font-weight: 500;
-  font-size: 14px;
+  font-size: 20px;
+  line-height: 18px;
   border-radius: 4px;
   background-color: #000;
   color: #C31313;
-  content: "▶";
+  content: "\025B8";
 }
 
 .playing .left-side:before {
@@ -238,6 +240,7 @@ a:hover {
 .left-side .open-new-tab {
   left: 28px;
   font-size: 20px;
+  font-weight: bold;
   line-height: 18px;
   text-align: center;
   color: #B15656;
@@ -297,11 +300,11 @@ a:hover {
   top: 3px;
   width: 16px;
   height: 16px;
-  line-height: 16px;
-  font-size: 14px;
+  font-size: 18px;
   text-align: center;
   opacity: 0.5;
   transition: opacity 100ms;
+  cursor: pointer;
 }
 
 .close:hover {
@@ -381,16 +384,17 @@ a:hover {
 }
 
 [data-title]:hover:after {
-  background-color: #000;
-  color: #fff;
-  padding: 2px 5px;
-  border-radius: 2px;
-  content: attr(data-title);
   position: absolute;
   left: 50%;
   top: -2px;
+  padding: 2px 5px;
   transform: translate3d(-50%, -100%, 0);
+  background-color: #000;
+  color: #fff;
+  border-radius: 2px;
+  content: attr(data-title);
   white-space: pre;
+  font-size: 14px;
   z-index: 99;
 }
 

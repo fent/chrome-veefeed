@@ -17,10 +17,10 @@ var POS_ANIM_TIME = 500;
 var options = JSON.parse(localStorage.getItem('options')) || {};
 var videos = JSON.parse(localStorage.getItem('videos')) || [];
 var groups = [options.show_ungrouped ?
-  { name: 'Other',
-    videos: JSON.parse(localStorage.getItem('ungrouped')) || [],
-    removable: true } :
-  { name: 'All', videos: videos, removable: true }
+{ name: 'Other',
+  videos: JSON.parse(localStorage.getItem('ungrouped')) || [],
+  removable: true } :
+{ name: 'All', videos: videos, removable: true }
 ];
 var showTabs = false;
 
@@ -224,7 +224,7 @@ function renderVideos(group) {
       }
     },
   }, [
-    m('span.play-icon', '▶'),
+    m('span.play-icon'),
     m('span.queue-icon'),
     m('span.label',
       (openedVideo && openedVideo.playing ?
@@ -341,20 +341,20 @@ function renderVideos(group) {
                     // animation, activate.
                     var $children = g.group.$videos.querySelectorAll(
                       '.animating .queue, .animating .open-new-tab');
+                    for (var i = 0, len = $children.length; i < len; i++) {
+                      $children[i].style.opacity = '0';
+                      $children[i].style.display = 'none';
+                    }
+                    setTimeout(function() {
                       for (var i = 0, len = $children.length; i < len; i++) {
-                        $children[i].style.opacity = '0';
-                        $children[i].style.display = 'none';
+                        $children[i].style.display = null;
                       }
-                      setTimeout(function() {
-                        for (var i = 0, len = $children.length; i < len; i++) {
-                          $children[i].style.display = null;
-                        }
-                      }, 20);
-                      setTimeout(function() {
-                        for (var i = 0, len = $children.length; i < len; i++) {
-                          $children[i].style.opacity = null;
-                        }
-                      }, 100);
+                    }, 20);
+                    setTimeout(function() {
+                      for (var i = 0, len = $children.length; i < len; i++) {
+                        $children[i].style.opacity = null;
+                      }
+                    }, 100);
                   }, POS_ANIM_TIME);
                 }, SET_POS_WAIT);
               }
@@ -367,7 +367,7 @@ function renderVideos(group) {
             (options.pause_other_tabs && openedVideo && openedVideo.playing ?
              ', pause current video' : ''),
           onclick: open.bind(null, true),
-        }, '⇗')
+        }, m.trust('&#8663;'))
       ]),
       m('div.right-side', [
         group.removable && !video.watched && m('a.close', {
@@ -408,7 +408,7 @@ function renderVideos(group) {
 
             e.preventDefault();
           },
-        }, '✖'),
+        }, m.trust('&times;')),
         m('a.title', {
           href: video.url,
           onclick: open.bind(null, false)

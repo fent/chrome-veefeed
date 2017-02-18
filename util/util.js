@@ -75,11 +75,18 @@ function m(element, attr, content) {
   }
   if (Array.isArray(content)) {
     content.forEach(function(node) { if (node) { $el.appendChild(node); } });
-  } else if (content instanceof HTMLElement || content instanceof SVGElement) {
-    $el.appendChild(content);
   } else if (content != null) {
-    $el.textContent = content;
+    if (content.nodeType != null) {
+      $el.appendChild(content);
+    } else {
+      $el.textContent = content;
+    }
   }
   return $el;
 }
 
+m.trust = function(html) {
+  var node = document.createElement('span');
+  node.innerHTML = html;
+  return node;
+};
