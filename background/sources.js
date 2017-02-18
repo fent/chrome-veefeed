@@ -240,14 +240,11 @@ sources.videos.youtube = {
 
         // YouTube videos sometimes don't have thumbnails loaded until
         // the page is scrolle down.
-        var url = $thumb.children[0].href;
-        var $img = $thumb.getElementsByTagName('img')[0];
-        var thumbnail =
-          $img.src === 'https://s.ytimg.com/yts/img/pixel-vfl3z5WfW.gif' ?
-          thumbnail = $img.getAttribute('data-thumb') : $img.src;
-        if (thumbnail.indexOf('//') === 0) {
-          thumbnail = 'https:' + thumbnail;
-        }
+        var id = $thumb.children[0].href.match(/\/watch\?v=([a-zA-Z0-9-_]+)/)[1];
+        var url = 'https://www.youtube.com/watch?v=' + id;
+        var thumbnail = 'https://i.ytimg.com/vi/' + id +
+          '/mqdefault.jpg?custom=true&w=196&h=110&stc=true&jpg444=true&' +
+          'jpgq=90&sp=68';
 
         items.push({
           user: {
