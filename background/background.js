@@ -250,14 +250,14 @@ function generateRules(rules) {
 function matchRules(rules, video) {
   return rules.some(function(ignore) {
     if (video.collections && video.collections.some(function(col) {
-        if (ignore.source && ignore.source !== col.source) { return false; }
-        if (ignore.user && col.users && col.users.length &&
-          col.users.every(function(user) {
+      if (ignore.source && ignore.source !== col.source) { return false; }
+      if (ignore.user && col.users && col.users.length &&
+        col.users.every(function(user) {
           return !ignore.user.test(user.name);
         })) { return false; }
-        if (ignore.title && !ignore.title.test(col.title)) { return false; }
-        return ignore.source || ignore.user || ignore.title;
-      })) { return true; }
+      if (ignore.title && !ignore.title.test(col.title)) { return false; }
+      return ignore.source || ignore.user || ignore.title;
+    })) { return true; }
     if (ignore.source && ignore.source !== video.source) { return false; }
     if (ignore.user && video.user && !ignore.user.test(video.user.name)) {
       return false; }

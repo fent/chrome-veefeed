@@ -11,6 +11,7 @@ var util = {};
  *   {Object} cache
  *     {Function} transform
  *     {Number} ttl
+ *   {String} responseType
  * @param {Function(Object)} callback
  * @return {XMLHttpRequest}
  */
@@ -63,7 +64,9 @@ util.ajax = function(url, opts, callback) {
   xhr.onreadystatechange = function() {
     if (xhr.readyState === 2) {
       var type = xhr.getResponseHeader('content-type');
-      if (type.includes('application/json')) {
+      if (opts.responseType) {
+        xhr.responseType = opts.responseType;
+      } else if (type.includes('application/json')) {
         xhr.responseType = 'json';
       } else if (type.includes('text/html')) {
         xhr.responseType = 'document';
@@ -268,7 +271,7 @@ util.isSameVideo = function(video1, video2) {
 
   // Look for numbers, if they both have the same numbers, then ok...
   var r, pattern = /((?:\d+:)?\d\d?:\d\d|\d+(?:\.\d+)%?)/g;
-  while (r = pattern.exec(video1)) {
+  while ((r = pattern.exec(video1))) {
     var num = r[1];
     if (!wordsMap[num]) { return false; }
     delete wordsMap[num];
@@ -361,7 +364,7 @@ util.videoID = function(url) {
 util.parseQueryString = function(str) {
   var obj = {};
   var searchParams = new URLSearchParams(str);
-  for(var pair of searchParams.entries()) {
+  for (var pair of searchParams.entries()) {
     obj[pair[0]] = pair[1];
   }
   return obj;

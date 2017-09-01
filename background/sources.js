@@ -209,64 +209,83 @@ sources.videos.youtube = {
   },
   getAllVideos: function(callback) {
     util.ajax('https://www.youtube.com/feed/subscriptions?flow=2',
-    function(xhr, body) {
-      if (!body) { return callback(); }
-      var $items = body.getElementById('browse-items-primary');
-      if (!$items) {
-        console.error('Not logged in');
-        callback();
-        return;
-      }
-      $items = $items.children[0];
-      var items = [];
-      for (var i = 0, len = $items.children.length; i < len; i++) {
-        var $item = $items.children[i];
-        var $user = $item
-          .getElementsByClassName('branded-page-module-title')[0].children[0];
-        var $userthumb = $user.getElementsByTagName('img')[0];
-        var $thumb = $item.getElementsByClassName('yt-lockup-thumbnail')[1];
-        var $length = $thumb.getElementsByClassName('video-time')[0];
-        var $content = $item.getElementsByClassName('yt-lockup-content')[0];
-        var $meta = $content.getElementsByClassName('yt-lockup-meta-info')[0];
-        var hasMeta = $meta.children.length > 1;
-        var time = hasMeta ? $meta.children[0].textContent : null;
-        var views = hasMeta ?
-          parseInt($meta.children[1].textContent.replace(/,/g, ''), 0) : null;
-        var $starts = $meta.getElementsByClassName('localized-date')[0];
-        var timestamp = $starts ?
-          parseInt($starts.getAttribute('data-timestamp'), 10) * 1000 :
-          hasMeta ? util.relativeToTimestamp(time) : Date.now();
-        var $desc = $content.getElementsByClassName('yt-lockup-description')[0];
+      { responseType: 'text' }, function(xhr, body) {
+        if (!body) { return callback(); }
+        var key = 'window["ytInitialData"] = ';
+        var response = body;
+        response = response.slice(response.indexOf(key) + key.length);
+        response = response.slice(0, response.indexOf('}}};') + 3);
+        try {
+          response = JSON.parse(response);
+        } catch (err) {
+          console.error('Error parsing videos ' + err.message);
+        }
 
-        // YouTube videos sometimes don't have thumbnails loaded until
-        // the page is scrolle down.
-        var id = $thumb.children[0].href.match(/\/watch\?v=([a-zA-Z0-9-_]+)/)[1];
-        var url = 'https://www.youtube.com/watch?v=' + id;
-        var thumbnail = 'https://i.ytimg.com/vi/' + id +
-          '/mqdefault.jpg?custom=true&w=196&h=110&stc=true&jpg444=true&' +
-          'jpgq=90&sp=68';
+        callback(response
+          .contents
+          .twoColumnBrowseResultsRenderer
+          .tabs[0]
+          .tabRenderer
+          .content
+          .sectionListRenderer
+          .contents.map(function(item) {
+            item = item
+              .itemSectionRenderer
+              .contents[0]
+              .shelfRenderer
+              .content
+              .expandedShelfContentsRenderer
+              .items[0]
+              .videoRenderer;
 
-        items.push({
-          user: {
-            url: $user.href,
-            thumbnail: $userthumb ? $userthumb.src : null,
-            name: $user.children[1].textContent,
-            verified: !!$content
-              .getElementsByClassName('yt-channel-title-icon-verified').length
-          },
-          url: url,
-          thumbnail: thumbnail,
-          length: $length ? util.timeToSeconds($length.textContent) : null,
-          title: $content.children[0].children[0].textContent,
-          timestamp: timestamp,
-          live: !!$content.getElementsByClassName('yt-badge-live').length,
-          views: views,
-          desc: $desc ? $desc.innerHTML : '',
-          watched: !!$thumb.getElementsByClassName('watched-badge').length,
-        });
-      }
-      callback(items);
-    });
+            var user = item.ownerText.runs[0];
+            var url = 'https://www.youtube.com/watch?v=' + item.videoId;
+
+            // YouTube videos sometimes don't have thumbnails loaded until
+            // the page is scrolle down.
+            var thumbnail = 'https://i.ytimg.com/vi/' + item.videoId +
+              '/mqdefault.jpg?custom=true&w=196&h=110&stc=true&jpg444=true&' +
+              'jpgq=90&sp=68';
+
+            var length = item.lengthText;
+            var timestamp = item.publishedTimeText ?
+              util.relativeToTimestamp(item.publishedTimeText.simpleText) :
+              item.upcomingEventData ?
+                parseInt(item.upcomingEventData.startTime, 10) * 1000 : null;
+            var views = item.viewCountText;
+
+            return {
+              user: {
+                url: 'https://www.youtube.com/' +
+                  user.navigationEndpoint.browseEndpoint.canonicalBaseUrl,
+                thumbnail: item.channelThumbnail.thumbnails[0].url,
+                name: user.text,
+                verified: item.ownerBadges && item.ownerBadges.some((badge) => {
+                  badge.tooltip == 'Verified';
+                }),
+              },
+              url,
+              thumbnail,
+              title: item.title.simpleText,
+              desc:
+                item.descriptionSnippet && item.descriptionSnippet.simpleText,
+              length: length ? util.timeToSeconds(length.simpleText) : null,
+              views: views ? parseInt(views.simpleText.replace(/,/g, ''), 10) : null,
+              timestamp,
+              live: item.thumbnailOverlays && timestamp < Date.now() &&
+                item.thumbnailOverlays.some((t) => {
+                  var label = t.thumbnailOverlayTimeStatusRenderer;
+                  if (label) {
+                    label = label.text.accessibility.accessibilityData.label;
+                    return label == 'LIVE';
+                  } else {
+                    return false;
+                  }
+                }),
+              watched: item.isWatched,
+            };
+          }));
+      });
   },
 };
 
@@ -310,7 +329,7 @@ sources.videos.twitch = {
         headers: { 'Twitch-Api-Token': token },
       }, function(xhr, meta) {
         if (!meta) { return callback(null); }
-        var username = /twitch\.tv\/([^\/]+)\//.exec(url)[1];
+        var username = /twitch\.tv\/([^/]+)\//.exec(url)[1];
         callback({
           url       : 'https://www.twitch.tv/' + username + '/v/' + id,
           thumbnail : meta.thumbnail,
