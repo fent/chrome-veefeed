@@ -17,10 +17,10 @@ var POS_ANIM_TIME = 500;
 var options = JSON.parse(localStorage.getItem('options')) || {};
 var videos = JSON.parse(localStorage.getItem('videos')) || [];
 var groups = [options.show_ungrouped ?
-{ name: 'Other',
-  videos: JSON.parse(localStorage.getItem('ungrouped')) || [],
-  removable: true } :
-{ name: 'All', videos: videos, removable: true }
+  { name: 'Other',
+    videos: JSON.parse(localStorage.getItem('ungrouped')) || [],
+    removable: true } :
+  { name: 'All', videos: videos, removable: true }
 ];
 var showTabs = false;
 
@@ -228,7 +228,7 @@ function renderVideos(group) {
     m('span.queue-icon'),
     m('span.label',
       (openedVideo && openedVideo.playing ?
-      'Q' : 'Play and q') + 'ueue all unwatched')
+        'Q' : 'Play and q') + 'ueue all unwatched')
   ]);
 
   group.$videos = m('ul', group.videos.map(function(video) {
@@ -271,12 +271,12 @@ function renderVideos(group) {
       return m('span.user', [
         user.thumbnail ?
           m('img.lazy', { 'data-src': user.thumbnail }) : null,
-          m((user.url ? 'a' : 'span') + '.name', {
-            href: user.url || '#',
-            target: '_blank',
-          }, user.name),
+        m((user.url ? 'a' : 'span') + '.name', {
+          href: user.url || '#',
+          target: '_blank',
+        }, user.name),
         user.verified ?
-        m('span.verified', { 'data-title': 'Verified' }) : null,
+          m('span.verified', { 'data-title': 'Verified' }) : null,
       ]);
     }
 
@@ -365,7 +365,7 @@ function renderVideos(group) {
         openedVideo && options.use_same_tab && m('span.open-new-tab', {
           'data-title': 'Open in new tab' +
             (options.pause_other_tabs && openedVideo && openedVideo.playing ?
-             ', pause current video' : ''),
+              ', pause current video' : ''),
           onclick: open.bind(null, true),
         }, m.trust('&#8663;'))
       ]),
@@ -416,17 +416,17 @@ function renderVideos(group) {
         m('div', [
           video.collections ?
             m('span.collections', video.collections.map(sourceView)) : null,
-            m('span.sources', [
-              video.otherSource ? sourceView(video.otherSource) : null,
-              sourceView(video),
-            ])
+          m('span.sources', [
+            video.otherSource ? sourceView(video.otherSource) : null,
+            sourceView(video),
+          ])
         ]),
         m('div', [
           video.live ? m('span.live', 'LIVE NOW') :
-          video.timestamp ?
-            now < video.timestamp ?
-            m('span.starts', showTime(video.timestamp)) :
-            now >= video.timestamp &&
+            video.timestamp ?
+              now < video.timestamp ?
+                m('span.starts', showTime(video.timestamp)) :
+                now >= video.timestamp &&
               m('span.time', timeAgo(video.timestamp)) : null,
           video.views && m('span.views',
             numberWithCommas(video.views) +

@@ -7,55 +7,50 @@
 
 !function(window){
   var addEventListener = function(evt, fn){
-        window.addEventListener
-          ? this.addEventListener(evt, fn, false)
-          : (window.attachEvent)
-            ? this.attachEvent('on' + evt, fn)
-            : this['on' + evt] = fn;
-      }
-    , _has = function(obj, key) {
-        return Object.prototype.hasOwnProperty.call(obj, key);
-      }
-    ;
+    window.addEventListener
+      ? this.addEventListener(evt, fn, false)
+      : (window.attachEvent)
+        ? this.attachEvent('on' + evt, fn)
+        : this['on' + evt] = fn;
+  };
 
   function loadImage (el, fn) {
     var img = new Image()
       , src = el.getAttribute('data-src');
     img.onload = function() {
-      if (!! el.parent)
-        el.parent.replaceChild(img, el)
+      if (el.parent)
+        el.parent.replaceChild(img, el);
       else
         el.src = src;
 
       fn? fn() : null;
-    }
+    };
     img.src = src;
   }
 
   function elementInViewport(el) {
-    var rect = el.getBoundingClientRect()
+    var rect = el.getBoundingClientRect();
 
     return (
-       rect.top    >= 0
+      rect.top    >= 0
     && rect.left   >= 0
     && rect.top <= (window.innerHeight || document.documentElement.clientHeight)
-    )
+    );
   }
 
   // Expose library.
   var lazyload = window.lazyload = {};
-  var images = new Array()
-    , query = document.getElementsByClassName('lazy')
-    , processScroll = lazyload.processScroll = function(){
-        for (var i = 0; i < images.length; i++) {
-          if (elementInViewport(images[i])) {
-            loadImage(images[i], function () {
-              images.splice(i, i);
-            });
-          }
-        };
+  var images = new Array();
+  var query = document.getElementsByClassName('lazy');
+  var processScroll = lazyload.processScroll = function() {
+    for (var i = 0; i < images.length; i++) {
+      if (elementInViewport(images[i])) {
+        loadImage(images[i], function () {
+          images.splice(i, i);
+        });
       }
-    ;
+    }
+  };
 
   // Array.prototype.slice.call is not callable under our lovely IE8 
   function addImages() {
