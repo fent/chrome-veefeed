@@ -453,10 +453,6 @@ a.close[data-title]:hover:after {
   color: #999;
 }
 
-.views:after {
-  content: " views";
-}
-
 .no-videos {
   white-space: pre;
   font-size: 200%;
