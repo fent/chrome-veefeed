@@ -253,6 +253,8 @@ sources.videos.youtube = {
               item.upcomingEventData ?
                 parseInt(item.upcomingEventData.startTime, 10) * 1000 : null;
             var views = item.viewCountText;
+            views = views && views.simpleText ?  views.simpleText :
+              views && views.runs ? views.runs[0].text : null;
 
             return {
               user: {
@@ -270,14 +272,13 @@ sources.videos.youtube = {
               desc:
                 item.descriptionSnippet && item.descriptionSnippet.simpleText,
               length: length ? util.timeToSeconds(length.simpleText) : null,
-              views: views ? parseInt(views.simpleText.replace(/,/g, ''), 10) : null,
+              views: views ?  parseInt(views.replace(/,/g, ''), 10) : null,
               timestamp,
-              live: item.thumbnailOverlays && timestamp < Date.now() &&
-                item.thumbnailOverlays.some((t) => {
-                  var label = t.thumbnailOverlayTimeStatusRenderer;
+              live: item.badges && timestamp < Date.now() &&
+                item.badges.some((badge) => {
+                  var label = badge.metadataBadgeRenderer.label;
                   if (label) {
-                    label = label.text.accessibility.accessibilityData.label;
-                    return label == 'LIVE';
+                    return label == 'LIVE NOW';
                   } else {
                     return false;
                   }
