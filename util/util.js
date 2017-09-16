@@ -2,14 +2,14 @@
 
 function pad(num) { return num < 10 ? '0' + num : num; }
 
-function toHumanLength(secs) {
+window.toHumanLength = function(secs) {
   var mins = Math.floor(secs / 60);
   var hours = mins ? Math.floor(mins / 60) : 0;
   secs = secs % 60;
   mins = mins % 60;
   if (hours) { mins = pad(mins); }
   return (hours ? hours + ':' : '') + mins + ':' + pad(secs);
-}
+};
 
 var now = Date.now();
 var timeFormats = [
@@ -27,7 +27,8 @@ var timeFormats = [
   [58060800, 'Last year'],
   [2903040000, 'years', 29030400]
 ];
-function timeAgo(timestamp) {
+
+window.timeAgo = function(timestamp) {
   var seconds = (now - timestamp) / 1000;
   for (var i = 0, len = timeFormats.length; i < len; i++) {
     var f = timeFormats[i];
@@ -36,10 +37,10 @@ function timeAgo(timestamp) {
     }
   }
   return null;
-}
+};
 
 var months = 'Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec'.split(' ');
-function showTime(timestamp) {
+window.showTime = function(timestamp) {
   var date = new Date(timestamp);
   var hour = date.getHours() % 12;
   var ampm = hour > 11 ? 'pm' : 'am';
@@ -47,12 +48,12 @@ function showTime(timestamp) {
   if (hour === 0) { hour = 12; }
   return months[date.getMonth()] + ' ' + date.getDate() + ', ' +
     hour + ':' + pad(date.getMinutes()) + ampm;
-}
+};
 
 // Inspired by mithril :)
 var svgElements = { svg: true, path: true };
 var jsattrs = { innerHTML: true, href: true, disabled: true };
-function m(element, attr, content) {
+var m = window.m = function(element, attr, content) {
   var s = element.split('.');
   var elementName = s[0];
   var $el = svgElements[elementName] ?
@@ -83,7 +84,7 @@ function m(element, attr, content) {
     }
   }
   return $el;
-}
+};
 
 m.trust = function(html) {
   var node = document.createElement('span');
