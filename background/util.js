@@ -123,18 +123,15 @@ util.ajax.next = function() {
  * @return {Number}
  */
 util.relativeToTimestamp = function(str) {
-  var s = str.trim().split(' ');
-  var n = parseInt(s[0], 10);
+  var r = /(\d+)\s+(second|minute|hour|day)s?/.exec(str);
+  if (!r) { return null; }
+  var n = parseInt(r[1], 10);
   var multiplier = {
     second: 1,
-    seconds: 1,
     minute: 60,
-    minutes: 60,
     hour: 3600,
-    hours: 3600,
     day: 86400,
-    days: 86400,
-  }[s[1]];
+  }[r[2]];
   return Date.now() - n * multiplier * 1000;
 };
 
