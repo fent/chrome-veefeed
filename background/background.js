@@ -508,6 +508,12 @@ chrome.tabs.onRemoved.addListener(function(tabID) {
     delete openedVideos[tabID];
     localStorage.setItem('opened', JSON.stringify(openedVideos));
   }
+  for (let tabs of pausedTabs) {
+    let i = tabs.indexOf(tabID);
+    if (i > -1) {
+      tabs.splice(i, 1);
+    }
+  }
   if (pausedTabs[tabID]) {
     setTimeout(function() {
       pausedTabs[tabID].forEach(function(tabID) {
@@ -515,7 +521,7 @@ chrome.tabs.onRemoved.addListener(function(tabID) {
         // the new video tab was closed. Check if the tab is still
         // around and if it's at the front. Only then play it.
         chrome.tabs.get(tabID, function(tab) {
-          if (!tab || !tab.active) { return; }
+          if (!tab.active) { return; }
           chrome.tabs.executeScript(tabID, { file: 'content/play.js' });
         });
       });
