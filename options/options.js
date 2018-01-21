@@ -23,10 +23,10 @@ var rules = [
 ];
 
 var mergeSources = [{ value: '', desc: 'Select' }]
-  .concat(sources.filter(function(source) { return !source.col; }));
+  .concat(sources.filter(source => !source.col));
 
 chrome.options.set([
-  { name: 'sources', type: 'object', options: sources.map(function(source) {
+  { name: 'sources', type: 'object', options: sources.map((source) => {
     return {
       name: source.value,
       desc: 'Enable ' + source.desc,
@@ -72,9 +72,8 @@ chrome.options.set([
   { name: 'groups', type: 'list', sortable: true, preview: 'png',
     desc: 'Categorize videos and group them into tabs ' +
           '(Use * to match any string)',
-    filter: function(row) {
-      return row.name && row.rules && row.rules.length;
-    }, fields: [{
+    filter: row => row.name && row.rules && row.rules.length,
+    fields: [{
       type: 'column', options: [
         { type: 'row', options: [
           { type: 'text', name: 'name', desc: 'Name', singleline: true },

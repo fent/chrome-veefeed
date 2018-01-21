@@ -2,17 +2,17 @@
 /* exported getElement, setNextButton */
 
 var queuedVideo;
-chrome.runtime.sendMessage({ started: true }, {}, function(response) {
+chrome.runtime.sendMessage({ started: true }, {}, (response) => {
   queuedVideo = response;
 });
 
 // Element may not be available right away when the page loads.
-function getElement(className, callback) {
+window.getElement = (className, callback) => {
   function search() {
     return document.getElementsByClassName(className)[0];
   }
   var maxAttempts = 10;
-  var iid = setInterval(function() {
+  var iid = setInterval(() => {
     var $el = search();
     if ($el || --maxAttempts === 0) {
       clearInterval(iid);
@@ -21,13 +21,13 @@ function getElement(className, callback) {
       callback($el);
     }
   }, 1000);
-}
+};
 
-function setNextButton($playButton, buttonClass) {
+window.setNextButton = ($playButton, buttonClass) => {
   // Prepend all class names with app name to avoid collisions.
   var $thumbnail, $length, $title;
   var $nextButton = m('a.veefeed-next-button.' + buttonClass, {
-    onclick: function(e) {
+    onclick: (e) => {
       if ($nextButton.classList.contains('veefeed-show')) {
         window.location = $nextButton.href;
       }
@@ -70,7 +70,7 @@ function setNextButton($playButton, buttonClass) {
     }
   }
 
-  chrome.runtime.onMessage.addListener(function(message) {
+  chrome.runtime.onMessage.addListener((message) => {
     if (message.setQueue) {
       onQueueUpdate(message.video);
     }
@@ -79,4 +79,4 @@ function setNextButton($playButton, buttonClass) {
   onQueueUpdate(queuedVideo);
 
   return $nextButton;
-}
+};

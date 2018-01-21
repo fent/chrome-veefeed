@@ -1,6 +1,6 @@
 function get(selectors) {
-  for (var i = 0, len = selectors.length; i < len; i++) {
-    var $el = document.querySelector(selectors[i]);
+  for (let selector of selectors) {
+    let $el = document.querySelector(selector);
     if ($el) {
       return $el;
     }

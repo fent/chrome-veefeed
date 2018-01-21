@@ -1,8 +1,8 @@
 /* global chrome, lazyload, toHumanLength, now, timeAgo, showTime, m */
 
 function removeChildClasses($node, className) {
-  for (var i = 0, len = $node.children.length; i < len; i++) {
-    $node.children[i].classList.remove(className);
+  for (let $child of $node.children) {
+    $child.classList.remove(className);
   }
 }
 
@@ -10,9 +10,9 @@ function numberWithCommas(num) {
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
-var VIDEO_HEIGHT = 119;
-var SET_POS_WAIT = 100;
-var POS_ANIM_TIME = 500;
+const VIDEO_HEIGHT = 119;
+const SET_POS_WAIT = 100;
+const POS_ANIM_TIME = 500;
 
 var options = JSON.parse(localStorage.getItem('options')) || {};
 var videos = JSON.parse(localStorage.getItem('videos')) || [];
@@ -26,11 +26,11 @@ var showTabs = false;
 
 var groupedVideos = JSON.parse(localStorage.getItem('groups')) || [];
 if (groupedVideos.length) { showTabs = true; }
-groupedVideos.forEach(function(group) { group.removable = true; });
+groupedVideos.forEach((group) => { group.removable = true; });
 groups = groups.concat(groupedVideos);
 
-var $tabs = document.getElementById('tabs').children[0];
-var $content = document.getElementById('content');
+const $tabs = document.getElementById('tabs').children[0];
+const $content = document.getElementById('content');
 
 
 var tabID, winID, fullqueue, queue, openedVideo;
@@ -44,7 +44,7 @@ function getQueue() {
   }
 }
 
-chrome.tabs.query({ active: true, currentWindow: true }, function(results) {
+chrome.tabs.query({ active: true, currentWindow: true }, (results) => {
   if (!results.length) {
     console.error('This shouldn\'t happen');
     return;
@@ -66,10 +66,10 @@ chrome.tabs.query({ active: true, currentWindow: true }, function(results) {
 
 
   // Find out what videos are queued.
-  groups.forEach(function(group) {
-    group.videos.forEach(function(video) {
+  groups.forEach((group) => {
+    group.videos.forEach((video) => {
       video.queued = queue && queue[video.url] != null;
-      for (var otherTabID in fullqueue) {
+      for (let otherTabID in fullqueue) {
         if (fullqueue[otherTabID][video.url] != null) {
           video.silentQueued = true;
           break;
@@ -83,29 +83,27 @@ chrome.tabs.query({ active: true, currentWindow: true }, function(results) {
   var groupSelected;
 
   // Select the first tab with a video playing.
-  groupSelected = groups.find(function(group) {
-    return group.videos.some(function(video) { return video.playing; });
+  groupSelected = groups.find((group) => {
+    return group.videos.some(video => video.playing);
   });
 
   // Otherwise, look for queued videos.
   if (!groupSelected) {
-    groupSelected = groups.find(function(group) {
-      return group.videos.some(function(video) { return video.queued; });
+    groupSelected = groups.find((group) => {
+      return group.videos.some(video => video.queued);
     });
   }
 
   // If no currently playing or queued, look for unwatched videos.
   if (!groupSelected) {
-    groupSelected = groups.find(function(group) {
-      return group.videos.some(function(video) { return !video.watched; });
+    groupSelected = groups.find((group) => {
+      return group.videos.some(video => !video.watched);
     });
   }
 
   // Still no? Select the first tab with any video.
   if (!groupSelected) {
-    groupSelected = groups.find(function(group) {
-      return group.videos.length;
-    });
+    groupSelected = groups.find(group => group.videos.length);
   }
 
   // Otherwise, select the first tab.
@@ -129,22 +127,18 @@ chrome.tabs.query({ active: true, currentWindow: true }, function(results) {
 
 var videosMap = {};
 function renderContent() {
-  groups.forEach(function(group) {
+  groups.forEach((group) => {
     if (options.hide_empty_tabs && !group.videos.length) { return; }
 
-    group.unwatched = group.videos.filter(function(video) {
-      return !video.watched;
-    }).length;
+    group.unwatched = group.videos.filter(video => !video.watched).length;
     var $badge;
 
     if (showTabs) {
       var $tab = m('a.tab', {
         className: group.selected && 'selected',
-        onclick: function() {
+        onclick: () => {
           // Remember the scroll position of the last selected group.
-          var selectedGroup = groups.filter(function(group) {
-            return group.selected;
-          })[0];
+          var selectedGroup = groups.filter(group => group.selected)[0];
           if (selectedGroup) {
             selectedGroup.scrollTop = document.body.scrollTop;
             selectedGroup.selected = false;
@@ -169,9 +163,9 @@ function renderContent() {
     }
 
     // If this videos is also in other tabs, remember in case it's removed.
-    group.videos.forEach(function(video) {
+    group.videos.forEach((video) => {
       (videosMap[video.url] = videosMap[video.url] || [])
-        .push({ group: group, video: video, $badge: $badge });
+        .push({ group, video, $badge });
     });
 
     if (group.selected) {
@@ -191,7 +185,7 @@ function renderVideos(group) {
 
   group.$queueAll = m('div.queue-all', {
     className: openedVideo && openedVideo.playing && 'video-is-playing',
-    onclick: function() {
+    onclick: () => {
       if (openedVideo && openedVideo.playing) {
         chrome.runtime.sendMessage({
           queueAll: true,
@@ -199,13 +193,13 @@ function renderVideos(group) {
           videos: group.queueable,
         });
 
-        group.queueable.forEach(function(video) {
-          videosMap[video.url].forEach(function(g) {
+        group.queueable.forEach((video) => {
+          videosMap[video.url].forEach((g) => {
             g.video.queued = !video.queued;
             if (g.video.$video) {
               g.video.$video.classList.toggle('queued');
             }
-            setTimeout(function() {
+            setTimeout(() => {
               getQueue();
               setVideoPositions(g.group);
             }, SET_POS_WAIT);
@@ -213,7 +207,7 @@ function renderVideos(group) {
         });
 
       } else {
-        openVideo(group.queueable.shift(), false, function(tabID) {
+        openVideo(group.queueable.shift(), false, (tabID) => {
           chrome.runtime.sendMessage({
             queueAll: true,
             tabID: tabID,
@@ -231,7 +225,7 @@ function renderVideos(group) {
         'Q' : 'Play and q') + 'ueue all unwatched')
   ]);
 
-  group.$videos = m('ul', group.videos.map(function(video) {
+  group.$videos = m('ul', group.videos.map((video) => {
     if (!options.show_watched && video.watched) { return; }
 
     var opening = false;
@@ -245,7 +239,7 @@ function renderVideos(group) {
       if (video.queued) {
         // If video is in queue, wait a little to let the user know that
         // it will be removed from the queue as they open it.
-        videosMap[video.url].forEach(function(g) {
+        videosMap[video.url].forEach((g) => {
           g.video.queued = false;
           if (g.video.$video) { g.video.$video.classList.remove('queued'); }
         });
@@ -256,7 +250,7 @@ function renderVideos(group) {
           tabID: tabID,
         });
 
-        setTimeout(function() {
+        setTimeout(() => {
           opening = false;
           open(inNewTab);
         }, 500);
@@ -316,7 +310,7 @@ function renderVideos(group) {
         video.length && m('span.length', toHumanLength(video.length)),
         openedVideo && openedVideo.playing && m('span.queue', {
           'data-title': 'Add to Queue',
-          onclick: function() {
+          onclick: () => {
             var message = {
               tabID: tabID,
               video: video,
@@ -327,32 +321,32 @@ function renderVideos(group) {
               message.unqueue = true;
             }
             chrome.runtime.sendMessage(message);
-            videosMap[video.url].forEach(function(g) {
+            videosMap[video.url].forEach((g) => {
               g.video.queued = !video.queued;
               if (g.video.$video) {
                 g.video.$video.classList.toggle('queued');
 
-                setTimeout(function() {
+                setTimeout(() => {
                   getQueue();
                   setVideoPositions(g.group);
-                  setTimeout(function() {
+                  setTimeout(() => {
                     // A nasty hack to make the :hover states of possible
                     // videos being placed under the mouse after the
                     // animation, activate.
                     var $children = g.group.$videos.querySelectorAll(
                       '.animating .queue, .animating .open-new-tab');
-                    for (var i = 0, len = $children.length; i < len; i++) {
-                      $children[i].style.opacity = '0';
-                      $children[i].style.display = 'none';
+                    for (let $child of $children) {
+                      $child.style.opacity = '0';
+                      $child.style.display = 'none';
                     }
-                    setTimeout(function() {
-                      for (var i = 0, len = $children.length; i < len; i++) {
-                        $children[i].style.display = null;
+                    setTimeout(() => {
+                      for (let $child of $children) {
+                        $child.style.display = null;
                       }
                     }, 20);
-                    setTimeout(function() {
-                      for (var i = 0, len = $children.length; i < len; i++) {
-                        $children[i].style.opacity = null;
+                    setTimeout(() => {
+                      for (let $child of $children) {
+                        $child.style.opacity = null;
                       }
                     }, 100);
                   }, POS_ANIM_TIME);
@@ -373,13 +367,13 @@ function renderVideos(group) {
         group.removable && !video.watched && m('a.close', {
           href: '#',
           'data-title': 'Mark as Watched',
-          onclick: function(e) {
+          onclick: (e) => {
             chrome.runtime.sendMessage({
               watched: true,
               url: video.url,
               tabID: tabID,
             });
-            videosMap[video.url].forEach(function(g) {
+            videosMap[video.url].forEach((g) => {
               if (g.$badge) {
                 g.$badge.textContent = (--g.group.unwatched) || '';
               }
@@ -397,7 +391,7 @@ function renderVideos(group) {
                   $video.parentNode.removeChild($video);
                 } else {
                   $video.style.height = 0;
-                  setTimeout(function() {
+                  setTimeout(() => {
                     $video.parentNode.removeChild($video);
                   }, SET_POS_WAIT);
                 }
@@ -423,10 +417,10 @@ function renderVideos(group) {
         ]),
         m('div', [
           video.live ? m('span.live', 'LIVE NOW') :
-            video.timestamp ?
-              now < video.timestamp ?
-                m('span.starts', showTime(video.timestamp)) :
-                now >= video.timestamp &&
+          video.timestamp ?
+            now < video.timestamp ?
+              m('span.starts', showTime(video.timestamp)) :
+              now >= video.timestamp &&
               m('span.time', timeAgo(video.timestamp)) : null,
           video.views && m('span.views',
             numberWithCommas(video.views) +
@@ -460,7 +454,7 @@ function openVideo(video, inNewTab, callback) {
     chrome.tabs.update(parseInt(tabID), {
       url: video.url,
       active: true
-    }, function(tab) {
+    }, (tab) => {
       if (!tab) {
         openNewTab(video, callback);
       } else {
@@ -474,7 +468,7 @@ function openVideo(video, inNewTab, callback) {
 }
 
 function openNewTab(video, callback) {
-  chrome.tabs.create({ url: video.url }, function(tab) {
+  chrome.tabs.create({ url: video.url }, (tab) => {
     chrome.runtime.sendMessage({
       newTab: true,
       url: video.url,
@@ -487,12 +481,12 @@ function openNewTab(video, callback) {
 
 function setVideoPositions(group) {
   if (!options.show_watched) {
-    group.videos = group.videos.filter(function(v) { return !v.watched; });
+    group.videos = group.videos.filter(v => !v.watched);
   }
 
   // Put currently playing video at the top, followed by queued videos,
   // then unwatched videos, and finally, watched videos at the bottom.
-  group.videos.sort(function(a, b) {
+  group.videos.sort((a, b) => {
     var playing = !!b.playing - !!a.playing;
     if (playing !== 0) { return playing; }
     var queued = !!b.queued - !!a.queued;
@@ -510,18 +504,16 @@ function setVideoPositions(group) {
     }
   });
 
-  group.queueable = group.videos.filter(function(v) {
-    return !v.watched && !v.queued;
-  }).reverse();
+  group.queueable = group.videos.filter(v => !v.watched && !v.queued).reverse();
   group.$queueAll.classList.toggle('hidden', group.queueable.length < 2);
 
   group.$videos.style.height = (VIDEO_HEIGHT * group.videos.length) + 'px';
-  group.videos.forEach(function(video, i) {
+  group.videos.forEach((video, i) => {
     var top = (VIDEO_HEIGHT * i) + 'px';
     if (top !== video.$video.style.top) {
       video.$video.style.top = top;
       video.$video.classList.add('animating');
-      setTimeout(function() {
+      setTimeout(() => {
         video.$video.classList.remove('animating');
       }, POS_ANIM_TIME + 20);
     }

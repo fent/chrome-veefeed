@@ -1,13 +1,13 @@
 /* global util */
 // Some URLs are given as shortened URLs...
-(function() {
+(() => {
   var cache = new util.SizedMap(200, 'shortenedURLs');
   var supportedHosts = {
     't.co': getURLFromMeta,
   };
 
   function getURLFromMeta(url, callback) {
-    util.ajax(url, function(xhr, body) {
+    util.ajax(url, (xhr, body) => {
       var location = xhr.getResponseHeader('location');
       if (location) {
         callback(location);
@@ -26,17 +26,15 @@
     });
   }
 
-  var shorteners = window.shorteners = {};
-  shorteners.isShortened = function(url) {
-    return !!supportedHosts[new URL(url).host];
-  };
-  shorteners.getRealURL = function(url, callback) {
+  const shorteners = window.shorteners = {};
+  shorteners.isShortened = url => !!supportedHosts[new URL(url).host];
+  shorteners.getRealURL = (url, callback) => {
     if (cache.has(url)) {
       callback(cache.get(url));
     } else {
       var fn = supportedHosts[new URL(url).host];
       if (fn) {
-        fn(url, function(realurl) {
+        fn(url, (realurl) => {
           if (realurl) {
             cache.push(url, realurl);
           }

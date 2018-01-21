@@ -5,70 +5,41 @@
  * `<img src="blank.gif" data-src="my_image.png" width="600" height="400" class="lazy">`
  */
 
-!function(window){
-  var addEventListener = function(evt, fn){
-    window.addEventListener
-      ? this.addEventListener(evt, fn, false)
-      : (window.attachEvent)
-        ? this.attachEvent('on' + evt, fn)
-        : this['on' + evt] = fn;
-  };
-
-  function loadImage (el, fn) {
-    var img = new Image()
-      , src = el.getAttribute('data-src');
-    img.onload = function() {
-      if (el.parent)
-        el.parent.replaceChild(img, el);
-      else
-        el.src = src;
-
+(() => {
+  function loadImage($img, fn) {
+    var img = new Image();
+    var src = $img.getAttribute('data-src');
+    img.onload = () => {
+      $img.src = src;
+      $img.classList.remove('lazy');
       fn? fn() : null;
     };
     img.src = src;
   }
 
-  function elementInViewport(el) {
-    var rect = el.getBoundingClientRect();
-
-    return (
-      rect.top    >= 0
-    && rect.left   >= 0
-    && rect.top <= (window.innerHeight || document.documentElement.clientHeight)
-    );
+  function elementInViewport($el) {
+    var rect = $el.getBoundingClientRect();
+    return rect.top >= 0 && rect.left >= 0 && rect.top <= window.innerHeight;
   }
 
   // Expose library.
-  var lazyload = window.lazyload = {};
-  var images = new Array();
-  var query = document.getElementsByClassName('lazy');
-  var processScroll = lazyload.processScroll = function() {
-    for (var i = 0; i < images.length; i++) {
+  const lazyload = window.lazyload = {};
+  const images = [];
+  var processScroll = lazyload.processScroll = () => {
+    for (let i = 0; i < images.length; i++) {
       if (elementInViewport(images[i])) {
-        loadImage(images[i], function () {
-          images.splice(i, i);
-        });
+        loadImage(images[i], () => { images.splice(i, i); });
       }
     }
   };
 
-  // Array.prototype.slice.call is not callable under our lovely IE8 
-  function addImages() {
-    for (var i = 0; i < query.length; i++) {
-      images.push(query[i]);
-    }
-  }
-
   lazyload.addImages = function($node) {
-    var query = $node.getElementsByClassName('lazy');
-    for (var i = 0; i < query.length; i++) {
-      images.push(query[i]);
+    for (let $el of $node.getElementsByClassName('lazy')) {
+      images.push($el);
     }
     processScroll();
   };
 
-  addImages();
-  processScroll();
-  addEventListener('scroll',processScroll);
-
-}(this);
+  lazyload.addImages(document.body);
+  window.addEventListener('croll', processScroll);
+})();

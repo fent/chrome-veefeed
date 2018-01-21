@@ -1,13 +1,13 @@
 /* global chrome, sources, util */
 
-var MAX_WATCHED   = 400;  // Max watched videos to keep in storage.
-var MAX_KNOWN     = 400;  // Max videos in memory to "know" about, to notify.
-var MAX_VIDEOS    = 50;   // Max videos to display for each group.
-var QUEUE_WAIT_MS = 2500; // How long to wait to play queued up videos.
-var BADGE_COLOR        = '#225F86';
-var BADGE_COLOR_QUEUED = '#6294df';
+const MAX_WATCHED   = 400;  // Max watched videos to keep in storage.
+const MAX_KNOWN     = 400;  // Max videos in memory to "know" about, to notify.
+const MAX_VIDEOS    = 50;   // Max videos to display for each group.
+const QUEUE_WAIT_MS = 2500; // How long to wait to play queued up videos.
+const BADGE_COLOR        = '#225F86';
+const BADGE_COLOR_QUEUED = '#6294df';
 
-var options = {
+const options = {
   sources: { youtube: true, twitch: false },
   interval: 15,
   use_same_tab: true,
@@ -38,7 +38,7 @@ var openedVideos = {};
 var pausedTabs = {};
 
 function checkForUpdates() {
-  sources.getVideos(options.sources, function(results) {
+  sources.getVideos(options.sources, (results) => {
     allVideos = results;
     updateVideos();
   });
@@ -53,7 +53,7 @@ function updateVideos() {
   var now = Date.now();
 
   var results = allVideos
-    .filter(function(video) {
+    .filter((video) => {
       if (!video.source) { return false; }
       delete video.otherSource;
       if (!video.watched) {
@@ -71,12 +71,12 @@ function updateVideos() {
     });
 
   // See if any videos can be merged.
-  options.merge.forEach(function(rule) {
+  options.merge.forEach((rule) => {
     results
       .filter(mergeMatch.bind(null, rule.source1, rule.username1))
-      .forEach(function(video1) {
+      .forEach((video1) => {
         if (video1.otherSource) { return; }
-        for (var i = results.length - 1; i >= 0; i--) {
+        for (let i = results.length - 1; i >= 0; i--) {
           var video2 = results[i];
           if (!mergeMatch(rule.source2, rule.username2, video2)) { continue; }
           if (util.isSameVideo(video1, video2)) {
@@ -84,7 +84,7 @@ function updateVideos() {
 
             // Merge everything from other source to preferred source.
             // If one is watched, they both will be.
-            for (var key in video2) {
+            for (let key in video2) {
               if (!video1[key]) { video1[key] = video2[key]; }
             }
             video1.otherSource = {
@@ -98,12 +98,10 @@ function updateVideos() {
   });
 
   // Lower the amount of videos sent to popup if `show_watched` is false.
-  results = results.filter(function(video) {
-    return !video.watched || options.show_watched;
-  });
+  results = results.filter(video => !video.watched || options.show_watched);
 
   // Sort.
-  allVideos.sort(function(a, b) {
+  allVideos.sort((a, b) => {
     if (b.timestamp !== a.timestamp) {
       return b.timestamp - a.timestamp;
     } else {
@@ -113,7 +111,7 @@ function updateVideos() {
 
   // Check if there are any new videos, only after the first fetch of videos.
   if (knownVideos.list.length) {
-    var newVideos = results.filter(function(video) {
+    var newVideos = results.filter((video) => {
       return !knownVideos.has(video.url) && !video.watched;
     });
 
@@ -135,13 +133,13 @@ function updateVideos() {
           title: newVideos[0].title,
           message: 'New videos',
           eventTime: newVideos[0].timestamp,
-          items: newVideos.map(function(video) {
+          items: newVideos.map((video) => {
             return { title: video.title, message: video.user.name };
           }),
         };
       }
       var video = newVideos
-        .find(function(video) { return video.thumbnail; });
+        .find(video => video.thumbnail);
       if (video) { notification.iconUrl = video.thumbnail; }
       chrome.notifications.create('veefeed' + Date.now(), notification);
     }
@@ -153,15 +151,15 @@ function updateVideos() {
       audio.play();
     }
 
-    newVideos.forEach(function(video) { knownVideos.push(video.url); });
+    newVideos.forEach((video) => { knownVideos.push(video.url); });
   } else {
-    results.forEach(function(video) { knownVideos.push(video.url); });
+    results.forEach((video) => { knownVideos.push(video.url); });
   }
 
   var unwatched = 0;
   var matchedMap = {};
   var matchedOnlyMap = {};
-  var groupedVideos = groups.map(function(group) {
+  var groupedVideos = groups.map((group) => {
     var matched = results
       .filter(matchRules.bind(null, group.rules))
       .filter(function(video) { return !matchedOnlyMap[video.url]; });
@@ -170,19 +168,14 @@ function updateVideos() {
       if (group.only) { matchedOnlyMap[video.url] = true; }
     });
     group = { name: group.name, videos: matched.slice(0, MAX_VIDEOS) };
-    unwatched += group.videos.filter(function(video) {
-      return !video.watched;
-    }).length;
+    unwatched += group.videos.filter(video => !video.watched).length;
     return group;
   });
 
-  var ungroupedVideos = results.filter(function(video) {
-    return !matchedMap[video.url];
-  }).slice(0, MAX_VIDEOS);
+  var ungroupedVideos =
+    results.filter(video => !matchedMap[video.url]).slice(0, MAX_VIDEOS);
 
-  unwatched += ungroupedVideos.filter(function(video) {
-    return !video.watched;
-  }).length;
+  unwatched += ungroupedVideos.filter(video => !video.watched).length;
 
   chrome.browserAction.setBadgeText({ text: unwatched ? '' + unwatched : '' });
 
@@ -197,7 +190,7 @@ function updateVideos() {
 // Check every now and then for new videos.
 var timeoutID;
 function checkEveryNowAndThen() {
-  timeoutID = setTimeout(function() {
+  timeoutID = setTimeout(() => {
     clearTimeout(timeoutID);
     checkForUpdates();
     checkEveryNowAndThen();
@@ -209,23 +202,21 @@ chrome.browserAction.setBadgeBackgroundColor({ color: BADGE_COLOR });
 
 var optionsKeys = ['groups']
   .concat(Object.keys(options))
-  .concat(Object.keys(sources.videos).map(function(s) {
-    return 'watched_' + s;
-  }));
+  .concat(Object.keys(sources.videos).map(s => 'watched_' + s));
 
-chrome.storage.sync.get(optionsKeys, function(items) {
+chrome.storage.sync.get(optionsKeys, (items) => {
   // Keep track of watched videos in storage so that this extension
   // works across computers.
-  Object.keys(sources.videos).forEach(function(source) {
+  Object.keys(sources.videos).forEach((source) => {
     watchedVideos[source] =
       new util.SizedMap(MAX_WATCHED, items['watched_' + source] || []);
   });
 
   ignoreRules = generateRules(items.ignore || []);
   groups = items.groups || [];
-  groups.forEach(function(group) { generateRules(group.rules); });
+  groups.forEach((group) => { generateRules(group.rules); });
 
-  optionsKeys.forEach(function(key) {
+  optionsKeys.forEach((key) => {
     if (items[key] !== undefined) {
       options[key] = items[key];
     }
@@ -238,8 +229,8 @@ chrome.storage.sync.get(optionsKeys, function(items) {
 });
 
 function generateRules(rules) {
-  return rules.map(function(rule) {
-    ['user', 'title', 'game'].forEach(function(key) {
+  return rules.map((rule) => {
+    ['user', 'title', 'game'].forEach((key) => {
       if (!rule[key]) { return; }
       rule[key] = util.minimatch(rule[key]);
     });
@@ -248,13 +239,11 @@ function generateRules(rules) {
 }
 
 function matchRules(rules, video) {
-  return rules.some(function(ignore) {
-    if (video.collections && video.collections.some(function(col) {
+  return rules.some((ignore) => {
+    if (video.collections && video.collections.some((col) => {
       if (ignore.source && ignore.source !== col.source) { return false; }
       if (ignore.user && col.users && col.users.length &&
-        col.users.every(function(user) {
-          return !ignore.user.test(user.name);
-        })) { return false; }
+        col.users.every(user => !ignore.user.test(user.name))) { return false; }
       if (ignore.title && !ignore.title.test(col.title)) { return false; }
       return ignore.source || ignore.user || ignore.title;
     })) { return true; }
@@ -283,7 +272,7 @@ function updateQueue(queue, tabID, url) {
   } else {
     // Otherwise, update the position of the queued videos,
     // since a video could have been removed from the middle.
-    queue.forEach(function(o, i) { queueUrlMap[tabID][o.url] = i; });
+    queue.forEach((o, i) => { queueUrlMap[tabID][o.url] = i; });
     delete queueUrlMap[tabID][url];
   }
   localStorage.setItem('queue', JSON.stringify(queueUrlMap));
@@ -312,7 +301,7 @@ function afterQueue(tabID) {
 function unqueueVideo(tabID, url) {
   var queue = queueTabs[tabID];
   if (!queue) { return; }
-  var i = queue.findIndex(function(o) { return o.url === url; });
+  var i = queue.findIndex(o => o.url === url);
   if (i > -1) {
     queue.splice(i, 1);
     updateQueue(queue, tabID, url);
@@ -337,7 +326,7 @@ function markAsWatched(url) {
 
 function queueMenuClicked(tabID, info) {
   var url = info.linkUrl;
-  sources.getMetaForVideo(url, function(video) {
+  sources.getMetaForVideo(url, (video) => {
     if (!video) { return; }
 
     // Keep the original URL, since it might contain things like timestamps.
@@ -352,7 +341,7 @@ function markAsPlaying(tabID, url, title) {
   localStorage.setItem('opened', JSON.stringify(openedVideos));
 
   chrome.contextMenus.update('queue', { enabled: true });
-  chrome.contextMenus.update('queue-' + tabID, { title: title }, function() {
+  chrome.contextMenus.update('queue-' + tabID, { title: title }, () => {
     if (chrome.runtime.lastError) {
       chrome.contextMenus.create({
         id: 'queue-' + tabID,
@@ -370,14 +359,14 @@ function removeMenu(tabID) {
   chrome.contextMenus.remove('queue-' + tabID);
 
   // If there are no more videos that are playing, disable the queue menu.
-  if (Object.keys(openedVideos).every(function(key) {
+  if (Object.keys(openedVideos).every((key) => {
     return key !== tabID || !openedVideos[key].playing;
   })) {
     chrome.contextMenus.update('queue', { enabled: false });
   }
 }
 
-chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   var queue;
 
   if (request.watched) {
@@ -400,12 +389,12 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     // pause them if they are playing.
     if (!options.pause_other_tabs) { return; }
     pausedTabs[request.tabID] = [];
-    chrome.tabs.query({ windowId: request.winID }, function(tabs) {
-      tabs.forEach(function(tab) {
+    chrome.tabs.query({ windowId: request.winID }, (tabs) => {
+      tabs.forEach((tab) => {
         if (tab.url !== request.url && sources.isVideoPage(tab.url)) {
           chrome.tabs.executeScript(tab.id, {
             file: 'content/pause.js',
-          }, function(results) {
+          }, (results) => {
             if (results[0]) {
               pausedTabs[request.tabID].push(tab.id);
             }
@@ -439,7 +428,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
       updateQueue(queue, sender.tab.id, nextVideo.url);
 
       // Play the next video in a few secs...
-      setTimeout(function() {
+      setTimeout(() => {
         chrome.tabs.update(parseInt(sender.tab.id), {
           url: nextVideo.url,
         });
@@ -458,8 +447,8 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 
 });
 
-chrome.storage.onChanged.addListener(function(changes) {
-  for (var source in sources.videos) {
+chrome.storage.onChanged.addListener((changes) => {
+  for (let source in sources.videos) {
     // Watched videos are in storage so that they are remembered
     // across the same account.
     if (changes['watched_' + source]) {
@@ -470,7 +459,7 @@ chrome.storage.onChanged.addListener(function(changes) {
     }
   }
 
-  for (var key in changes) {
+  for (let key in changes) {
     options[key] = changes[key].newValue;
   }
   localStorage.setItem('options', JSON.stringify(options));
@@ -488,14 +477,14 @@ chrome.storage.onChanged.addListener(function(changes) {
     }
     if (changes.groups) {
       groups = changes.groups.newValue;
-      groups.forEach(function(group) { generateRules(group.rules); });
+      groups.forEach((group) => { generateRules(group.rules); });
     }
 
     updateVideos();
   }
 });
 
-chrome.tabs.onRemoved.addListener(function(tabID) {
+chrome.tabs.onRemoved.addListener((tabID) => {
   if (queueTabs[tabID]) {
     delete queueTabs[tabID];
     delete queueUrlMap[tabID];
@@ -508,19 +497,20 @@ chrome.tabs.onRemoved.addListener(function(tabID) {
     delete openedVideos[tabID];
     localStorage.setItem('opened', JSON.stringify(openedVideos));
   }
-  for (let tabs of pausedTabs) {
+  for (let tabID in pausedTabs) {
+    let tabs = pausedTabs[tabID];
     let i = tabs.indexOf(tabID);
     if (i > -1) {
       tabs.splice(i, 1);
     }
   }
   if (pausedTabs[tabID]) {
-    setTimeout(function() {
-      pausedTabs[tabID].forEach(function(tabID) {
+    setTimeout(() => {
+      pausedTabs[tabID].forEach((tabID) => {
         // Possible that the tabs that were paused, were closed before
         // the new video tab was closed. Check if the tab is still
         // around and if it's at the front. Only then play it.
-        chrome.tabs.get(tabID, function(tab) {
+        chrome.tabs.get(tabID, (tab) => {
           if (!tab.active) { return; }
           chrome.tabs.executeScript(tabID, { file: 'content/play.js' });
         });
@@ -531,8 +521,8 @@ chrome.tabs.onRemoved.addListener(function(tabID) {
 });
 
 // Open options on installed.
-chrome.runtime.onInstalled.addListener(function() {
-  chrome.storage.sync.get(null, function(items) {
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.storage.sync.get(null, (items) => {
     if (!Object.keys(items).length) {
       chrome.runtime.openOptionsPage();
     }
@@ -540,7 +530,7 @@ chrome.runtime.onInstalled.addListener(function() {
 });
 
 // Add context menu so links to videos can be queued up from any page.
-chrome.contextMenus.removeAll(function() {
+chrome.contextMenus.removeAll(() => {
   chrome.contextMenus.create({
     id: 'queue',
     title: 'Queue Video',

@@ -1,6 +1,6 @@
 /* global URLSearchParams */
 /* exported util */
-var util = {};
+const util = {};
 
 /*
  * Helper function for requests.
@@ -15,9 +15,9 @@ var util = {};
  * @param {Function(Object)} callback
  * @return {XMLHttpRequest}
  */
-util.ajax = function(url, opts, callback) {
+util.ajax = (url, opts, callback) => {
   if (util.ajax.active >= util.ajax.max) {
-    util.ajax.queue.push(arguments);
+    util.ajax.queue.push([url, opts, callback]);
     return;
   }
 
@@ -61,7 +61,7 @@ util.ajax = function(url, opts, callback) {
   }
 
   xhr.open('GET', url, true);
-  xhr.onreadystatechange = function() {
+  xhr.onreadystatechange = () => {
     if (xhr.readyState === 2) {
       var type = xhr.getResponseHeader('content-type');
       if (opts.responseType) {
@@ -106,10 +106,10 @@ util.ajax.queue = [];
 util.ajax.max = 5;
 util.ajax.active = 0;
 util.ajax.cache = {};
-util.ajax.next = function() {
+util.ajax.next = () => {
   if (util.ajax.queue.length && util.ajax.active < util.ajax.max) {
     var args = util.ajax.queue.shift();
-    setTimeout(function() {
+    setTimeout(() => {
       util.ajax.apply(null, args);
     });
   }
@@ -122,7 +122,7 @@ util.ajax.next = function() {
  * @param {String} str
  * @return {Number}
  */
-util.relativeToTimestamp = function(str) {
+util.relativeToTimestamp = (str) => {
   var r = /(\d+)\s+(second|minute|hour|day)s?/.exec(str);
   if (!r) { return null; }
   var n = parseInt(r[1], 10);
@@ -136,6 +136,19 @@ util.relativeToTimestamp = function(str) {
 };
 
 /**
+ * Converts from 00:00:00 or 00:00 to seconds.
+ *
+ * @param {String} str
+ * @return {Number}
+ */
+util.timeToSeconds = (str) => {
+  var s = str.split(':');
+  return s.length === 2 ?
+    ~~s[0] * 60 + ~~s[1] :
+    ~~s[0] * 3600 + ~~s[1] * 60 + ~~s[2];
+};
+
+/**
  * A list that only keeps the last `limit` items added.
  *
  * @constructor
@@ -143,104 +156,93 @@ util.relativeToTimestamp = function(str) {
  * @param {Array.<Object>|String?} list
  * @param {Number} ttl
  */
-var SizedMap = util.SizedMap = function(limit, list, ttl) {
-  this.limit = limit;
-  this._ttl = ttl;
-  if (typeof list === 'string') {
-    this._key = list;
-    try {
-      list = JSON.parse(localStorage.getItem(list)) || {};
-    } catch (err) {
-      list = {};
-    }
-  }
-  this.list = [];
-  this.map = {};
-  if (list) {
-    if (Array.isArray(list)) {
-      this.saveList = true;
-      this.list = list.slice(-limit);
-      for (var i = 0, len = this.list.length; i < len; i++) {
-        this.map[this.list[i]] = true;
-      }
-    } else {
-      for (var key in list) {
-        this.list.push(key);
-        this.map[key] = list[key];
+util.SizedMap = class {
+  constructor(limit, list, ttl) {
+    this.limit = limit;
+    this._ttl = ttl;
+    if (typeof list === 'string') {
+      this._key = list;
+      try {
+        list = JSON.parse(localStorage.getItem(list)) || {};
+      } catch (err) {
+        list = {};
       }
     }
-  }
-};
-
-/**
- * Add an item to the list. `key` is used to identify the uniqueness of the
- * item. If an item with the same key is already on the list, it will instead
- * be moved to the top of the list with the new value.
- *
- * @param {String} key
- * @param {Object} value
- * @param {Boolean} noUpdate If this is `true`, item won't be moved to the top.
- */
-SizedMap.prototype.push = function(key, value, noUpdate) {
-  if (this.has(key)) {
-    if (noUpdate) { return; }
-    this.list.splice(this.list.indexOf(key), 1);
-  }
-  this.list.push(key);
-  if (this._ttl) {
-    value = { v: value, t: Date.now() };
-  }
-  this.map[key] = value || true;
-  if (this.list.length > this.limit) {
-    delete this.map[this.list.shift()];
+    this.list = [];
+    this.map = {};
+    if (list) {
+      if (Array.isArray(list)) {
+        this.saveList = true;
+        this.list = list.slice(-limit);
+        for (let i = 0, len = this.list.length; i < len; i++) {
+          this.map[this.list[i]] = true;
+        }
+      } else {
+        for (let key in list) {
+          this.list.push(key);
+          this.map[key] = list[key];
+        }
+      }
+    }
   }
 
-  // Save this to local storage.
-  if (this._key) {
-    this._shouldSave = true;
-    clearTimeout(this._tid);
-    this._tid = setTimeout(this._save.bind(this), 1000);
+  /**
+   * Add an item to the list. `key` is used to identify the uniqueness of the
+   * item. If an item with the same key is already on the list, it will instead
+   * be moved to the top of the list with the new value.
+   *
+   * @param {String} key
+   * @param {Object} value
+   * @param {Boolean} noUpdate If this is `true`, item won't be moved to the top.
+   */
+  push(key, value, noUpdate) {
+    if (this.has(key)) {
+      if (noUpdate) { return; }
+      this.list.splice(this.list.indexOf(key), 1);
+    }
+    this.list.push(key);
+    if (this._ttl) {
+      value = { v: value, t: Date.now() };
+    }
+    this.map[key] = value || true;
+    if (this.list.length > this.limit) {
+      delete this.map[this.list.shift()];
+    }
+
+    // Save this to local storage.
+    if (this._key) {
+      this._shouldSave = true;
+      clearTimeout(this._tid);
+      this._tid = setTimeout(this._save.bind(this), 1000);
+    }
   }
-};
 
-/*
- * @param {String} key
- * @return {Boolean}
- */
-SizedMap.prototype.has = function(key) {
-  return key in this.map &&
-    (!this._ttl || Date.now() - this.map[key].t < this._ttl);
-};
+  /*
+   * @param {String} key
+   * @return {Boolean}
+   */
+  has(key) {
+    return key in this.map &&
+      (!this._ttl || Date.now() - this.map[key].t < this._ttl);
+  }
 
-/*
- * @param {String} key
- * @return {Object}
- */
-SizedMap.prototype.get = function(key) {
-  return this._ttl ? this.map[key].v : this.map[key];
-};
+  /*
+   * @param {String} key
+   * @return {Object}
+   */
+  get(key) {
+    return this._ttl ? this.map[key].v : this.map[key];
+  }
 
-/**
- * Saves to local storage.
- */
-SizedMap.prototype._save = function() {
-  if (!this._key || !this._shouldSave) { return; }
-  var store = this.saveList ? this.list : this.map;
-  localStorage.setItem(this._key, JSON.stringify(store));
-  this._shouldSave = false;
-};
-
-/**
- * Converts from 00:00:00 or 00:00 to seconds.
- *
- * @param {String} str
- * @return {Number}
- */
-util.timeToSeconds = function(str) {
-  var s = str.split(':');
-  return s.length === 2 ?
-    ~~s[0] * 60 + ~~s[1] :
-    ~~s[0] * 3600 + ~~s[1] * 60 + ~~s[2];
+  /**
+   * Saves to local storage.
+   */
+  _save() {
+    if (!this._key || !this._shouldSave) { return; }
+    var store = this.saveList ? this.list : this.map;
+    localStorage.setItem(this._key, JSON.stringify(store));
+    this._shouldSave = false;
+  }
 };
 
 /*
@@ -248,7 +250,7 @@ util.timeToSeconds = function(str) {
  * @param {Object} video2
  * @return {Boolean}
  */
-util.isSameVideo = function(video1, video2) {
+util.isSameVideo = (video1, video2) => {
   // If the videos are within a few seconds of each other,
   // they might be the same video...
   // Compare using percent since for longer videos,
@@ -262,20 +264,20 @@ util.isSameVideo = function(video1, video2) {
   if (video1.title === video2.title) { return true; }
 
   var wordsMap = {};
-  video2.title.split(/\s+/).forEach(function(word) {
+  video2.title.split(/\s+/).forEach((word) => {
     if (word) { wordsMap[word.toLowerCase()] = true; }
   });
 
   // Look for numbers, if they both have the same numbers, then ok...
   var r, pattern = /((?:\d+:)?\d\d?:\d\d|\d+(?:\.\d+)%?)/g;
   while ((r = pattern.exec(video1))) {
-    var num = r[1];
+    let num = r[1];
     if (!wordsMap[num]) { return false; }
     delete wordsMap[num];
   }
 
   // If they both have two of the same words, consider them the same video.
-  return video2.title.split(/\s+/).filter(function(word) {
+  return video2.title.split(/\s+/).filter((word) => {
     return word && wordsMap[word.toLowerCase()];
   }).length >= 2;
 };
@@ -289,12 +291,12 @@ util.isSameVideo = function(video1, video2) {
  *   the objects for which each of the callbacks were given, in the order
  *   in which the functions were originally laid out.
  */
-util.parallel = function(funcs, callback) {
+util.parallel = (funcs, callback) => {
   if (!funcs.length) { return callback([]); }
   var callsDone = 0;
   var results = [];
-  funcs.forEach(function(func, i) {
-    func(function(result) {
+  funcs.forEach((func, i) => {
+    func((result) => {
       results[i] = result;
       if (++callsDone === funcs.length) {
         callback(results);
@@ -310,9 +312,9 @@ util.parallel = function(funcs, callback) {
  * @param {Function(Object, Function(Object))} func
  * @param {Function(Array.<Object>)} callback
  */
-util.parallelMap = function(args, func, callback) {
-  util.parallel(args.map(function(arg) {
-    return function(callback) {
+util.parallelMap = (args, func, callback) => {
+  util.parallel(args.map((arg) => {
+    return (callback) => {
       func(arg, callback);
     };
   }), callback);
@@ -326,19 +328,19 @@ util.parallelMap = function(args, func, callback) {
  * @param {Function(Object, Function(Object))} func
  * @param {Function(Array.<Object>)} callback
  */
-util.parallelFilter = function(args, func, callback) {
+util.parallelFilter = (args, func, callback) => {
   var filteredList = [];
-  util.parallel(args.map(function(arg, i) {
-    return function(callback) {
-      func(arg, function(success) {
+  util.parallel(args.map((arg, i) => {
+    return (callback) => {
+      func(arg, (success) => {
         if (success) {
           filteredList[i] = arg;
         }
         callback();
       });
     };
-  }), function() {
-    callback(filteredList.filter(function(d) { return !!d; }));
+  }), () => {
+    callback(filteredList.filter(d => !!d));
   });
 };
 
@@ -349,7 +351,7 @@ util.parallelFilter = function(args, func, callback) {
  * @param {String} url
  * @return {String}
  */
-util.videoID = function(url) {
+util.videoID = (url) => {
   var result = /([a-z0-9_-]+)$/i.exec(url);
   return result && result[1] || url;
 };
@@ -358,10 +360,10 @@ util.videoID = function(url) {
  * @param {String} str
  * @return {Object}
  */
-util.parseQueryString = function(str) {
+util.parseQueryString = (str) => {
   var obj = {};
   var searchParams = new URLSearchParams(str);
-  for (var pair of searchParams.entries()) {
+  for (let pair of searchParams.entries()) {
     obj[pair[0]] = pair[1];
   }
   return obj;
@@ -373,7 +375,7 @@ util.parseQueryString = function(str) {
  * @param {String} str
  * @param {Return} RegExp
  */
-util.minimatch = function(str) {
+util.minimatch = (str) => {
   var exp = str
     .replace(/[-[\]{}()+?.\\^$|]/g, '\\$&')
     .replace(/\*/g, '.*');

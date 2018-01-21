@@ -2,7 +2,7 @@
 
 function pad(num) { return num < 10 ? '0' + num : num; }
 
-window.toHumanLength = function(secs) {
+window.toHumanLength = (secs) => {
   var mins = Math.floor(secs / 60);
   var hours = mins ? Math.floor(mins / 60) : 0;
   secs = secs % 60;
@@ -11,8 +11,8 @@ window.toHumanLength = function(secs) {
   return (hours ? hours + ':' : '') + mins + ':' + pad(secs);
 };
 
-var now = Date.now();
-var timeFormats = [
+const now = Date.now();
+const timeFormats = [
   [60, 'seconds', 1],
   [120, '1 minute ago'],
   [3600, 'minutes', 60],
@@ -28,10 +28,9 @@ var timeFormats = [
   [2903040000, 'years', 29030400]
 ];
 
-window.timeAgo = function(timestamp) {
+window.timeAgo = (timestamp) => {
   var seconds = (now - timestamp) / 1000;
-  for (var i = 0, len = timeFormats.length; i < len; i++) {
-    var f = timeFormats[i];
+  for (let f of timeFormats) {
     if (seconds < f[0]) {
       return f[2] ? Math.floor(seconds / f[2]) + ' ' + f[1] + ' ago' : f[1];
     }
@@ -39,8 +38,8 @@ window.timeAgo = function(timestamp) {
   return null;
 };
 
-var months = 'Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec'.split(' ');
-window.showTime = function(timestamp) {
+const months = 'Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec'.split(' ');
+window.showTime = (timestamp) => {
   var date = new Date(timestamp);
   var hour = date.getHours() % 12;
   var ampm = hour > 11 ? 'pm' : 'am';
@@ -51,9 +50,9 @@ window.showTime = function(timestamp) {
 };
 
 // Inspired by mithril :)
-var svgElements = { svg: true, path: true };
-var jsattrs = { innerHTML: true, href: true, disabled: true };
-var m = window.m = function(element, attr, content) {
+const svgElements = { svg: true, path: true };
+const jsattrs = { innerHTML: true, href: true, disabled: true };
+const m = window.m = (element, attr, content) => {
   var s = element.split('.');
   var elementName = s[0];
   var $el = svgElements[elementName] ?
@@ -62,7 +61,7 @@ var m = window.m = function(element, attr, content) {
   if (s[1]) { $el.className = s.slice(1).join(' '); }
   if (typeof attr === 'object' && !Array.isArray(attr) &&
      !(attr instanceof HTMLElement)) {
-    for (var key in attr) {
+    for (let key in attr) {
       if (key === 'className') {
         if (attr[key]) { $el.classList.add(attr[key]); }
       } else if (/^data-/.test(key) || !/^on/.test(key) && !jsattrs[key]) {
@@ -75,7 +74,7 @@ var m = window.m = function(element, attr, content) {
     content = attr;
   }
   if (Array.isArray(content)) {
-    content.forEach(function(node) { if (node) { $el.appendChild(node); } });
+    content.forEach((node) => { if (node) { $el.appendChild(node); } });
   } else if (content != null) {
     if (content.nodeType != null) {
       $el.appendChild(content);
@@ -86,7 +85,7 @@ var m = window.m = function(element, attr, content) {
   return $el;
 };
 
-m.trust = function(html) {
+m.trust = (html) => {
   var node = document.createElement('span');
   node.innerHTML = html;
   return node;
