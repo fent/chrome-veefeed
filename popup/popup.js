@@ -174,6 +174,220 @@ function renderContent() {
   });
 }
 
+function renderGroupVideo(group, video) {
+  if (!options.show_watched && video.watched) { return; }
+
+  var opening = false;
+  function open(inNewTab, event) {
+    if (event) { event.preventDefault(); }
+    if (opening) { return; }
+    if (video.$video.classList.contains('animating')) { return; }
+    opening = true;
+    inNewTab = inNewTab || event && (event.which === 2 || event.metaKey);
+
+    if (video.queued) {
+      // If video is in queue, wait a little to let the user know that
+      // it will be removed from the queue as they open it.
+      videosMap[video.url].forEach((g) => {
+        g.video.queued = false;
+        if (g.video.$video) { g.video.$video.classList.remove('queued'); }
+      });
+
+      chrome.runtime.sendMessage({
+        unqueue: true,
+        video: video,
+        tabID: tabID,
+      });
+
+      setTimeout(() => {
+        opening = false;
+        open(inNewTab);
+      }, 500);
+      return;
+    }
+
+    openVideo(video, inNewTab);
+  }
+
+  function userView(user) {
+    if (!user) { return null; }
+    return m('span.user', [
+      user.thumbnail ?
+        m('img.lazy', { 'data-src': user.thumbnail }) : null,
+      m((user.url ? 'a' : 'span') + '.name', {
+        href: user.url || '#',
+        target: '_blank',
+      }, user.name),
+      user.verified ?
+        m('span.verified', { 'data-title': 'Verified' }) : null,
+    ]);
+  }
+
+  function sourceView(source) {
+    return m('span.source', [
+      m((source.url ? 'a' : 'span') + '.favicon', {
+        className: 'source-' + source.source,
+        href: source.url || '#',
+        target: '_blank',
+      })
+    ].concat(source.users ?
+      source.users.map(userView) : userView(source.user))
+    );
+  }
+
+  var vidClass = '.source-' + video.source;
+  if (video.watched) { vidClass += '.watched'; }
+  if (video.queued) { vidClass += '.queued'; }
+  if (video.silentQueued) { vidClass += '.silent-queued'; }
+  if (video.playing) { vidClass += '.playing'; }
+  var $video = m('li.video' + vidClass, [
+    m('a.left-side', { href: video.url, disabled: true }, [
+      m('img.lazy', {
+        'data-src': video.thumbnail || '',
+        onclick: open.bind(null, false),
+      }),
+      video.game ?
+        m('a.game', {
+          href: 'https://www.twitch.tv/directory/game/' +
+            encodeURIComponent(video.game) + '/videos/week',
+          'data-title': video.game,
+          target: '_blank',
+        }, m('img.lazy', {
+          'data-src': 'http://static-cdn.jtvnw.net/ttv-boxart/' +
+            encodeURIComponent(video.game) + '-138x190.jpg',
+        })) : null,
+      video.length && m('span.length', toHumanLength(video.length)),
+      openedVideo && openedVideo.playing && m('span.queue', {
+        'data-title': 'Add to Queue',
+        onclick: () => {
+          var message = {
+            tabID: tabID,
+            video: video,
+          };
+          if (!video.queued) {
+            message.queue = true;
+          } else {
+            message.unqueue = true;
+          }
+          chrome.runtime.sendMessage(message);
+          videosMap[video.url].forEach((g) => {
+            g.video.queued = !video.queued;
+            if (g.video.$video) {
+              g.video.$video.classList.toggle('queued');
+
+              setTimeout(() => {
+                getQueue();
+                sortVideos(g.group);
+                setVideoPositions(g.group);
+                setTimeout(() => {
+                  // A nasty hack to make the :hover states of possible
+                  // videos being placed under the mouse after the
+                  // animation, activate.
+                  var $children = g.group.$videos.querySelectorAll(
+                    '.animating .queue, .animating .open-new-tab');
+                  for (let $child of $children) {
+                    $child.style.opacity = '0';
+                    $child.style.display = 'none';
+                  }
+                  setTimeout(() => {
+                    for (let $child of $children) {
+                      $child.style.display = null;
+                    }
+                  }, 20);
+                  setTimeout(() => {
+                    for (let $child of $children) {
+                      $child.style.opacity = null;
+                    }
+                  }, 100);
+                }, POS_ANIM_TIME);
+              }, SET_POS_WAIT);
+            }
+          });
+
+        },
+      }),
+      openedVideo && options.use_same_tab && m('span.open-new-tab', {
+        'data-title': 'Open in new tab' +
+          (options.pause_other_tabs && openedVideo && openedVideo.playing ?
+            ', pause current video' : ''),
+        onclick: open.bind(null, true),
+      }, m.trust('&#8663;'))
+    ]),
+    m('div.right-side', [
+      group.removable && !video.watched && m('a.close', {
+        href: '#',
+        'data-title': 'Mark as Watched',
+        onclick: (e) => {
+          chrome.runtime.sendMessage({
+            watched: true,
+            url: video.url,
+            tabID: tabID,
+          });
+          videosMap[video.url].forEach((g) => {
+            if (g.$badge) {
+              g.$badge.textContent = (--g.group.unwatched) || '';
+            }
+            g.video.watched = true;
+            g.video.queued = false;
+            var $video = g.video.$video;
+            if (!$video) { return; }
+
+            if (options.show_watched) {
+              $video.classList.add('watched');
+              $video.classList.remove('queued');
+
+            } else {
+              if ($video.offsetParent === null) {
+                $video.parentNode.removeChild($video);
+              } else {
+                $video.style.height = 0;
+                setTimeout(() => {
+                  $video.parentNode.removeChild($video);
+                }, SET_POS_WAIT);
+              }
+            }
+
+            setTimeout(() => {
+              sortVideos(g.group);
+              setVideoPositions(g.group);
+            }, SET_POS_WAIT);
+          });
+
+          e.preventDefault();
+        },
+      }, m.trust('&times;')),
+      m('a.title', {
+        href: video.url,
+        onclick: open.bind(null, false)
+      }, video.title),
+      m('div', [
+        video.collections ?
+          m('span.collections', video.collections.map(sourceView)) : null,
+        m('span.sources', [
+          video.otherSource ? sourceView(video.otherSource) : null,
+          sourceView(video),
+        ])
+      ]),
+      m('div', [
+        video.live ? m('span.live', 'LIVE NOW') :
+        video.timestamp ?
+          now < video.timestamp ?
+            m('span.starts', showTime(video.timestamp)) :
+            now >= video.timestamp &&
+            m('span.time', timeAgo(video.timestamp)) : null,
+        video.views && m('span.views',
+          numberWithCommas(video.views) +
+          (video.live ? ' watching' : ' views')
+        ),
+      ]),
+      video.desc ? m('div', { innerHTML: video.desc }) : null
+    ])
+  ]);
+
+  video.$video = $video;
+  return $video;
+}
+
 function renderVideos(group) {
   group.rendered = true;
   if (!group.videos.length) {
@@ -201,6 +415,7 @@ function renderVideos(group) {
             }
             setTimeout(() => {
               getQueue();
+              sortVideos(g.group);
               setVideoPositions(g.group);
             }, SET_POS_WAIT);
           });
@@ -225,215 +440,20 @@ function renderVideos(group) {
         'Q' : 'Play and q') + 'ueue all unwatched')
   ]);
 
-  group.$videos = m('ul', group.videos.map((video) => {
-    if (!options.show_watched && video.watched) { return; }
+  sortVideos(group);
 
-    var opening = false;
-    function open(inNewTab, event) {
-      if (event) { event.preventDefault(); }
-      if (opening) { return; }
-      if (video.$video.classList.contains('animating')) { return; }
-      opening = true;
-      inNewTab = inNewTab || event && (event.which === 2 || event.metaKey);
+  // Only render a few videos at first,
+  // so that they are rendered fast, in case this group has several.
+  group.$videos = m('ul',
+    group.videos.slice(0, 6).map(renderGroupVideo.bind(null, group)));
 
-      if (video.queued) {
-        // If video is in queue, wait a little to let the user know that
-        // it will be removed from the queue as they open it.
-        videosMap[video.url].forEach((g) => {
-          g.video.queued = false;
-          if (g.video.$video) { g.video.$video.classList.remove('queued'); }
-        });
-
-        chrome.runtime.sendMessage({
-          unqueue: true,
-          video: video,
-          tabID: tabID,
-        });
-
-        setTimeout(() => {
-          opening = false;
-          open(inNewTab);
-        }, 500);
-        return;
-      }
-
-      openVideo(video, inNewTab);
+  setTimeout(() => {
+    for (let video of group.videos.slice(6)) {
+      group.$videos.append(renderGroupVideo(group, video));
     }
-
-    function userView(user) {
-      if (!user) { return null; }
-      return m('span.user', [
-        user.thumbnail ?
-          m('img.lazy', { 'data-src': user.thumbnail }) : null,
-        m((user.url ? 'a' : 'span') + '.name', {
-          href: user.url || '#',
-          target: '_blank',
-        }, user.name),
-        user.verified ?
-          m('span.verified', { 'data-title': 'Verified' }) : null,
-      ]);
-    }
-
-    function sourceView(source) {
-      return m('span.source', [
-        m((source.url ? 'a' : 'span') + '.favicon', {
-          className: 'source-' + source.source,
-          href: source.url || '#',
-          target: '_blank',
-        })
-      ].concat(source.users ?
-        source.users.map(userView) : userView(source.user))
-      );
-    }
-
-    var vidClass = '.source-' + video.source;
-    if (video.watched) { vidClass += '.watched'; }
-    if (video.queued) { vidClass += '.queued'; }
-    if (video.silentQueued) { vidClass += '.silent-queued'; }
-    if (video.playing) { vidClass += '.playing'; }
-    var $video = m('li.video' + vidClass, [
-      m('a.left-side', { href: video.url, disabled: true }, [
-        m('img.lazy', {
-          'data-src': video.thumbnail || '',
-          onclick: open.bind(null, false),
-        }),
-        video.game ?
-          m('a.game', {
-            href: 'https://www.twitch.tv/directory/game/' +
-              encodeURIComponent(video.game) + '/videos/week',
-            'data-title': video.game,
-            target: '_blank',
-          }, m('img.lazy', {
-            'data-src': 'http://static-cdn.jtvnw.net/ttv-boxart/' +
-              encodeURIComponent(video.game) + '-138x190.jpg',
-          })) : null,
-        video.length && m('span.length', toHumanLength(video.length)),
-        openedVideo && openedVideo.playing && m('span.queue', {
-          'data-title': 'Add to Queue',
-          onclick: () => {
-            var message = {
-              tabID: tabID,
-              video: video,
-            };
-            if (!video.queued) {
-              message.queue = true;
-            } else {
-              message.unqueue = true;
-            }
-            chrome.runtime.sendMessage(message);
-            videosMap[video.url].forEach((g) => {
-              g.video.queued = !video.queued;
-              if (g.video.$video) {
-                g.video.$video.classList.toggle('queued');
-
-                setTimeout(() => {
-                  getQueue();
-                  setVideoPositions(g.group);
-                  setTimeout(() => {
-                    // A nasty hack to make the :hover states of possible
-                    // videos being placed under the mouse after the
-                    // animation, activate.
-                    var $children = g.group.$videos.querySelectorAll(
-                      '.animating .queue, .animating .open-new-tab');
-                    for (let $child of $children) {
-                      $child.style.opacity = '0';
-                      $child.style.display = 'none';
-                    }
-                    setTimeout(() => {
-                      for (let $child of $children) {
-                        $child.style.display = null;
-                      }
-                    }, 20);
-                    setTimeout(() => {
-                      for (let $child of $children) {
-                        $child.style.opacity = null;
-                      }
-                    }, 100);
-                  }, POS_ANIM_TIME);
-                }, SET_POS_WAIT);
-              }
-            });
-
-          },
-        }),
-        openedVideo && options.use_same_tab && m('span.open-new-tab', {
-          'data-title': 'Open in new tab' +
-            (options.pause_other_tabs && openedVideo && openedVideo.playing ?
-              ', pause current video' : ''),
-          onclick: open.bind(null, true),
-        }, m.trust('&#8663;'))
-      ]),
-      m('div.right-side', [
-        group.removable && !video.watched && m('a.close', {
-          href: '#',
-          'data-title': 'Mark as Watched',
-          onclick: (e) => {
-            chrome.runtime.sendMessage({
-              watched: true,
-              url: video.url,
-              tabID: tabID,
-            });
-            videosMap[video.url].forEach((g) => {
-              if (g.$badge) {
-                g.$badge.textContent = (--g.group.unwatched) || '';
-              }
-              g.video.watched = true;
-              g.video.queued = false;
-              var $video = g.video.$video;
-              if (!$video) { return; }
-
-              if (options.show_watched) {
-                $video.classList.add('watched');
-                $video.classList.remove('queued');
-
-              } else {
-                if ($video.offsetParent === null) {
-                  $video.parentNode.removeChild($video);
-                } else {
-                  $video.style.height = 0;
-                  setTimeout(() => {
-                    $video.parentNode.removeChild($video);
-                  }, SET_POS_WAIT);
-                }
-              }
-
-              setTimeout(setVideoPositions.bind(null, g.group), SET_POS_WAIT);
-            });
-
-            e.preventDefault();
-          },
-        }, m.trust('&times;')),
-        m('a.title', {
-          href: video.url,
-          onclick: open.bind(null, false)
-        }, video.title),
-        m('div', [
-          video.collections ?
-            m('span.collections', video.collections.map(sourceView)) : null,
-          m('span.sources', [
-            video.otherSource ? sourceView(video.otherSource) : null,
-            sourceView(video),
-          ])
-        ]),
-        m('div', [
-          video.live ? m('span.live', 'LIVE NOW') :
-          video.timestamp ?
-            now < video.timestamp ?
-              m('span.starts', showTime(video.timestamp)) :
-              now >= video.timestamp &&
-              m('span.time', timeAgo(video.timestamp)) : null,
-          video.views && m('span.views',
-            numberWithCommas(video.views) +
-            (video.live ? ' watching' : ' views')
-          ),
-        ]),
-        video.desc ? m('div', { innerHTML: video.desc }) : null
-      ])
-    ]);
-
-    video.$video = $video;
-    return $video;
-  }));
+    lazyload.addImages(group.$videos);
+    setVideoPositions(group);
+  });
 
   group.$container = m('div.videos.selected');
   lazyload.addImages(group.$videos);
@@ -479,11 +499,7 @@ function openNewTab(video, callback) {
   });
 }
 
-function setVideoPositions(group) {
-  if (!options.show_watched) {
-    group.videos = group.videos.filter(v => !v.watched);
-  }
-
+function sortVideos(group) {
   // Put currently playing video at the top, followed by queued videos,
   // then unwatched videos, and finally, watched videos at the bottom.
   group.videos.sort((a, b) => {
@@ -503,12 +519,19 @@ function setVideoPositions(group) {
       }
     }
   });
+}
+
+function setVideoPositions(group) {
+  if (!options.show_watched) {
+    group.videos = group.videos.filter(v => !v.watched);
+  }
 
   group.queueable = group.videos.filter(v => !v.watched && !v.queued).reverse();
   group.$queueAll.classList.toggle('hidden', group.queueable.length < 2);
 
   group.$videos.style.height = (VIDEO_HEIGHT * group.videos.length) + 'px';
   group.videos.forEach((video, i) => {
+    if (!video.$video) { return; }
     var top = (VIDEO_HEIGHT * i) + 'px';
     if (top !== video.$video.style.top) {
       video.$video.style.top = top;
