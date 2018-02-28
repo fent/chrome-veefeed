@@ -257,7 +257,7 @@ sources.videos.youtube = {
             return {
               user: {
                 url: 'https://www.youtube.com' +
-                  user.navigationEndpoint.webNavigationEndpointData.url,
+                  user.navigationEndpoint.browseEndpoint.canonicalBaseUrl,
                 thumbnail: item.channelThumbnail.thumbnails[0].url,
                 name: user.text,
                 verified: item.ownerBadges && item.ownerBadges.some((badge) => {
