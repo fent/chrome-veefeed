@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "veefeed",
-  "version": "0.5.9",
+  "version": "0.5.10",
   "description": "Keep track of your YouTube and Twitch subscriptions",
   "icons": {
     "128": "img/icon-128.png"
@@ -33,12 +33,32 @@
     ]
   },
   "content_scripts": [
-    { "matches": ["https://www.youtube.com/watch?v=*"],
-      "js": ["util/util.js", "content/shared.js", "content/youtube.js"],
-      "css": ["content/style.css"] },
-    { "matches": ["https://www.twitch.tv/*/v/*"],
-      "js": ["util/util.js", "content/shared.js", "content/twitch.js"],
-      "css": ["content/style.css"] }
+    {
+      "matches": [
+        "https://www.youtube.com/watch?v=*"
+      ],
+      "js": [
+        "util/util.js",
+        "content/shared.js",
+        "content/youtube.js"
+      ],
+      "css": [
+        "content/style.css"
+      ]
+    },
+    {
+      "matches": [
+        "https://www.twitch.tv/*/v/*"
+      ],
+      "js": [
+        "util/util.js",
+        "content/shared.js",
+        "content/twitch.js"
+      ],
+      "css": [
+        "content/style.css"
+      ]
+    }
   ],
   "browser_action": {
     "default_popup": "popup/popup.html"
