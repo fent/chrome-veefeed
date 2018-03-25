@@ -390,8 +390,7 @@ sources.collections.haloruns = (callback) => {
       let $col3 = $item.children[2];
       let $col4 = $item.children[3];
       let $col5 = $item.children[4];
-      let date = new Date($col1.childNodes[0].nodeValue + ' ' +
-        $col1.childNodes[2].nodeValue.replace('Eastern', 'EST'));
+      let date = new Date($col1.childNodes[0].nodeValue);
       let $level = $col2.children[0];
       let gameSplit = $col2.children[1].textContent.split(' ');
       let game = gameSplit.slice(0, -1).join(' ');
