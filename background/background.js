@@ -162,8 +162,8 @@ function updateVideos() {
   var groupedVideos = groups.map((group) => {
     var matched = results
       .filter(matchRules.bind(null, group.rules))
-      .filter(function(video) { return !matchedOnlyMap[video.url]; });
-    matched.forEach(function(video) {
+      .filter((video) => !matchedOnlyMap[video.url]);
+    matched.forEach((video) => {
       matchedMap[video.url] = true;
       if (group.only) { matchedOnlyMap[video.url] = true; }
     });
