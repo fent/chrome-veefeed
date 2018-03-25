@@ -373,7 +373,7 @@ sources.videos.twitch = {
 };
 
 sources.collections.haloruns = (callback) => {
-  util.ajax('http://haloruns.com/records?recent', (xhr, body) => {
+  util.ajax('https://haloruns.com/records?recent', (xhr, body) => {
     if (!body) { return callback(); }
     var $items = body.getElementById('recentWRTable');
     if (!$items) {
