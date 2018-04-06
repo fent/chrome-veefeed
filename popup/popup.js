@@ -121,7 +121,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, (results) => {
     $content.style.marginTop = 0;
   }
 
-  renderContent();
+  requestAnimationFrame(renderContent);
 });
 
 
@@ -529,7 +529,6 @@ function setVideoPositions(group) {
   group.queueable = group.videos.filter(v => !v.watched && !v.queued).reverse();
   group.$queueAll.classList.toggle('hidden', group.queueable.length < 2);
 
-  group.$videos.style.height = (VIDEO_HEIGHT * group.videos.length) + 'px';
   group.videos.forEach((video, i) => {
     if (!video.$video) { return; }
     var top = (VIDEO_HEIGHT * i) + 'px';
