@@ -237,7 +237,10 @@ sources.videos.youtube = {
               .videoRenderer;
 
             var user = item.ownerText.runs[0];
-            var url = 'https://www.youtube.com/watch?v=' + item.videoId;
+            var userUrl = 'https://www.youtube.com' +
+              (user.navigationEndpoint.browseEndpoint.canonicalBaseUrl ||
+               user.navigationEndpoint.commandMetadata.webCommandMetadata.url);
+            var videoUrl = 'https://www.youtube.com/watch?v=' + item.videoId;
 
             // YouTube videos sometimes don't have thumbnails loaded until
             // the page is scrolle down.
@@ -256,15 +259,14 @@ sources.videos.youtube = {
 
             return {
               user: {
-                url: 'https://www.youtube.com' +
-                  user.navigationEndpoint.browseEndpoint.canonicalBaseUrl,
+                url: userUrl,
                 thumbnail: item.channelThumbnail.thumbnails[0].url,
                 name: user.text,
                 verified: item.ownerBadges && item.ownerBadges.some((badge) => {
                   badge.tooltip == 'Verified';
                 }),
               },
-              url,
+              url: videoUrl,
               thumbnail,
               title: item.title.simpleText,
               desc:
