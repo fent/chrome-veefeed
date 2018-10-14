@@ -3,6 +3,11 @@
   "name": "veefeed",
   "version": "0.5.13",
   "description": "Keep track of your YouTube and Twitch subscriptions",
+  "applications": {
+    "gecko": {
+      "id": "temp@veefeed.com"
+    }
+  },
   "icons": {
     "128": "img/icon-128.png"
   },

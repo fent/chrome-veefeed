@@ -204,7 +204,7 @@ var optionsKeys = ['groups']
   .concat(Object.keys(options))
   .concat(Object.keys(sources.videos).map(s => 'watched_' + s));
 
-chrome.storage.sync.get(optionsKeys, (items) => {
+chrome.storage.sync.get(optionsKeys, (items = {}) => {
   // Keep track of watched videos in storage so that this extension
   // works across computers.
   Object.keys(sources.videos).forEach((source) => {
