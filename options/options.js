@@ -1,7 +1,7 @@
 /* global chrome */
 
 chrome.options.opts.autoSave = false;
-var sources = [
+const sources = [
   { value: 'youtube', desc: 'YouTube', default: true },
   { value: 'twitch', desc: 'Twitch', default: false },
   { value: 'haloruns', desc: 'HaloRuns', default: false, col: true },
@@ -9,7 +9,7 @@ var sources = [
 ];
 
 // Used for ignore and group rules.
-var rules = [
+const rules = [
   { type: 'select', name: 'source', desc: 'Source',
     options: [{ value: '', desc: 'Any' }].concat(sources) },
   { type: 'text', name: 'user', desc: 'User' },
@@ -22,18 +22,16 @@ var rules = [
   },
 ];
 
-var mergeSources = [{ value: '', desc: 'Select' }]
+const mergeSources = [{ value: '', desc: 'Select' }]
   .concat(sources.filter(source => !source.col));
 
 chrome.options.set([
-  { name: 'sources', type: 'object', options: sources.map((source) => {
-    return {
-      name: source.value,
-      desc: 'Enable ' + source.desc,
-      default: source.default,
-    };
-  }),
-    desc: 'Must be logged in to be able to retrieve videos' },
+  { name: 'sources', type: 'object', options: sources.map((source) => ({
+    name: source.value,
+    desc: 'Enable ' + source.desc,
+    default: source.default,
+  })),
+  desc: 'Must be logged in to be able to retrieve videos' },
   { name: 'interval', type: 'select', default: 15, options: [
     { value: 5,  desc: '5 minutes' },
     { value: 10, desc: '10 minutes' },
@@ -46,8 +44,8 @@ chrome.options.set([
     { value: 360, desc: '6 hours' },
     { value: 720, desc: '12 hours' },
     { value: 1440, desc: '1 day' },
-    ],
-    desc: 'How often to check for updates' },
+  ],
+  desc: 'How often to check for updates' },
   { name: 'use_same_tab', default: true,
     desc: 'Open videos in the same tab' },
   { name: 'pause_other_tabs', default: true,
@@ -89,16 +87,16 @@ chrome.options.set([
   { name: 'hide_empty_tabs', desc: 'Hide tabs without videos' },
   { type: 'h3', desc: 'Merge Videos' },
   { name:'merge', type: 'list', sortable: true, head: true, fields: [
-      { type: 'select', name: 'source1', required: true,
-        options: mergeSources, desc: 'Preferred Source' },
-      { type: 'text', name: 'username1', required: true, desc: 'Username' },
-      { type: 'select', name: 'source2', required: true,
-        options: mergeSources, desc: 'Other Source' },
-      { type: 'text', name: 'username2', required: true, desc: 'Username' },
-    ],
-    desc: 'If you\'re following a user who uploads videos on more ' +
-          'than one site, they may sometimes upload the same ' +
-          'video on both accounts. ' +
-          'Merged videos will have multiple accounts listed.',
-    preview: 'png'}
+    { type: 'select', name: 'source1', required: true,
+      options: mergeSources, desc: 'Preferred Source' },
+    { type: 'text', name: 'username1', required: true, desc: 'Username' },
+    { type: 'select', name: 'source2', required: true,
+      options: mergeSources, desc: 'Other Source' },
+    { type: 'text', name: 'username2', required: true, desc: 'Username' },
+  ],
+  desc: 'If you\'re following a user who uploads videos on more ' +
+        'than one site, they may sometimes upload the same ' +
+        'video on both accounts. ' +
+        'Merged videos will have multiple accounts listed.',
+  preview: 'png'}
 ]);

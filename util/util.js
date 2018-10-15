@@ -1,10 +1,10 @@
 /* exported toHumanLength, now, timeAgo, showTime, m */
 
-function pad(num) { return num < 10 ? '0' + num : num; }
+const pad = (num) => num < 10 ? '0' + num : num;
 
 window.toHumanLength = (secs) => {
-  var mins = Math.floor(secs / 60);
-  var hours = mins ? Math.floor(mins / 60) : 0;
+  let mins = Math.floor(secs / 60);
+  let hours = mins ? Math.floor(mins / 60) : 0;
   secs = secs % 60;
   mins = mins % 60;
   if (hours) { mins = pad(mins); }
@@ -29,7 +29,7 @@ const timeFormats = [
 ];
 
 window.timeAgo = (timestamp) => {
-  var seconds = (now - timestamp) / 1000;
+  const seconds = (now - timestamp) / 1000;
   for (let f of timeFormats) {
     if (seconds < f[0]) {
       return f[2] ? Math.floor(seconds / f[2]) + ' ' + f[1] + ' ago' : f[1];
@@ -40,9 +40,9 @@ window.timeAgo = (timestamp) => {
 
 const months = 'Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec'.split(' ');
 window.showTime = (timestamp) => {
-  var date = new Date(timestamp);
-  var hour = date.getHours() % 12;
-  var ampm = hour > 11 ? 'pm' : 'am';
+  let date = new Date(timestamp);
+  let hour = date.getHours() % 12;
+  let ampm = hour > 11 ? 'pm' : 'am';
   hour = hour % 12;
   if (hour === 0) { hour = 12; }
   return months[date.getMonth()] + ' ' + date.getDate() + ', ' +
@@ -53,9 +53,9 @@ window.showTime = (timestamp) => {
 const svgElements = { svg: true, path: true };
 const jsattrs = { innerHTML: true, href: true, disabled: true };
 const m = window.m = (element, attr, content) => {
-  var s = element.split('.');
-  var elementName = s[0];
-  var $el = svgElements[elementName] ?
+  const s = element.split('.');
+  const elementName = s[0];
+  const $el = svgElements[elementName] ?
     document.createElementNS('http://www.w3.org/2000/svg', elementName) :
     document.createElement(elementName);
   if (s[1]) { $el.className = s.slice(1).join(' '); }
@@ -86,7 +86,7 @@ const m = window.m = (element, attr, content) => {
 };
 
 m.trust = (html) => {
-  var node = document.createElement('span');
+  const node = document.createElement('span');
   node.innerHTML = html;
   return node;
 };

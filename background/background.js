@@ -26,43 +26,43 @@ const options = {
 };
 
 
-var allVideos;
-var watchedVideos = {};
-var knownVideos = new util.SizedMap(MAX_KNOWN);
-var ignoredVideos;
-var ignoreRules = [];
-var groups = [];
-var queueTabs = {};
-var queueUrlMap = {};
-var openedVideos = {};
-var pausedTabs = {};
+let allVideos;
+let watchedVideos = {};
+let knownVideos = new util.SizedMap(MAX_KNOWN);
+let ignoredVideos;
+let ignoreRules = [];
+let groups = [];
+let queueTabs = {};
+let queueUrlMap = {};
+let openedVideos = {};
+let pausedTabs = {};
 
-function checkForUpdates() {
+const checkForUpdates = () => {
   sources.getVideos(options.sources, (results) => {
     allVideos = results;
     updateVideos();
   });
-}
+};
 
-function mergeMatch(source, username, video) {
+const mergeMatch = (source, username, video) => {
   return video.source === source && video.user.name === username;
-}
+};
 
-function updateVideos() {
+const updateVideos = () => {
   ignoredVideos = [];
-  var now = Date.now();
+  const now = Date.now();
 
-  var results = allVideos
+  let results = allVideos
     .filter((video) => {
       if (!video.source) { return false; }
       delete video.otherSource;
       if (!video.watched) {
-        var source = sources.sourceFromURL(video.url);
+        const source = sources.sourceFromURL(video.url);
         if (source) {
           video.watched = watchedVideos[source].has(util.videoID(video.url));
         }
       }
-      var ignoreIt = matchRules(ignoreRules, video);
+      let ignoreIt = matchRules(ignoreRules, video);
       ignoreIt = ignoreIt ||
         options.ignore_live && video.live ||
         options.ignore_future && now < video.timestamp;
@@ -77,7 +77,7 @@ function updateVideos() {
       .forEach((video1) => {
         if (video1.otherSource) { return; }
         for (let i = results.length - 1; i >= 0; i--) {
-          var video2 = results[i];
+          const video2 = results[i];
           if (!mergeMatch(rule.source2, rule.username2, video2)) { continue; }
           if (util.isSameVideo(video1, video2)) {
             results.splice(i, 1);
@@ -111,14 +111,14 @@ function updateVideos() {
 
   // Check if there are any new videos, only after the first fetch of videos.
   if (knownVideos.list.length) {
-    var newVideos = results.filter((video) => {
+    const newVideos = results.filter((video) => {
       return !knownVideos.has(video.url) && !video.watched;
     });
 
     if (options.show_notifications && newVideos.length) {
-      var notification = {};
+      let notification = {};
       if (newVideos.length === 1) {
-        var $node = document.createElement('div');
+        const $node = document.createElement('div');
         $node.innerHTML = newVideos[0].desc;
         notification = {
           type: 'basic',
@@ -133,19 +133,20 @@ function updateVideos() {
           title: newVideos[0].title,
           message: 'New videos',
           eventTime: newVideos[0].timestamp,
-          items: newVideos.map((video) => {
-            return { title: video.title, message: video.user.name };
-          }),
+          items: newVideos.map((video) => ({
+            title: video.title,
+            message: video.user.name,
+          })),
         };
       }
-      var video = newVideos
+      const video = newVideos
         .find(video => video.thumbnail);
       if (video) { notification.iconUrl = video.thumbnail; }
       chrome.notifications.create('veefeed' + Date.now(), notification);
     }
 
     if (options.play_sound && newVideos.length) {
-      var audio = new Audio();
+      const audio = new Audio();
       audio.src = 'options/bower_components/chrome-options/sounds/' +
         options.play_sound + '.wav';
       audio.play();
@@ -156,11 +157,11 @@ function updateVideos() {
     results.forEach((video) => { knownVideos.push(video.url); });
   }
 
-  var unwatched = 0;
-  var matchedMap = {};
-  var matchedOnlyMap = {};
-  var groupedVideos = groups.map((group) => {
-    var matched = results
+  let unwatched = 0;
+  let matchedMap = {};
+  let matchedOnlyMap = {};
+  let groupedVideos = groups.map((group) => {
+    const matched = results
       .filter(matchRules.bind(null, group.rules))
       .filter((video) => !matchedOnlyMap[video.url]);
     matched.forEach((video) => {
@@ -172,7 +173,7 @@ function updateVideos() {
     return group;
   });
 
-  var ungroupedVideos =
+  const ungroupedVideos =
     results.filter(video => !matchedMap[video.url]).slice(0, MAX_VIDEOS);
 
   unwatched += ungroupedVideos.filter(video => !video.watched).length;
@@ -185,22 +186,22 @@ function updateVideos() {
   localStorage.setItem('ungrouped', JSON.stringify(ungroupedVideos));
   localStorage.setItem('ignored',
     JSON.stringify(ignoredVideos.slice(0, MAX_VIDEOS)));
-}
+};
 
 // Check every now and then for new videos.
-var timeoutID;
-function checkEveryNowAndThen() {
+let timeoutID;
+const checkEveryNowAndThen = () => {
   timeoutID = setTimeout(() => {
     clearTimeout(timeoutID);
     checkForUpdates();
     checkEveryNowAndThen();
   }, options.interval * 1000 * 60);
-}
+};
 
 // Change badge color, the default red is ugh.
 chrome.browserAction.setBadgeBackgroundColor({ color: BADGE_COLOR });
 
-var optionsKeys = ['groups']
+const optionsKeys = ['groups']
   .concat(Object.keys(options))
   .concat(Object.keys(sources.videos).map(s => 'watched_' + s));
 
@@ -228,7 +229,7 @@ chrome.storage.sync.get(optionsKeys, (items = {}) => {
   checkEveryNowAndThen();
 });
 
-function generateRules(rules) {
+const generateRules = (rules) => {
   return rules.map((rule) => {
     ['user', 'title', 'game'].forEach((key) => {
       if (!rule[key]) { return; }
@@ -236,9 +237,9 @@ function generateRules(rules) {
     });
     return rule;
   });
-}
+};
 
-function matchRules(rules, video) {
+const matchRules = (rules, video) => {
   return rules.some((ignore) => {
     if (video.collections && video.collections.some((col) => {
       if (ignore.source && ignore.source !== col.source) { return false; }
@@ -254,13 +255,13 @@ function matchRules(rules, video) {
     if (ignore.game && !ignore.game.test(video.game)) { return false; }
     return ignore.source || ignore.user || ignore.title || ignore.game;
   });
-}
+};
 
 // Clear queue and videos playing when extension starts.
 localStorage.removeItem('queue');
 localStorage.removeItem('opened');
 
-function updateQueue(queue, tabID, url) {
+const updateQueue = (queue, tabID, url) => {
   if (!queue.length) {
     // If queue is empty, remove the tab maps.
     delete queueTabs[tabID];
@@ -276,10 +277,10 @@ function updateQueue(queue, tabID, url) {
     delete queueUrlMap[tabID][url];
   }
   localStorage.setItem('queue', JSON.stringify(queueUrlMap));
-}
+};
 
-function queueVideo(tabID, video) {
-  var pos = (queueTabs[tabID] = queueTabs[tabID] || [])
+const queueVideo = (tabID, video) => {
+  const pos = (queueTabs[tabID] = queueTabs[tabID] || [])
     .push(video);
   (queueUrlMap[tabID] = queueUrlMap[tabID] || {})[video.url] = pos - 1;
 
@@ -288,20 +289,20 @@ function queueVideo(tabID, video) {
   if (pos === 1) {
     chrome.tabs.sendMessage(+tabID, { setQueue: true, video: video });
   }
-}
+};
 
-function afterQueue(tabID) {
+const afterQueue = (tabID) => {
   localStorage.setItem('queue', JSON.stringify(queueUrlMap));
   chrome.browserAction.setBadgeBackgroundColor({
     color: BADGE_COLOR_QUEUED,
     tabId: +tabID,
   });
-}
+};
 
-function unqueueVideo(tabID, url) {
-  var queue = queueTabs[tabID];
+const unqueueVideo = (tabID, url) => {
+  const queue = queueTabs[tabID];
   if (!queue) { return; }
-  var i = queue.findIndex(o => o.url === url);
+  const i = queue.findIndex(o => o.url === url);
   if (i > -1) {
     queue.splice(i, 1);
     updateQueue(queue, tabID, url);
@@ -309,11 +310,11 @@ function unqueueVideo(tabID, url) {
       chrome.tabs.sendMessage(+tabID, { setQueue: true, video: queue[0] });
     }
   }
-}
+};
 
-function markAsWatched(url) {
+const markAsWatched = (url) => {
   if (!knownVideos.has(url)) { return; }
-  var source = sources.sourceFromURL(url);
+  const source = sources.sourceFromURL(url);
   if (!source) { return; }
   watchedVideos[source].push(util.videoID(url));
 
@@ -322,10 +323,10 @@ function markAsWatched(url) {
   chrome.storage.sync.set({
     ['watched_' + source]: watchedVideos[source].list
   });
-}
+};
 
-function queueMenuClicked(tabID, info) {
-  var url = info.linkUrl;
+const queueMenuClicked = (tabID, info) => {
+  const url = info.linkUrl;
   sources.getMetaForVideo(url, (video) => {
     if (!video) { return; }
 
@@ -334,14 +335,14 @@ function queueMenuClicked(tabID, info) {
     queueVideo(tabID, video);
     afterQueue(tabID);
   });
-}
+};
 
-function markAsPlaying(tabID, url, title) {
-  openedVideos[tabID] = { url: url, playing: true };
+const markAsPlaying = (tabID, url, title) => {
+  openedVideos[tabID] = { url, playing: true };
   localStorage.setItem('opened', JSON.stringify(openedVideos));
 
   chrome.contextMenus.update('queue', { enabled: true });
-  chrome.contextMenus.update('queue-' + tabID, { title: title }, () => {
+  chrome.contextMenus.update('queue-' + tabID, { title }, () => {
     if (chrome.runtime.lastError) {
       chrome.contextMenus.create({
         id: 'queue-' + tabID,
@@ -353,9 +354,9 @@ function markAsPlaying(tabID, url, title) {
       });
     }
   });
-}
+};
 
-function removeMenu(tabID) {
+const removeMenu = (tabID) => {
   chrome.contextMenus.remove('queue-' + tabID);
 
   // If there are no more videos that are playing, disable the queue menu.
@@ -364,11 +365,9 @@ function removeMenu(tabID) {
   })) {
     chrome.contextMenus.update('queue', { enabled: false });
   }
-}
+};
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  var queue;
-
   if (request.watched) {
     // Remove this video from queue if opened from a tab that has a queue.
     if (request.tabID) { unqueueVideo(request.tabID, request.url); }
@@ -378,7 +377,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     unqueueVideo(sender.tab.id, sender.tab.url);
     markAsWatched(sender.tab.url);
     markAsPlaying(sender.tab.id, sender.tab.url, sender.tab.title);
-    queue = queueTabs[sender.tab.id];
+    const queue = queueTabs[sender.tab.id];
     if (queue) {
       sendResponse(queue[0]);
     }
@@ -419,12 +418,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     openedVideos[sender.tab.id].playing = false;
     localStorage.setItem('opened', JSON.stringify(openedVideos));
 
-    queue = queueTabs[sender.tab.id];
+    const queue = queueTabs[sender.tab.id];
     if (queue) {
       if (options.only_play_queued_at_top && request.scrollTop > 10) {
         return;
       }
-      var nextVideo = queue.shift();
+      const nextVideo = queue.shift();
       updateQueue(queue, sender.tab.id, nextVideo.url);
 
       // Play the next video in a few secs...

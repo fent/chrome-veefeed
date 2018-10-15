@@ -1,13 +1,13 @@
-function get(selectors) {
+const get = (selectors) => {
   for (let selector of selectors) {
     let $el = document.querySelector(selector);
     if ($el) {
       return $el;
     }
   }
-}
+};
 
-var $button = get([
+const $button = get([
   '.icon-player-pause',
   '.js-pause-button',
   '.ytp-play-button[aria-label="Pause"]'

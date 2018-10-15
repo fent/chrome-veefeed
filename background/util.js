@@ -5,13 +5,13 @@ const util = {};
 /*
  * Helper function for requests.
  *
- * @param {String} url
+ * @param {string} url
  * @param {Object?} opts
- *   {Object} headers
- *   {Object} cache
- *     {Function} transform
- *     {Number} ttl
- *   {String} responseType
+ * @param {Object} opts.headers
+ * @param {Object} opts.cache
+ * @param {Function} opts.cache.transform
+ * @param {number} opts.cache.ttl
+ * @param {string} opts.responseType
  * @param {Function(Object)} callback
  * @return {XMLHttpRequest}
  */
@@ -26,14 +26,14 @@ util.ajax = (url, opts, callback) => {
     opts = {};
   }
 
-  var parsed = new URL(url);
+  const parsed = new URL(url);
   if (window.location.protocol.indexOf('http') === 0 &&
       url.indexOf('http') === 0) {
     parsed.protocol = window.location.protocol;
     url = parsed.href;
   }
 
-  var cache, cacheRequestKey;
+  let cache, cacheRequestKey;
   if (opts.cache) {
     if (!util.ajax.cache[parsed.host]) {
       util.ajax.cache[parsed.host] =
@@ -49,21 +49,21 @@ util.ajax = (url, opts, callback) => {
   }
 
   util.ajax.active++;
-  var isURLEncoded = false, ended = false;
-  var xhr = new XMLHttpRequest();
+  let isURLEncoded = false, ended = false;
+  const xhr = new XMLHttpRequest();
 
-  function end(response) {
+  const end = (response) => {
     if (ended) { return; }
     ended = true;
     util.ajax.active--;
     util.ajax.next();
     callback(xhr, response || null);
-  }
+  };
 
   xhr.open('GET', url, true);
   xhr.onreadystatechange = () => {
     if (xhr.readyState === 2) {
-      var type = xhr.getResponseHeader('content-type');
+      const type = xhr.getResponseHeader('content-type');
       if (opts.responseType) {
         xhr.responseType = opts.responseType;
       } else if (type.includes('application/json')) {
@@ -76,7 +76,7 @@ util.ajax = (url, opts, callback) => {
       }
 
     } else if (xhr.readyState === 4) {
-      var response;
+      let response;
       if (xhr.status >= 200 && xhr.status < 300) {
         response = isURLEncoded ?
           util.parseQueryString(xhr.responseText) : xhr.response;
@@ -93,7 +93,7 @@ util.ajax = (url, opts, callback) => {
     }
   };
   if (opts.headers) {
-    for (var key in opts.headers) {
+    for (let key in opts.headers) {
       xhr.setRequestHeader(key, opts.headers[key]);
     }
   }
@@ -108,9 +108,9 @@ util.ajax.active = 0;
 util.ajax.cache = {};
 util.ajax.next = () => {
   if (util.ajax.queue.length && util.ajax.active < util.ajax.max) {
-    var args = util.ajax.queue.shift();
+    const args = util.ajax.queue.shift();
     setTimeout(() => {
-      util.ajax.apply(null, args);
+      util.ajax(...args);
     });
   }
 };
@@ -119,14 +119,14 @@ util.ajax.next = () => {
 /*
  * Converts time formatted as '2 days ago' to a timestamp.
  *
- * @param {String} str
- * @return {Number}
+ * @param {string} str
+ * @return {number}
  */
 util.relativeToTimestamp = (str) => {
-  var r = /(\d+)\s+(second|minute|hour|day)s?/.exec(str);
+  const r = /(\d+)\s+(second|minute|hour|day)s?/.exec(str);
   if (!r) { return null; }
-  var n = parseInt(r[1], 10);
-  var multiplier = {
+  const n = parseInt(r[1], 10);
+  const multiplier = {
     second: 1,
     minute: 60,
     hour: 3600,
@@ -138,11 +138,11 @@ util.relativeToTimestamp = (str) => {
 /**
  * Converts from 00:00:00 or 00:00 to seconds.
  *
- * @param {String} str
- * @return {Number}
+ * @param {string} str
+ * @return {number}
  */
 util.timeToSeconds = (str) => {
-  var s = str.split(':');
+  const s = str.split(':');
   return s.length === 2 ?
     ~~s[0] * 60 + ~~s[1] :
     ~~s[0] * 3600 + ~~s[1] * 60 + ~~s[2];
@@ -152,9 +152,9 @@ util.timeToSeconds = (str) => {
  * A list that only keeps the last `limit` items added.
  *
  * @constructor
- * @param {Number} limit
- * @param {Array.<Object>|String?} list
- * @param {Number} ttl
+ * @param {number} limit
+ * @param {Array.<Object>|string?} list
+ * @param {number} ttl
  */
 util.SizedMap = class {
   constructor(limit, list, ttl) {
@@ -191,9 +191,9 @@ util.SizedMap = class {
    * item. If an item with the same key is already on the list, it will instead
    * be moved to the top of the list with the new value.
    *
-   * @param {String} key
+   * @param {string} key
    * @param {Object} value
-   * @param {Boolean} noUpdate If this is `true`, item won't be moved to the top.
+   * @param {boolean} noUpdate If this is `true`, item won't be moved to the top.
    */
   push(key, value, noUpdate) {
     if (this.has(key)) {
@@ -218,8 +218,8 @@ util.SizedMap = class {
   }
 
   /*
-   * @param {String} key
-   * @return {Boolean}
+   * @param {string} key
+   * @return {boolean}
    */
   has(key) {
     return key in this.map &&
@@ -227,7 +227,7 @@ util.SizedMap = class {
   }
 
   /*
-   * @param {String} key
+   * @param {string} key
    * @return {Object}
    */
   get(key) {
@@ -239,7 +239,7 @@ util.SizedMap = class {
    */
   _save() {
     if (!this._key || !this._shouldSave) { return; }
-    var store = this.saveList ? this.list : this.map;
+    const store = this.saveList ? this.list : this.map;
     localStorage.setItem(this._key, JSON.stringify(store));
     this._shouldSave = false;
   }
@@ -248,12 +248,12 @@ util.SizedMap = class {
 /*
  * @param {Object} video1
  * @param {Object} video2
- * @return {Boolean}
+ * @return {boolean}
  */
 util.isSameVideo = (video1, video2) => {
   // If the videos are within a few seconds of each other,
   // they might be the same video...
-  // Compare using percent since for longer videos,
+  // Compare using percent, for longer videos,
   // the difference in length tends to be higher.
   if (Math.abs(video1.length - video2.length) > 5 &&
       Math.abs(1 - (video1.length / video2.length)) > 0.02) {
@@ -263,13 +263,14 @@ util.isSameVideo = (video1, video2) => {
   // If the titles are exact, then they are the same.
   if (video1.title === video2.title) { return true; }
 
-  var wordsMap = {};
+  const wordsMap = {};
   video2.title.split(/\s+/).forEach((word) => {
     if (word) { wordsMap[word.toLowerCase()] = true; }
   });
 
   // Look for numbers, if they both have the same numbers, then ok...
-  var r, pattern = /((?:\d+:)?\d\d?:\d\d|\d+(?:\.\d+)%?)/g;
+  const pattern = /((?:\d+:)?\d\d?:\d\d|\d+(?:\.\d+)%?)/g;
+  let r;
   while ((r = pattern.exec(video1))) {
     let num = r[1];
     if (!wordsMap[num]) { return false; }
@@ -293,8 +294,8 @@ util.isSameVideo = (video1, video2) => {
  */
 util.parallel = (funcs, callback) => {
   if (!funcs.length) { return callback([]); }
-  var callsDone = 0;
-  var results = [];
+  let callsDone = 0;
+  let results = [];
   funcs.forEach((func, i) => {
     func((result) => {
       results[i] = result;
@@ -329,7 +330,7 @@ util.parallelMap = (args, func, callback) => {
  * @param {Function(Array.<Object>)} callback
  */
 util.parallelFilter = (args, func, callback) => {
-  var filteredList = [];
+  const filteredList = [];
   util.parallel(args.map((arg, i) => {
     return (callback) => {
       func(arg, (success) => {
@@ -348,21 +349,21 @@ util.parallelFilter = (args, func, callback) => {
  * Returns ony the ID portion of a video URL. Because saving just the id
  * in storage takes up much less space than the entire URL.
  *
- * @param {String} url
- * @return {String}
+ * @param {string} url
+ * @return {string}
  */
 util.videoID = (url) => {
-  var result = /([a-z0-9_-]+)$/i.exec(url);
+  const result = /([a-z0-9_-]+)$/i.exec(url);
   return result && result[1] || url;
 };
 
 /**
- * @param {String} str
+ * @param {string} str
  * @return {Object}
  */
 util.parseQueryString = (str) => {
-  var obj = {};
-  var searchParams = new URLSearchParams(str);
+  const obj = {};
+  const searchParams = new URLSearchParams(str);
   for (let pair of searchParams.entries()) {
     obj[pair[0]] = pair[1];
   }
@@ -372,11 +373,11 @@ util.parseQueryString = (str) => {
 /**
  * Generates a regexp for a minimatch string.
  *
- * @param {String} str
- * @param {Return} RegExp
+ * @param {string} str
+ * @return {RegExp}
  */
 util.minimatch = (str) => {
-  var exp = str
+  const exp = str
     .replace(/[-[\]{}()+?.\\^$|]/g, '\\$&')
     .replace(/\*/g, '.*');
   return new RegExp('^' + exp + '$', 'i');

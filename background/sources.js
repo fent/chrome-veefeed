@@ -6,7 +6,7 @@
 // as the thumbnail, views, even the user.
 //
 // Note that this is different from ajax cache.
-var cachedVideos = new util.SizedMap(200, 'cachedVideos');
+const cachedVideos = new util.SizedMap(200, 'cachedVideos');
 
 // Keep an in memory cache in case there are errors retrieving videos
 // in the future. If that happens, it will use the last successful result
@@ -21,12 +21,12 @@ const sources = {
   collections: {},
 
   getVideos: (options, callback) => {
-    function filterEnabled(type, isHost) {
+    const filterEnabled = (type, isHost) => {
       return Object.keys(sources[type])
         .filter(source => options[source])
         .map((source) => {
           return (callback) => {
-            var fn = sources[type][source];
+            let fn = sources[type][source];
             if (isHost) {
               fn = fn.getAllVideos;
             }
@@ -37,27 +37,27 @@ const sources = {
             });
           };
         });
-    }
+    };
 
     // First, get videos directly from where they're hosted,
     // in case any of them are included in collection sites.
     util.parallel(filterEnabled('videos', true), (results) => {
-      var videos = [].concat.apply([], results.map((result) => {
+      const videos = [].concat(...results.map((result) => {
         result.videos.forEach((video, i) => {
           video.source = result.source;
           video.index = i;
         });
         return result.videos;
       }));
-      var videosMap = {};
+      const videosMap = {};
       videos.forEach((video) => {
         videosMap[video.url] = video;
         cachedVideos.push(video.url, video, true);
       });
       util.parallel(filterEnabled('collections', false), (results) => {
-        var colVideos = [].concat.apply([], results.map((result) => {
+        const colVideos = [].concat(...results.map((result) => {
           result.videos.forEach((video, i) => {
-            var col = video.col || {};
+            const col = video.col || {};
             delete video.col;
             col.source = result.source;
             video.collections = [col];
@@ -72,7 +72,7 @@ const sources = {
         // the user is following those channels.
         // That way, direct channel subscriptions get priority.
         colVideos.forEach((colVideo) => {
-          var video = videosMap[colVideo.url];
+          const video = videosMap[colVideo.url];
           if (video) {
             // Keep a reference of the collection title for filtering,
             // since the video will have its own title.
@@ -92,8 +92,8 @@ const sources = {
           }
         });
 
-        var allVideos = [];
-        for (var url in videosMap) { allVideos.push(videosMap[url]); }
+        const allVideos = [];
+        for (let url in videosMap) { allVideos.push(videosMap[url]); }
         callback(allVideos);
       });
     });
@@ -113,7 +113,7 @@ const sources = {
       callback(cachedVideos.get(url));
 
     } else {
-      var source = sources.sourceFromURL(url);
+      const source = sources.sourceFromURL(url);
       if (source) {
         sources.videos[source].getVideo(url, callback);
       } else {
@@ -142,10 +142,8 @@ const sources = {
   },
 
   sourceFromURL: (url) => {
-    for (var source in sources.videos) {
-      if (sources.videos[source]._patterns.some((pattern) => {
-        return pattern.test(url);
-      })) {
+    for (const source in sources.videos) {
+      if (sources.videos[source]._patterns.some(p => p.test(url))) {
         return source;
       }
     }
@@ -162,8 +160,8 @@ sources.videos.youtube = {
     '*://youtu.be/*',
   ],
   getVideo: (url, callback) => {
-    var r = /(?:v=|youtu\.be\/)([^?&$]+)/.exec(url);
-    var id;
+    const r = /(?:v=|youtu\.be\/)([^?&$]+)/.exec(url);
+    let id;
     if (r) {
       id = r[1];
     } else {
@@ -209,8 +207,8 @@ sources.videos.youtube = {
     util.ajax('https://www.youtube.com/feed/subscriptions?flow=2',
       { responseType: 'text' }, (xhr, body) => {
         if (!body) { return callback(); }
-        var key = 'window["ytInitialData"] = ';
-        var response = body;
+        const key = 'window["ytInitialData"] = ';
+        let response = body;
         response = response.slice(response.indexOf(key) + key.length);
         response = response.slice(0, response.indexOf('}}};') + 3);
         try {
@@ -236,24 +234,24 @@ sources.videos.youtube = {
               .items[0]
               .videoRenderer;
 
-            var user = item.ownerText.runs[0];
-            var userUrl = 'https://www.youtube.com' +
+            const user = item.ownerText.runs[0];
+            const userUrl = 'https://www.youtube.com' +
               (user.navigationEndpoint.browseEndpoint.canonicalBaseUrl ||
                user.navigationEndpoint.commandMetadata.webCommandMetadata.url);
-            var videoUrl = 'https://www.youtube.com/watch?v=' + item.videoId;
+            const videoUrl = 'https://www.youtube.com/watch?v=' + item.videoId;
 
             // YouTube videos sometimes don't have thumbnails loaded until
             // the page is scrolle down.
-            var thumbnail = 'https://i.ytimg.com/vi/' + item.videoId +
+            const thumbnail = 'https://i.ytimg.com/vi/' + item.videoId +
               '/mqdefault.jpg?custom=true&w=196&h=110&stc=true&jpg444=true&' +
               'jpgq=90&sp=68';
 
-            var length = item.lengthText;
-            var timestamp = item.publishedTimeText ?
+            const length = item.lengthText;
+            const timestamp = item.publishedTimeText ?
               util.relativeToTimestamp(item.publishedTimeText.simpleText) :
               item.upcomingEventData ?
                 parseInt(item.upcomingEventData.startTime, 10) * 1000 : null;
-            var views = item.viewCountText;
+            let views = item.viewCountText;
             views = views && views.simpleText ?  views.simpleText :
               views && views.runs ? views.runs[0].text : null;
 
@@ -276,7 +274,7 @@ sources.videos.youtube = {
               timestamp,
               live: item.badges && timestamp < Date.now() &&
                 item.badges.some((badge) => {
-                  var label = badge.metadataBadgeRenderer.label;
+                  const label = badge.metadataBadgeRenderer.label;
                   if (label) {
                     return label == 'LIVE NOW';
                   } else {
@@ -290,8 +288,8 @@ sources.videos.youtube = {
   },
 };
 
-var twitchToken = null;
-function getTwitchToken(callback) {
+let twitchToken = null;
+const getTwitchToken = (callback) => {
   if (twitchToken) {
     callback(twitchToken);
   } else {
@@ -303,7 +301,8 @@ function getTwitchToken(callback) {
       callback(twitchToken);
     });
   }
-}
+};
+
 sources.videos.twitch = {
   patterns: [
     '*://*.twitch.tv/*/v/*',
@@ -311,9 +310,9 @@ sources.videos.twitch = {
   ],
   getVideo: (url, callback) => {
     getTwitchToken((token) => {
-      var parsed = new URL(url);
-      var s = parsed.pathname.split(/\//);
-      var id = s[s.length - 1];
+      const parsed = new URL(url);
+      const s = parsed.pathname.split(/\//);
+      const id = s[s.length - 1];
       util.ajax('https://api.twitch.tv/kraken/videos/v' + id, {
         cache: {
           transform: (response) => {
@@ -330,7 +329,7 @@ sources.videos.twitch = {
         headers: { 'Twitch-Api-Token': token },
       }, (xhr, meta) => {
         if (!meta) { return callback(null); }
-        var username = /twitch\.tv\/([^/]+)\//.exec(url)[1];
+        const username = /twitch\.tv\/([^/]+)\//.exec(url)[1];
         callback({
           url       : 'https://www.twitch.tv/' + username + '/v/' + id,
           thumbnail : meta.thumbnail,
@@ -377,14 +376,14 @@ sources.videos.twitch = {
 sources.collections.haloruns = (callback) => {
   util.ajax('https://haloruns.com/records?recent', (xhr, body) => {
     if (!body) { return callback(); }
-    var $items = body.getElementById('recentWRTable');
+    let $items = body.getElementById('recentWRTable');
     if (!$items) {
       console.warn('Error retrieving videos');
       callback();
       return;
     }
     $items = $items.children[0];
-    var items = [];
+    const items = [];
     for (let i = 1, len = Math.min($items.children.length, 21); i < len; i++) {
       let $item = $items.children[i];
       let $col1 = $item.children[0];
@@ -435,9 +434,9 @@ sources.collections.haloruns = (callback) => {
   });
 };
 
-var speedrundotcomKey = localStorage.getItem('speedrundotcomKey');
+let speedrundotcomKey = localStorage.getItem('speedrundotcomKey');
 sources.collections.speedrundotcom = (callback) => {
-  function getMetaForRun(url, callback) {
+  const getMetaForRun = (url, callback) => {
     util.ajax(url, {
       cache: {
         transform: (response) => {
@@ -453,9 +452,9 @@ sources.collections.speedrundotcom = (callback) => {
         },
       },
     }, (xhr, meta) => { callback(meta); });
-  }
+  };
 
-  function addUsersToRun(run, meta, callback) {
+  const addUsersToRun = (run, meta, callback) => {
     if (!meta.users) { return callback(); }
     util.parallelMap(meta.users, (user, callback) => {
       if (user.rel === 'guest') {
@@ -476,9 +475,9 @@ sources.collections.speedrundotcom = (callback) => {
       run.col.users = users;
       callback(!!users.filter(u => !!u).length);
     });
-  }
+  };
 
-  function addMetaToVideo(run, meta, callback) {
+  const addMetaToVideo = (run, meta, callback) => {
     sources.addMetaToVideo(run, (success) => {
       if (!success) { return callback(); }
       if (!run.game && meta.gameID) {
@@ -496,9 +495,9 @@ sources.collections.speedrundotcom = (callback) => {
         callback(true);
       }
     });
-  }
+  };
 
-  function addMetaToRun(run, callback) {
+  const addMetaToRun = (run, callback) => {
     getMetaForRun(run.url, (meta) => {
       if (!meta) { return callback(); }
       run.url = meta.url;
@@ -508,14 +507,14 @@ sources.collections.speedrundotcom = (callback) => {
         addMetaToVideo.bind(null, run, meta)
       ], (results) => { callback(results[0] && results[1]); });
     });
-  }
+  };
 
-  function getNotifications() {
+  const getNotifications = () => {
     util.ajax('http://www.speedrun.com/api/v1/notifications', {
       headers: { 'X-API-Key': speedrundotcomKey },
     }, (xhr, results) => {
       if (!results) { return callback(); }
-      var runs = results.data
+      const runs = results.data
         .filter(noti => noti.item.rel === 'run')
         .map((noti) => {
           return {
@@ -529,17 +528,17 @@ sources.collections.speedrundotcom = (callback) => {
         });
       util.parallelFilter(runs, addMetaToRun, callback);
     });
-  }
+  };
 
   if (!speedrundotcomKey) {
     util.ajax('http://www.speedrun.com/settings', (xhr, body) => {
       if (!body) { return callback(); }
-      var $code = body.getElementsByTagName('code')[0];
+      const $code = body.getElementsByTagName('code')[0];
       if (!$code) {
         console.warn('Unable to retrieve API token from speedrun.com');
         return callback();
       }
-      var key = $code.textContent;
+      const key = $code.textContent;
       speedrundotcomKey = key;
       localStorage.setItem('speedrundotcomKey', key);
       getNotifications();

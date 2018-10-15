@@ -1,30 +1,30 @@
 /* global chrome, lazyload, toHumanLength, now, timeAgo, showTime, m */
 
-function removeChildClasses($node, className) {
+const removeChildClasses = ($node, className) => {
   for (let $child of $node.children) {
     $child.classList.remove(className);
   }
-}
+};
 
-function numberWithCommas(num) {
+const numberWithCommas = (num) => {
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
+};
 
 const VIDEO_HEIGHT = 119;
 const SET_POS_WAIT = 100;
 const POS_ANIM_TIME = 500;
 
-var options = JSON.parse(localStorage.getItem('options')) || {};
-var videos = JSON.parse(localStorage.getItem('videos')) || [];
-var groups = [options.show_ungrouped ?
+const options = JSON.parse(localStorage.getItem('options')) || {};
+const videos = JSON.parse(localStorage.getItem('videos')) || [];
+let groups = [options.show_ungrouped ?
   { name: 'Other',
     videos: JSON.parse(localStorage.getItem('ungrouped')) || [],
     removable: true } :
   { name: 'All', videos: videos, removable: true }
 ];
-var showTabs = false;
+let showTabs = false;
 
-var groupedVideos = JSON.parse(localStorage.getItem('groups')) || [];
+const groupedVideos = JSON.parse(localStorage.getItem('groups')) || [];
 if (groupedVideos.length) { showTabs = true; }
 groupedVideos.forEach((group) => { group.removable = true; });
 groups = groups.concat(groupedVideos);
@@ -33,8 +33,8 @@ const $tabs = document.getElementById('tabs').children[0];
 const $content = document.getElementById('content');
 
 
-var tabID, winID, fullqueue, queue, openedVideo;
-function getQueue() {
+let tabID, winID, fullqueue, queue, openedVideo;
+const getQueue = () => {
   fullqueue = JSON.parse(localStorage.getItem('queue'));
   if (fullqueue) {
     queue = fullqueue[tabID];
@@ -42,7 +42,7 @@ function getQueue() {
   } else {
     queue = null;
   }
-}
+};
 
 chrome.tabs.query({ active: true, currentWindow: true }, (results) => {
   if (!results.length) {
@@ -50,7 +50,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, (results) => {
     return;
   }
 
-  var tab = results[0];
+  const tab = results[0];
   tabID = tab.id;
   winID = tab.windowId;
   getQueue();
@@ -80,38 +80,26 @@ chrome.tabs.query({ active: true, currentWindow: true }, (results) => {
     });
   });
 
-  var groupSelected;
+  let groupSelected =
+    // Select the first tab with a video playing.
+    groups.find((group) => group.videos.some(video => video.playing)) ||
 
-  // Select the first tab with a video playing.
-  groupSelected = groups.find((group) => {
-    return group.videos.some(video => video.playing);
-  });
+    // Otherwise, look for queued videos.
+    groups.find((group) => group.videos.some(video => video.queued)) ||
 
-  // Otherwise, look for queued videos.
-  if (!groupSelected) {
-    groupSelected = groups.find((group) => {
-      return group.videos.some(video => video.queued);
-    });
-  }
+    // If no currently playing or queued, look for unwatched videos.
+    groups.find((group) => group.videos.some(video => !video.watched)) ||
 
-  // If no currently playing or queued, look for unwatched videos.
-  if (!groupSelected) {
-    groupSelected = groups.find((group) => {
-      return group.videos.some(video => !video.watched);
-    });
-  }
+    // Still no? Select the first tab with any video.
+    groups.find(group => group.videos.length) ||
 
-  // Still no? Select the first tab with any video.
-  if (!groupSelected) {
-    groupSelected = groups.find(group => group.videos.length);
-  }
+    // Otherwise, select the first tab.
+    groups[0];
 
-  // Otherwise, select the first tab.
-  if (!groupSelected) { groupSelected = groups[0]; }
   groupSelected.selected = true;
 
   if (options.ignore && options.ignore.length && options.show_ignored_tab) {
-    var ignoredVideos = JSON.parse(localStorage.getItem('ignored'));
+    const ignoredVideos = JSON.parse(localStorage.getItem('ignored'));
     groups.push({ name: 'Ignored', videos: ignoredVideos });
     showTabs = true;
   }
@@ -125,20 +113,20 @@ chrome.tabs.query({ active: true, currentWindow: true }, (results) => {
 });
 
 
-var videosMap = {};
-function renderContent() {
+const videosMap = {};
+const renderContent = () => {
   groups.forEach((group) => {
     if (options.hide_empty_tabs && !group.videos.length) { return; }
 
     group.unwatched = group.videos.filter(video => !video.watched).length;
-    var $badge;
+    let $badge;
 
     if (showTabs) {
-      var $tab = m('a.tab', {
+      const $tab = m('a.tab', {
         className: group.selected && 'selected',
         onclick: () => {
           // Remember the scroll position of the last selected group.
-          var selectedGroup = groups.filter(group => group.selected)[0];
+          const selectedGroup = groups.filter(group => group.selected)[0];
           if (selectedGroup) {
             selectedGroup.scrollTop = document.body.scrollTop;
             selectedGroup.selected = false;
@@ -172,13 +160,13 @@ function renderContent() {
       renderVideos(group);
     }
   });
-}
+};
 
-function renderGroupVideo(group, video) {
+const renderGroupVideo = (group, video) => {
   if (!options.show_watched && video.watched) { return; }
 
-  var opening = false;
-  function open(inNewTab, event) {
+  let opening = false;
+  const open = (inNewTab, event) => {
     if (event) { event.preventDefault(); }
     if (opening) { return; }
     if (video.$video.classList.contains('animating')) { return; }
@@ -207,9 +195,9 @@ function renderGroupVideo(group, video) {
     }
 
     openVideo(video, inNewTab);
-  }
+  };
 
-  function userView(user) {
+  const userView = (user) => {
     if (!user) { return null; }
     return m('span.user', [
       user.thumbnail ?
@@ -221,9 +209,9 @@ function renderGroupVideo(group, video) {
       user.verified ?
         m('span.verified', { 'data-title': 'Verified' }) : null,
     ]);
-  }
+  };
 
-  function sourceView(source) {
+  const sourceView = (source) => {
     return m('span.source', [
       m((source.url ? 'a' : 'span') + '.favicon', {
         className: 'source-' + source.source,
@@ -233,14 +221,14 @@ function renderGroupVideo(group, video) {
     ].concat(source.users ?
       source.users.map(userView) : userView(source.user))
     );
-  }
+  };
 
-  var vidClass = '.source-' + video.source;
+  let vidClass = '.source-' + video.source;
   if (video.watched) { vidClass += '.watched'; }
   if (video.queued) { vidClass += '.queued'; }
   if (video.silentQueued) { vidClass += '.silent-queued'; }
   if (video.playing) { vidClass += '.playing'; }
-  var $video = m('li.video' + vidClass, [
+  const $video = m('li.video' + vidClass, [
     m('a.left-side', { href: video.url, disabled: true }, [
       m('img.lazy', {
         'data-src': video.thumbnail || '',
@@ -260,7 +248,7 @@ function renderGroupVideo(group, video) {
       openedVideo && openedVideo.playing && m('span.queue', {
         'data-title': 'Add to Queue',
         onclick: () => {
-          var message = {
+          const message = {
             tabID: tabID,
             video: video,
           };
@@ -283,7 +271,7 @@ function renderGroupVideo(group, video) {
                   // A nasty hack to make the :hover states of possible
                   // videos being placed under the mouse after the
                   // animation, activate.
-                  var $children = g.group.$videos.querySelectorAll(
+                  const $children = g.group.$videos.querySelectorAll(
                     '.animating .queue, .animating .open-new-tab');
                   for (let $child of $children) {
                     $child.style.opacity = '0';
@@ -329,7 +317,7 @@ function renderGroupVideo(group, video) {
             }
             g.video.watched = true;
             g.video.queued = false;
-            var $video = g.video.$video;
+            const $video = g.video.$video;
             if (!$video) { return; }
 
             if (options.show_watched) {
@@ -386,9 +374,9 @@ function renderGroupVideo(group, video) {
 
   video.$video = $video;
   return $video;
-}
+};
 
-function renderVideos(group) {
+const renderVideos = (group) => {
   group.rendered = true;
   if (!group.videos.length) {
     $content.appendChild(group.$container = m('div.no-videos', {
@@ -461,9 +449,9 @@ function renderVideos(group) {
   group.$container.appendChild(group.$queueAll);
   group.$container.appendChild(group.$videos);
   $content.appendChild(group.$container);
-}
+};
 
-function openVideo(video, inNewTab, callback) {
+const openVideo = (video, inNewTab, callback) => {
   chrome.runtime.sendMessage({
     watched: true,
     url: video.url,
@@ -485,9 +473,9 @@ function openVideo(video, inNewTab, callback) {
   } else {
     openNewTab(video, callback);
   }
-}
+};
 
-function openNewTab(video, callback) {
+const openNewTab = (video, callback) => {
   chrome.tabs.create({ url: video.url }, (tab) => {
     chrome.runtime.sendMessage({
       newTab: true,
@@ -497,20 +485,20 @@ function openNewTab(video, callback) {
     });
     if (callback) { callback(tab.id); }
   });
-}
+};
 
-function sortVideos(group) {
+const sortVideos = (group) => {
   // Put currently playing video at the top, followed by queued videos,
   // then unwatched videos, and finally, watched videos at the bottom.
   group.videos.sort((a, b) => {
-    var playing = !!b.playing - !!a.playing;
+    const playing = !!b.playing - !!a.playing;
     if (playing !== 0) { return playing; }
-    var queued = !!b.queued - !!a.queued;
+    const queued = !!b.queued - !!a.queued;
     if (queued !== 0) { return queued; }
     if (a.queued && b.queued) {
       return queue[a.url] - queue[b.url];
     } else {
-      var watched = !!a.watched - !!b.watched;
+      const watched = !!a.watched - !!b.watched;
       if (watched !== 0) { return watched; }
       if (b.timestamp !== a.timestamp) {
         return b.timestamp - a.timestamp;
@@ -519,9 +507,9 @@ function sortVideos(group) {
       }
     }
   });
-}
+};
 
-function setVideoPositions(group) {
+const setVideoPositions = (group) => {
   if (!options.show_watched) {
     group.videos = group.videos.filter(v => !v.watched);
   }
@@ -531,7 +519,7 @@ function setVideoPositions(group) {
 
   group.videos.forEach((video, i) => {
     if (!video.$video) { return; }
-    var top = (VIDEO_HEIGHT * i) + 'px';
+    const top = (VIDEO_HEIGHT * i) + 'px';
     if (top !== video.$video.style.top) {
       video.$video.style.top = top;
       video.$video.classList.add('animating');
@@ -542,4 +530,4 @@ function setVideoPositions(group) {
   });
 
   lazyload.processScroll();
-}
+};

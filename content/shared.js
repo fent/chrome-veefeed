@@ -1,19 +1,17 @@
 /* global chrome, m, toHumanLength */
 /* exported getElement, setNextButton */
 
-var queuedVideo;
+let queuedVideo;
 chrome.runtime.sendMessage({ started: true }, {}, (response) => {
   queuedVideo = response;
 });
 
 // Element may not be available right away when the page loads.
 window.getElement = (className, callback) => {
-  function search() {
-    return document.getElementsByClassName(className)[0];
-  }
-  var maxAttempts = 10;
-  var iid = setInterval(() => {
-    var $el = search();
+  const search = () => document.getElementsByClassName(className)[0];
+  let maxAttempts = 10;
+  let iid = setInterval(() => {
+    const $el = search();
     if ($el || --maxAttempts === 0) {
       clearInterval(iid);
     }
@@ -25,8 +23,8 @@ window.getElement = (className, callback) => {
 
 window.setNextButton = ($playButton, buttonClass) => {
   // Prepend all class names with app name to avoid collisions.
-  var $thumbnail, $length, $title;
-  var $nextButton = m('a.veefeed-next-button.' + buttonClass, {
+  let $thumbnail, $length, $title;
+  const $nextButton = m('a.veefeed-next-button.' + buttonClass, {
     onclick: (e) => {
       if ($nextButton.classList.contains('veefeed-show')) {
         window.location = $nextButton.href;
@@ -58,7 +56,7 @@ window.setNextButton = ($playButton, buttonClass) => {
   // Place button to the right of play button.
   $playButton.parentNode.insertBefore($nextButton, $playButton.nextSibling);
 
-  function onQueueUpdate(video) {
+  const onQueueUpdate = (video) => {
     if (video) {
       $nextButton.href = video.url;
       $nextButton.classList.add('veefeed-show');
@@ -68,7 +66,7 @@ window.setNextButton = ($playButton, buttonClass) => {
     } else {
       $nextButton.classList.remove('veefeed-show');
     }
-  }
+  };
 
   chrome.runtime.onMessage.addListener((message) => {
     if (message.setQueue) {

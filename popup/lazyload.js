@@ -6,26 +6,26 @@
  */
 
 (() => {
-  function loadImage($img, fn) {
-    var img = new Image();
-    var src = $img.getAttribute('data-src');
+  const loadImage = ($img, fn) => {
+    const img = new Image();
+    const src = $img.getAttribute('data-src');
     img.onload = () => {
       $img.src = src;
       $img.classList.remove('lazy');
       fn? fn() : null;
     };
     img.src = src;
-  }
+  };
 
-  function elementInViewport($el) {
-    var rect = $el.getBoundingClientRect();
+  const elementInViewport = ($el) => {
+    const rect = $el.getBoundingClientRect();
     return rect.top >= 0 && rect.left >= 0 && rect.top <= window.innerHeight;
-  }
+  };
 
   // Expose library.
   const lazyload = window.lazyload = {};
   const images = [];
-  var processScroll = lazyload.processScroll = () => {
+  const processScroll = lazyload.processScroll = () => {
     for (let i = 0; i < images.length; i++) {
       if (elementInViewport(images[i])) {
         loadImage(images[i], () => { images.splice(i, i); });
@@ -33,7 +33,7 @@
     }
   };
 
-  lazyload.addImages = function($node) {
+  lazyload.addImages = ($node) => {
     for (let $el of $node.getElementsByClassName('lazy')) {
       images.push($el);
     }

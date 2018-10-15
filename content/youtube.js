@@ -1,7 +1,7 @@
 /* global chrome, getElement, setNextButton */
 
 getElement('ytp-play-button', ($playButton) => {
-  var observer = new MutationObserver(() => {
+  const observer = new MutationObserver(() => {
     // if the video has ended, the play button will change to a
     // swirly replay arrow.
     if ($playButton.getAttribute('title') === 'Replay') {
