@@ -1,4 +1,6 @@
-/* global chrome, lazyload, toHumanLength, now, timeAgo, showTime, m */
+/* global chrome, formatVideoLength, timeAgo, formatTime, m */
+
+import lazyload from './lazyload.js';
 
 const removeChildClasses = ($node, className) => {
   for (let $child of $node.children) {
@@ -162,6 +164,7 @@ const renderContent = () => {
   });
 };
 
+const now = Date.now();
 const renderGroupVideo = (group, video) => {
   if (!options.show_watched && video.watched) { return; }
 
@@ -244,7 +247,7 @@ const renderGroupVideo = (group, video) => {
           'data-src': 'http://static-cdn.jtvnw.net/ttv-boxart/' +
             encodeURIComponent(video.game) + '-138x190.jpg',
         })) : null,
-      video.length && m('span.length', toHumanLength(video.length)),
+      video.length && m('span.length', formatVideoLength(video.length)),
       openedVideo && openedVideo.playing && m('span.queue', {
         'data-title': 'Add to Queue',
         onclick: () => {
@@ -360,7 +363,7 @@ const renderGroupVideo = (group, video) => {
         video.live ? m('span.live', 'LIVE NOW') :
         video.timestamp ?
           now < video.timestamp ?
-            m('span.starts', showTime(video.timestamp)) :
+            m('span.starts', formatTime(video.timestamp)) :
             now >= video.timestamp &&
             m('span.time', timeAgo(video.timestamp)) : null,
         video.views && m('span.views',

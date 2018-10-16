@@ -1,4 +1,4 @@
-/* global chrome, m, toHumanLength */
+/* global chrome, formatVideoLength, m */
 /* exported getElement, setNextButton */
 
 let queuedVideo;
@@ -61,7 +61,7 @@ window.setNextButton = ($playButton, buttonClass) => {
       $nextButton.href = video.url;
       $nextButton.classList.add('veefeed-show');
       $thumbnail.src = video.thumbnail;
-      $length.textContent = toHumanLength(video.length);
+      $length.textContent = formatVideoLength(video.length);
       $title.textContent = video.title;
     } else {
       $nextButton.classList.remove('veefeed-show');
