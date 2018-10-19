@@ -30,12 +30,7 @@
   ],
   "author": "fent (https://github.com/fent)",
   "background": {
-    "scripts": [
-      "background/util.js",
-      "background/shorteners.js",
-      "background/sources.js",
-      "background/background.js"
-    ]
+    "page": "background/background.html"
   },
   "content_scripts": [
     {

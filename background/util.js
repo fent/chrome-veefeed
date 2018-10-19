@@ -1,6 +1,5 @@
-/* global URLSearchParams */
-/* exported util */
-const util = {};
+import SizedMap from './SizedMap.js';
+
 
 /*
  * Helper function for requests.
@@ -15,9 +14,9 @@ const util = {};
  * @param {Function(Object)} callback
  * @return {XMLHttpRequest}
  */
-util.ajax = (url, opts, callback) => {
-  if (util.ajax.active >= util.ajax.max) {
-    util.ajax.queue.push([url, opts, callback]);
+export const ajax = (url, opts, callback) => {
+  if (ajax.active >= ajax.max) {
+    ajax.queue.push([url, opts, callback]);
     return;
   }
 
@@ -35,28 +34,28 @@ util.ajax = (url, opts, callback) => {
 
   let cache, cacheRequestKey;
   if (opts.cache) {
-    if (!util.ajax.cache[parsed.host]) {
-      util.ajax.cache[parsed.host] =
-        new util.SizedMap(200, 'cache-' + parsed.host, opts.cache.ttl);
+    if (!ajax.cache[parsed.host]) {
+      ajax.cache[parsed.host] =
+        new SizedMap(200, 'cache-' + parsed.host, opts.cache.ttl);
     }
-    cache = util.ajax.cache[parsed.host];
+    cache = ajax.cache[parsed.host];
     cacheRequestKey = parsed.pathname + parsed.search;
     if (cache.has(cacheRequestKey)) {
-      util.ajax.next();
+      ajax.next();
       callback(null, cache.get(cacheRequestKey));
       return;
     }
   }
 
-  util.ajax.active++;
+  ajax.active++;
   let isURLEncoded = false, ended = false;
   const xhr = new XMLHttpRequest();
 
   const end = (response) => {
     if (ended) { return; }
     ended = true;
-    util.ajax.active--;
-    util.ajax.next();
+    ajax.active--;
+    ajax.next();
     callback(xhr, response || null);
   };
 
@@ -79,7 +78,7 @@ util.ajax = (url, opts, callback) => {
       let response;
       if (xhr.status >= 200 && xhr.status < 300) {
         response = isURLEncoded ?
-          util.parseQueryString(xhr.responseText) : xhr.response;
+          parseQueryString(xhr.responseText) : xhr.response;
         if (opts.cache) {
           if (opts.cache.transform) {
             response = opts.cache.transform(response);
@@ -102,19 +101,18 @@ util.ajax = (url, opts, callback) => {
   xhr.send();
 };
 
-util.ajax.queue = [];
-util.ajax.max = 5;
-util.ajax.active = 0;
-util.ajax.cache = {};
-util.ajax.next = () => {
-  if (util.ajax.queue.length && util.ajax.active < util.ajax.max) {
-    const args = util.ajax.queue.shift();
+ajax.queue = [];
+ajax.max = 5;
+ajax.active = 0;
+ajax.cache = {};
+ajax.next = () => {
+  if (ajax.queue.length && ajax.active < ajax.max) {
+    const args = ajax.queue.shift();
     setTimeout(() => {
-      util.ajax(...args);
+      ajax(...args);
     });
   }
 };
-
 
 /*
  * Converts time formatted as '2 days ago' to a timestamp.
@@ -122,7 +120,7 @@ util.ajax.next = () => {
  * @param {string} str
  * @return {number}
  */
-util.relativeToTimestamp = (str) => {
+export const relativeToTimestamp = (str) => {
   const r = /(\d+)\s+(second|minute|hour|day)s?/.exec(str);
   if (!r) { return null; }
   const n = parseInt(r[1], 10);
@@ -141,108 +139,11 @@ util.relativeToTimestamp = (str) => {
  * @param {string} str
  * @return {number}
  */
-util.timeToSeconds = (str) => {
+export const timeToSeconds = (str) => {
   const s = str.split(':');
   return s.length === 2 ?
     ~~s[0] * 60 + ~~s[1] :
     ~~s[0] * 3600 + ~~s[1] * 60 + ~~s[2];
-};
-
-/**
- * A list that only keeps the last `limit` items added.
- *
- * @constructor
- * @param {number} limit
- * @param {Array.<Object>|string?} list
- * @param {number} ttl
- */
-util.SizedMap = class {
-  constructor(limit, list, ttl) {
-    this.limit = limit;
-    this._ttl = ttl;
-    if (typeof list === 'string') {
-      this._key = list;
-      try {
-        list = JSON.parse(localStorage.getItem(list)) || {};
-      } catch (err) {
-        list = {};
-      }
-    }
-    this.list = [];
-    this.map = {};
-    if (list) {
-      if (Array.isArray(list)) {
-        this.saveList = true;
-        this.list = list.slice(-limit);
-        for (let i = 0, len = this.list.length; i < len; i++) {
-          this.map[this.list[i]] = true;
-        }
-      } else {
-        for (let key in list) {
-          this.list.push(key);
-          this.map[key] = list[key];
-        }
-      }
-    }
-  }
-
-  /**
-   * Add an item to the list. `key` is used to identify the uniqueness of the
-   * item. If an item with the same key is already on the list, it will instead
-   * be moved to the top of the list with the new value.
-   *
-   * @param {string} key
-   * @param {Object} value
-   * @param {boolean} noUpdate If this is `true`, item won't be moved to the top.
-   */
-  push(key, value, noUpdate) {
-    if (this.has(key)) {
-      if (noUpdate) { return; }
-      this.list.splice(this.list.indexOf(key), 1);
-    }
-    this.list.push(key);
-    if (this._ttl) {
-      value = { v: value, t: Date.now() };
-    }
-    this.map[key] = value || true;
-    if (this.list.length > this.limit) {
-      delete this.map[this.list.shift()];
-    }
-
-    // Save this to local storage.
-    if (this._key) {
-      this._shouldSave = true;
-      clearTimeout(this._tid);
-      this._tid = setTimeout(this._save.bind(this), 1000);
-    }
-  }
-
-  /*
-   * @param {string} key
-   * @return {boolean}
-   */
-  has(key) {
-    return key in this.map &&
-      (!this._ttl || Date.now() - this.map[key].t < this._ttl);
-  }
-
-  /*
-   * @param {string} key
-   * @return {Object}
-   */
-  get(key) {
-    return this._ttl ? this.map[key].v : this.map[key];
-  }
-
-  /**
-   * Saves to local storage.
-   */
-  _save() {
-    if (!this._key || !this._shouldSave) { return; }
-    const store = this.saveList ? this.list : this.map;
-    localStorage.setItem(this._key, JSON.stringify(store));
-    this._shouldSave = false;
-  }
 };
 
 /*
@@ -250,7 +151,7 @@ util.SizedMap = class {
  * @param {Object} video2
  * @return {boolean}
  */
-util.isSameVideo = (video1, video2) => {
+export const isSameVideo = (video1, video2) => {
   // If the videos are within a few seconds of each other,
   // they might be the same video...
   // Compare using percent, for longer videos,
@@ -292,7 +193,7 @@ util.isSameVideo = (video1, video2) => {
  *   the objects for which each of the callbacks were given, in the order
  *   in which the functions were originally laid out.
  */
-util.parallel = (funcs, callback) => {
+export const parallel = (funcs, callback) => {
   if (!funcs.length) { return callback([]); }
   let callsDone = 0;
   let results = [];
@@ -313,8 +214,8 @@ util.parallel = (funcs, callback) => {
  * @param {Function(Object, Function(Object))} func
  * @param {Function(Array.<Object>)} callback
  */
-util.parallelMap = (args, func, callback) => {
-  util.parallel(args.map((arg) => {
+export const parallelMap = (args, func, callback) => {
+  parallel(args.map((arg) => {
     return (callback) => {
       func(arg, callback);
     };
@@ -329,9 +230,9 @@ util.parallelMap = (args, func, callback) => {
  * @param {Function(Object, Function(Object))} func
  * @param {Function(Array.<Object>)} callback
  */
-util.parallelFilter = (args, func, callback) => {
+export const parallelFilter = (args, func, callback) => {
   const filteredList = [];
-  util.parallel(args.map((arg, i) => {
+  parallel(args.map((arg, i) => {
     return (callback) => {
       func(arg, (success) => {
         if (success) {
@@ -352,7 +253,7 @@ util.parallelFilter = (args, func, callback) => {
  * @param {string} url
  * @return {string}
  */
-util.videoID = (url) => {
+export const videoID = (url) => {
   const result = /([a-z0-9_-]+)$/i.exec(url);
   return result && result[1] || url;
 };
@@ -361,7 +262,7 @@ util.videoID = (url) => {
  * @param {string} str
  * @return {Object}
  */
-util.parseQueryString = (str) => {
+export const parseQueryString = (str) => {
   const obj = {};
   const searchParams = new URLSearchParams(str);
   for (let pair of searchParams.entries()) {
@@ -376,7 +277,7 @@ util.parseQueryString = (str) => {
  * @param {string} str
  * @return {RegExp}
  */
-util.minimatch = (str) => {
+export const minimatch = (str) => {
   const exp = str
     .replace(/[-[\]{}()+?.\\^$|]/g, '\\$&')
     .replace(/\*/g, '.*');

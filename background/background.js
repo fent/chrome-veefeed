@@ -1,4 +1,9 @@
-/* global chrome, sources, util */
+/* global chrome */
+
+import sources from './sources/index.js';
+import * as util from './util.js';
+import SizedMap from './SizedMap.js';
+
 
 const MAX_WATCHED   = 400;  // Max watched videos to keep in storage.
 const MAX_KNOWN     = 400;  // Max videos in memory to "know" about, to notify.
@@ -28,7 +33,7 @@ const options = {
 
 let allVideos;
 let watchedVideos = {};
-let knownVideos = new util.SizedMap(MAX_KNOWN);
+let knownVideos = new SizedMap(MAX_KNOWN);
 let ignoredVideos;
 let ignoreRules = [];
 let groups = [];
@@ -210,7 +215,7 @@ chrome.storage.sync.get(optionsKeys, (items = {}) => {
   // works across computers.
   Object.keys(sources.videos).forEach((source) => {
     watchedVideos[source] =
-      new util.SizedMap(MAX_WATCHED, items['watched_' + source] || []);
+      new SizedMap(MAX_WATCHED, items['watched_' + source] || []);
   });
 
   ignoreRules = generateRules(items.ignore || []);
@@ -452,7 +457,7 @@ chrome.storage.onChanged.addListener((changes) => {
     // across the same account.
     if (changes['watched_' + source]) {
       watchedVideos[source] =
-        new util.SizedMap(MAX_WATCHED, changes['watched_' + source].newValue);
+        new SizedMap(MAX_WATCHED, changes['watched_' + source].newValue);
       updateVideos();
       return;
     }
