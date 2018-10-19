@@ -177,8 +177,8 @@ const renderGroupVideo = (group, video) => {
     inNewTab = inNewTab || event && (event.which === 2 || event.metaKey);
 
     if (video.queued) {
-      // If video is in queue, wait a little to let the user know that
-      // it will be removed from the queue as they open it.
+      // If video is in queue, wait a little to let the user know
+      // as it's removed from the queue before it's opened.
       videosMap[video.url].forEach((g) => {
         g.video.queued = false;
         if (g.video.$video) { g.video.$video.classList.remove('queued'); }
@@ -518,7 +518,7 @@ const setVideoPositions = (group) => {
   }
 
   group.queueable = group.videos.filter(v => !v.watched && !v.queued).reverse();
-  group.$queueAll.classList.toggle('hidden', group.queueable.length < 2);
+  group.$queueAll.classList.toggle('hidden', group.queueable.length < 1);
 
   group.videos.forEach((video, i) => {
     if (!video.$video) { return; }
