@@ -24,8 +24,11 @@ export default (callback) => {
       let gameSplit = $col2.children[1].textContent.split(' ');
       let game = gameSplit.slice(0, -1).join(' ');
 
-      // "Halo 5" is actually called "Halo 5: Guardians"
-      if (game === 'Halo 5') {
+      // Use Halo game names that Twitch will find.
+      game = game.replace(/ MCC$/, '');
+      if (game === 'Halo CE') {
+        game = 'Halo: Combat Evolved';
+      } else if (game === 'Halo 5') {
         game += ': Guardians';
       }
       let difficulty = gameSplit[gameSplit.length - 1];
