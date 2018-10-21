@@ -47,10 +47,10 @@ const sources = {
               videos = videos || cachedResults[type][source] || [];
               cachedResults[type][source] = videos;
               if (isHost) {
-                callback({ source: source, videos: videos });
+                callback({ source, videos });
               } else {
                 util.parallelFilter(videos, sources.addMetaToVideo, (videos) => {
-                  callback({ source: source, videos: videos });
+                  callback({ source, videos });
                 });
               }
             });

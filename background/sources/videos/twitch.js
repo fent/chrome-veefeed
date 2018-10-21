@@ -40,7 +40,7 @@ export default {
           ttl: 1800000,
         },
         headers: { 'Twitch-Api-Token': token },
-      }, (xhr, meta) => {
+      }, (meta) => {
         if (!meta) { return callback(null); }
         const username = /twitch\.tv\/([^/]+)\//.exec(url)[1];
         callback({
@@ -63,7 +63,7 @@ export default {
       util.ajax('https://api.twitch.tv/kraken/videos/followed?' +
       'limit=40&broadcast_type=highlight&offset=0&on_site=1', {
         headers: { 'Twitch-Api-Token': token },
-      }, (xhr, result) => {
+      }, (result) => {
         if (!result || !result.videos) { return callback(); }
         callback(result.videos.map((video) => {
           return {

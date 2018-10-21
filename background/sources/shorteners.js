@@ -1,24 +1,26 @@
-import * as util from '../util.js';
 import SizedMap from '../SizedMap.js';
 
 
 // Some URLs are given as shortened URLs...
 const getURLFromMeta = (url, callback) => {
-  util.ajax(url, (xhr, body) => {
-    const location = xhr.getResponseHeader('location');
+  fetch(url, { redirect: 'manual' }).then((res) => {
+    const location = res.headers.get('location');
     if (location) {
       callback(location);
     } else {
-      const meta = body.getElementsByTagName('meta')[0];
-      if (meta) {
-        let content = meta.getAttribute('content').toLowerCase();
-        let p = content.indexOf('url=');
-        if (p > -1) {
-          callback(content.slice(p + 4));
-          return;
+      res.text().then((text) => {
+        const body = new DOMParser().parseFromString(text, 'text/html');
+        const meta = body.getElementsByTagName('meta')[0];
+        if (meta) {
+          let content = meta.getAttribute('content').toLowerCase();
+          let p = content.indexOf('url=');
+          if (p > -1) {
+            callback(content.slice(p + 4));
+            return;
+          }
         }
-      }
-      callback();
+        callback();
+      });
     }
   });
 };

@@ -2,10 +2,10 @@ import SizedMap from './SizedMap.js';
 
 
 /*
- * Helper function for requests.
+ * Helper wrapper function around fetch with a cache and type handling.
  *
  * @param {string} url
- * @param {Object?} opts
+ * @param {!Object} opts
  * @param {Object} opts.headers
  * @param {Object} opts.cache
  * @param {Function} opts.cache.transform
@@ -42,63 +42,60 @@ export const ajax = (url, opts, callback) => {
     cacheRequestKey = parsed.pathname + parsed.search;
     if (cache.has(cacheRequestKey)) {
       ajax.next();
-      callback(null, cache.get(cacheRequestKey));
+      callback(cache.get(cacheRequestKey));
       return;
     }
   }
 
   ajax.active++;
-  let isURLEncoded = false, ended = false;
-  const xhr = new XMLHttpRequest();
-
-  const end = (response) => {
-    if (ended) { return; }
-    ended = true;
+  let responseType;
+  return fetch(url, {
+    credentials: 'include',
+    redirect: 'follow',
+    headers: opts.headers,
+  }).then((response) => {
     ajax.active--;
     ajax.next();
-    callback(xhr, response || null);
-  };
+    if (!response.ok) return callback(null);
 
-  xhr.open('GET', url, true);
-  xhr.onreadystatechange = () => {
-    if (xhr.readyState === 2) {
-      const type = xhr.getResponseHeader('content-type');
-      if (opts.responseType) {
-        xhr.responseType = opts.responseType;
-      } else if (type.includes('application/json')) {
-        xhr.responseType = 'json';
-      } else if (type.includes('text/html')) {
-        xhr.responseType = 'document';
-      } else if (type.includes('application/x-www-form-urlencoded')) {
-        xhr.responseType = 'text';
-        isURLEncoded = true;
-      }
-
-    } else if (xhr.readyState === 4) {
-      let response;
-      if (xhr.status >= 200 && xhr.status < 300) {
-        response = isURLEncoded ?
-          parseQueryString(xhr.responseText) : xhr.response;
-        if (opts.cache) {
-          if (opts.cache.transform) {
-            response = opts.cache.transform(response);
-          }
-          if (response) {
-            cache.push(cacheRequestKey, response);
-          }
-        }
-      }
-      end(response);
+    const type = response.headers.get('content-type');
+    if (opts.responseType === 'text') {
+      return response.text();
+    } else if (opts.responseType === 'json' || type.includes('application/json')) {
+      responseType = 'json';
+      return response.json();
+    } else if (opts.responseType === 'document' || type.includes('text/html')) {
+      responseType = 'document';
+      return response.text();
+    } else if (opts.responseType === 'url-encoded' ||
+      type.includes('application/x-www-form-urlencoded')) {
+      responseType = 'url-encoded';
+      return response.text();
+    } else {
+      return response.text();
     }
-  };
-  if (opts.headers) {
-    for (let key in opts.headers) {
-      xhr.setRequestHeader(key, opts.headers[key]);
+  }).then((body) => {
+    let data;
+    switch (responseType) {
+      case 'document':
+        data = new DOMParser().parseFromString(body, 'text/html');
+        break;
+      case 'url-encoded':
+        data = parseQueryString(body);
+        break;
+      default:
+        data = body;
     }
-  }
-  xhr.timeout = 30000;
-  xhr.ontimeout = end;
-  xhr.send();
+    if (opts.cache) {
+      if (opts.cache.transform) {
+        data = opts.cache.transform(data);
+      }
+      if (data) {
+        cache.push(cacheRequestKey, data);
+      }
+    }
+    callback(data || null);
+  });
 };
 
 ajax.queue = [];

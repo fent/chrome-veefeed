@@ -18,7 +18,7 @@ export default (callback) => {
           };
         },
       },
-    }, (xhr, meta) => { callback(meta); });
+    }, callback);
   };
 
   const addUsersToRun = (run, meta, callback) => {
@@ -36,7 +36,7 @@ export default (callback) => {
               };
             }
           }
-        }, (xhr, response) => { callback(response); });
+        }, callback);
       }
     }, (users) => {
       run.col.users = users;
@@ -52,7 +52,7 @@ export default (callback) => {
             return { name: response.data.names.international };
           },
         },
-      }, (xhr, game) => {
+      }, (game) => {
         run.game = game.name;
         callback(true);
       });
@@ -76,7 +76,7 @@ export default (callback) => {
   const getNotifications = () => {
     util.ajax('http://www.speedrun.com/api/v1/notifications', {
       headers: { 'X-API-Key': speedrundotcomKey },
-    }, (xhr, results) => {
+    }, (results) => {
       if (!results) { return callback(); }
       const runs = results.data
         .filter(noti => noti.item.rel === 'run')
@@ -95,7 +95,7 @@ export default (callback) => {
   };
 
   if (!speedrundotcomKey) {
-    util.ajax('http://www.speedrun.com/settings', (xhr, body) => {
+    util.ajax('http://www.speedrun.com/settings', (body) => {
       if (!body) { return callback(); }
       const $code = body.getElementsByTagName('code')[0];
       if (!$code) {

@@ -2,7 +2,7 @@ import * as util from '../../util.js';
 
 
 export default (callback) => {
-  util.ajax('https://haloruns.com/records?recent', (xhr, body) => {
+  util.ajax('https://haloruns.com/records?recent', (body) => {
     if (!body) { return callback(); }
     let $items = body.getElementById('recentWRTable');
     if (!$items) {

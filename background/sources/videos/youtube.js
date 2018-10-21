@@ -32,7 +32,7 @@ export default {
         },
         ttl: 1800000,
       },
-    }, (xhr, meta) => {
+    }, (meta) => {
       if (!meta) { return callback(); }
       callback({
         // Canonical form of URL.
@@ -53,7 +53,7 @@ export default {
   },
   getAllVideos: (callback) => {
     util.ajax('https://www.youtube.com/feed/subscriptions?flow=2',
-      { responseType: 'text' }, (xhr, body) => {
+      { responseType: 'text' }, (body) => {
         if (!body) { return callback(); }
         const key = 'window["ytInitialData"] = ';
         let response = body;
