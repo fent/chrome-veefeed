@@ -479,13 +479,14 @@ const openVideo = (video, inNewTab, callback) => {
 };
 
 const openNewTab = (video, callback) => {
-  chrome.tabs.create({ url: video.url }, (tab) => {
+  chrome.tabs.create({ url: video.url, active: false }, (tab) => {
     chrome.runtime.sendMessage({
       newTab: true,
       url: video.url,
       tabID: tab.id,
       winID: winID,
     });
+    chrome.tabs.update(tab.id, { active: true });
     if (callback) { callback(tab.id); }
   });
 };
