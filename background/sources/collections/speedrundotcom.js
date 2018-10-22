@@ -29,12 +29,10 @@ export default async () => {
       } else {
         return util.ajax('http://www.speedrun.com/api/v1/users/' + user.id, {
           cache: {
-            transform: (response) => {
-              return {
-                url: response.data.weblink,
-                name: response.data.names.international,
-              };
-            }
+            transform: (response) => ({
+              url: response.data.weblink,
+              name: response.data.names.international,
+            })
           }
         });
       }
@@ -48,9 +46,9 @@ export default async () => {
       const game = await util.ajax(
         'http://www.speedrun.com/api/v1/games/' + meta.gameID, {
           cache: {
-            transform: (response) => {
-              return { name: response.data.names.international };
-            },
+            transform: (response) => ({
+              name: response.data.names.international
+            }),
           },
         });
       run.game = game.name;

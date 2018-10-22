@@ -30,31 +30,25 @@ export default {
     const id = s[s.length - 1];
     const meta = await util.ajax('https://api.twitch.tv/kraken/videos/v' + id, {
       cache: {
-        transform: (response) => {
-          return {
-            thumbnail : response.preview,
-            length    : response.length,
-            title     : response.title,
-            game      : response.game,
-            views     : response.views,
-          };
-        },
+        transform: (response) => ({
+          thumbnail : response.preview,
+          length    : response.length,
+          title     : response.title,
+          game      : response.game,
+          views     : response.views,
+        }),
         ttl: 1800000,
       },
       headers: { 'Twitch-Api-Token': token },
     });
     const username = /twitch\.tv\/([^/]+)\//.exec(url)[1];
     return {
-      url       : 'https://www.twitch.tv/' + username + '/v/' + id,
-      thumbnail : meta.thumbnail,
-      length    : meta.length,
-      title     : meta.title,
-      game      : meta.game,
-      views     : meta.views,
-      user      : {
+      url: 'https://www.twitch.tv/' + username + '/v/' + id,
+      user: {
         url: 'https://www.twitch.tv/' + username,
         name: username,
-      }
+      },
+      ...meta,
     };
   },
   getAllVideos: async () => {

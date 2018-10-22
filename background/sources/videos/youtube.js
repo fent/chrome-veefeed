@@ -41,11 +41,8 @@ export default {
         '/mqdefault.jpg?custom=true&w=196&h=110&stc=true&jpg444=true&' +
         'jpgq=90&sp=68',
 
-      length: meta.length,
-      title: meta.title,
-      views: meta.views,
-      user: meta.user,
       game: null,
+      ...meta,
     };
   },
   getAllVideos: async () => {
