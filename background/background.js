@@ -48,7 +48,7 @@ const checkForUpdates = async () => {
 };
 
 const mergeMatch = (source, username, video) => {
-  return video.source === source && video.user.name === username;
+  return video.source === source && video.user && video.user.name === username;
 };
 
 const updateVideos = () => {

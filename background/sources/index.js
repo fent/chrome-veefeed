@@ -145,7 +145,7 @@ const sources = {
       if (!meta) { return false; }
     } catch (err) {
       console.warn('Failed to get meta for video: ' + video.url);
-      return;
+      return false;
     }
     video.url = meta.url;
     video.thumbnail = meta.thumbnail;
