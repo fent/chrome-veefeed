@@ -22,7 +22,7 @@ export default async () => {
   };
 
   const addUsersToRun = async (run, meta) => {
-    if (!meta.users) { return; }
+    if (!meta.users) { return false; }
     const users = await Promise.all(meta.users.map(async (user) => {
       if (user.rel === 'guest') {
         return { name: user.name };
@@ -62,7 +62,6 @@ export default async () => {
 
   const addMetaToRun = async (run) => {
     const meta = await getMetaForRun(run.url);
-    if (!meta) { return; }
     run.url = meta.url;
     run.desc = meta.desc;
     const results = await Promise.all([
@@ -74,11 +73,9 @@ export default async () => {
 
   if (!speedrundotcomKey) {
     const body = await util.ajax('http://www.speedrun.com/settings');
-    if (!body) { return; }
     const $code = body.getElementsByTagName('code')[0];
     if (!$code) {
-      console.warn('Unable to retrieve API token from speedrun.com');
-      return;
+      throw Error('Unable to retrieve API token from speedrun.com');
     }
     speedrundotcomKey = $code.textContent;
     localStorage.setItem('speedrundotcomKey', speedrundotcomKey);
@@ -86,7 +83,6 @@ export default async () => {
   const results = await util.ajax('http://www.speedrun.com/api/v1/notifications', {
     headers: { 'X-API-Key': speedrundotcomKey },
   });
-  if (!results) { return; }
   const runs = results.data
     .filter(noti => noti.item.rel === 'run')
     .map((noti) => {

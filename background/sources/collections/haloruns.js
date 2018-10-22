@@ -3,11 +3,9 @@ import * as util from '../../util.js';
 
 export default async () => {
   const body = await util.ajax('https://haloruns.com/records?recent');
-  if (!body) { return; }
   let $items = body.getElementById('recentWRTable');
   if (!$items) {
-    console.warn('Error retrieving videos');
-    return;
+    throw Error('Error retrieving videos');
   }
   $items = $items.children[0];
   const items = [];

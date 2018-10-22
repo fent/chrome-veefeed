@@ -50,7 +50,7 @@ export const ajax = async (url, opts = {}) => {
   });
   ajax.active--;
   ajax.next();
-  if (!response.ok) return null;
+  if (!response.ok) throw Error('status code: ' + response.status);
 
   const type = response.headers.get('content-type');
   let body;
@@ -171,44 +171,6 @@ export const isSameVideo = (video1, video2) => {
   return video2.title.split(/\s+/).filter((word) => {
     return word && wordsMap[word.toLowerCase()];
   }).length >= 2;
-};
-
-/*
- * Calls a list of functions in parallel, waits until all of them have
- * called their respective callback function before calling the given callback.
- *
- * @param {Array.<Function(Function(Object))} funcs
- * @param {Function(Array.<Object>)} callback Will be called with a list of
- *   the objects for which each of the callbacks were given, in the order
- *   in which the functions were originally laid out.
- */
-export const parallel = (funcs, callback) => {
-  if (!funcs.length) { return callback([]); }
-  let callsDone = 0;
-  let results = [];
-  funcs.forEach((func, i) => {
-    func((result) => {
-      results[i] = result;
-      if (++callsDone === funcs.length) {
-        callback(results);
-      }
-    });
-  });
-};
-
-/**
- * Calls one function with each of the items in `args` in parallel.
- *
- * @param {Array.<Object>} args
- * @param {Function(Object, Function(Object))} func
- * @param {Function(Array.<Object>)} callback
- */
-export const parallelMap = (args, func, callback) => {
-  parallel(args.map((arg) => {
-    return (callback) => {
-      func(arg, callback);
-    };
-  }), callback);
 };
 
 /**

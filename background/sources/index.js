@@ -42,10 +42,16 @@ const sources = {
           if (isHost) {
             fn = fn.getAllVideos;
           }
-          let videos = await fn();
-          // Fallback to cached videos from this source if getting videos fails.
-          videos = videos || cachedResults[type][source] || [];
-          cachedResults[type][source] = videos;
+          let videos;
+          try {
+            videos = await fn();
+            cachedResults[type][source] = videos;
+          } catch (err) {
+            console.warn(`Failed to get videos for ${source}: ${err.message}`);
+
+            // Fallback to cached videos from this source if getting videos fails.
+            videos = cachedResults[type][source] || [];
+          }
           if (isHost) {
             return { source, videos };
           } else {
@@ -133,8 +139,14 @@ const sources = {
   },
 
   addMetaToVideo: async (video) => {
-    const meta = await sources.getMetaForVideo(video.url);
-    if (!meta) { return false; }
+    let meta;
+    try {
+      meta = await sources.getMetaForVideo(video.url);
+      if (!meta) { return false; }
+    } catch (err) {
+      console.warn('Failed to get meta for video: ' + video.url);
+      return;
+    }
     video.url = meta.url;
     video.thumbnail = meta.thumbnail;
     video.length = meta.length;

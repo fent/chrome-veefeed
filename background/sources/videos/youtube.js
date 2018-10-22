@@ -13,15 +13,14 @@ export default {
     if (r) {
       id = r[1];
     } else {
-      console.warn('Could not get video ID of URL: ' + url);
-      return;
+      throw Error('Could not get video ID of URL: ' + url);
     }
     const meta = await util.ajax('https://www.youtube.com/get_video_info' +
     '?ps=default&gl=US&hl=en&video_id=' + id, {
       cache: {
         transform: (response) => {
           if (response.status === 'fail') {
-            return;
+            throw Error('failed to get video info: ' + response.reason);
           }
           return {
             length: parseInt(response.length_seconds, 10),
@@ -33,7 +32,6 @@ export default {
         ttl: 1800000,
       },
     });
-    if (!meta) { return; }
     return {
       // Canonical YouTube URL.
       url: 'https://www.youtube.com/watch?v=' + id,
@@ -53,7 +51,6 @@ export default {
   getAllVideos: async () => {
     const body = await util.ajax('https://www.youtube.com/feed/subscriptions?flow=2',
       { responseType: 'text' });
-    if (!body) { return; }
     const key = 'window["ytInitialData"] = ';
     let response = body;
     response = response.slice(response.indexOf(key) + key.length);
@@ -61,8 +58,7 @@ export default {
     try {
       response = JSON.parse(response);
     } catch (err) {
-      console.error('Error parsing videos ' + err.message);
-      return;
+      throw Error('Error parsing videos: ' + err.message);
     }
 
     return response

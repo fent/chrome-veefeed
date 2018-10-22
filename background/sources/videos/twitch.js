@@ -43,7 +43,6 @@ export default {
       },
       headers: { 'Twitch-Api-Token': token },
     });
-    if (!meta) { return; }
     const username = /twitch\.tv\/([^/]+)\//.exec(url)[1];
     return {
       url       : 'https://www.twitch.tv/' + username + '/v/' + id,
@@ -64,7 +63,6 @@ export default {
     'limit=40&broadcast_type=highlight&offset=0&on_site=1', {
       headers: { 'Twitch-Api-Token': token },
     });
-    if (!result || !result.videos) { return; }
     return result.videos.map((video) => {
       return {
         user: {
