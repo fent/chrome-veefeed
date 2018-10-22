@@ -11,18 +11,13 @@ import SizedMap from './SizedMap.js';
  * @param {Function} opts.cache.transform
  * @param {number} opts.cache.ttl
  * @param {string} opts.responseType
- * @param {Function(Object)} callback
- * @return {XMLHttpRequest}
+ * @return {Promise.<Object>}
  */
-export const ajax = (url, opts, callback) => {
+export const ajax = async (url, opts = {}) => {
   if (ajax.active >= ajax.max) {
-    ajax.queue.push([url, opts, callback]);
-    return;
-  }
-
-  if (typeof opts === 'function') {
-    callback = opts;
-    opts = {};
+    return new Promise((resolve) => {
+      return ajax.queue.push([resolve, url, opts]);
+    });
   }
 
   const parsed = new URL(url);
@@ -42,60 +37,59 @@ export const ajax = (url, opts, callback) => {
     cacheRequestKey = parsed.pathname + parsed.search;
     if (cache.has(cacheRequestKey)) {
       ajax.next();
-      callback(cache.get(cacheRequestKey));
-      return;
+      return cache.get(cacheRequestKey);
     }
   }
 
   ajax.active++;
   let responseType;
-  return fetch(url, {
+  const response = await fetch(url, {
     credentials: 'include',
     redirect: 'follow',
     headers: opts.headers,
-  }).then((response) => {
-    ajax.active--;
-    ajax.next();
-    if (!response.ok) return callback(null);
-
-    const type = response.headers.get('content-type');
-    if (opts.responseType === 'text') {
-      return response.text();
-    } else if (opts.responseType === 'json' || type.includes('application/json')) {
-      responseType = 'json';
-      return response.json();
-    } else if (opts.responseType === 'document' || type.includes('text/html')) {
-      responseType = 'document';
-      return response.text();
-    } else if (opts.responseType === 'url-encoded' ||
-      type.includes('application/x-www-form-urlencoded')) {
-      responseType = 'url-encoded';
-      return response.text();
-    } else {
-      return response.text();
-    }
-  }).then((body) => {
-    let data;
-    switch (responseType) {
-      case 'document':
-        data = new DOMParser().parseFromString(body, 'text/html');
-        break;
-      case 'url-encoded':
-        data = parseQueryString(body);
-        break;
-      default:
-        data = body;
-    }
-    if (opts.cache) {
-      if (opts.cache.transform) {
-        data = opts.cache.transform(data);
-      }
-      if (data) {
-        cache.push(cacheRequestKey, data);
-      }
-    }
-    callback(data || null);
   });
+  ajax.active--;
+  ajax.next();
+  if (!response.ok) return null;
+
+  const type = response.headers.get('content-type');
+  let body;
+  if (opts.responseType === 'text') {
+    body = await response.text();
+  } else if (opts.responseType === 'json' || type.includes('application/json')) {
+    responseType = 'json';
+    body = await response.json();
+  } else if (opts.responseType === 'document' || type.includes('text/html')) {
+    responseType = 'document';
+    body = await response.text();
+  } else if (opts.responseType === 'url-encoded' ||
+    type.includes('application/x-www-form-urlencoded')) {
+    responseType = 'url-encoded';
+    body = await response.text();
+  } else {
+    body = await response.text();
+  }
+
+  let data;
+  switch (responseType) {
+    case 'document':
+      data = new DOMParser().parseFromString(body, 'text/html');
+      break;
+    case 'url-encoded':
+      data = parseQueryString(body);
+      break;
+    default:
+      data = body;
+  }
+  if (opts.cache) {
+    if (opts.cache.transform) {
+      data = opts.cache.transform(data);
+    }
+    if (data) {
+      cache.push(cacheRequestKey, data);
+    }
+  }
+  return data || null;
 };
 
 ajax.queue = [];
@@ -104,10 +98,8 @@ ajax.active = 0;
 ajax.cache = {};
 ajax.next = () => {
   if (ajax.queue.length && ajax.active < ajax.max) {
-    const args = ajax.queue.shift();
-    setTimeout(() => {
-      ajax(...args);
-    });
+    const [resolve, url, opts] = ajax.queue.shift();
+    resolve(ajax(url, opts));
   }
 };
 
@@ -220,27 +212,20 @@ export const parallelMap = (args, func, callback) => {
 };
 
 /**
- * Calls one function in parallel, and calls the callback with the
+ * Calls one function in parallel, and returns a promise with the
  * items in `args` for which the async function is true.
  *
  * @param {Array.<Object>} args
- * @param {Function(Object, Function(Object))} func
- * @param {Function(Array.<Object>)} callback
+ * @param {Function(Object)} func
+ * @return {Promise<Array.<Object>>}
  */
-export const parallelFilter = (args, func, callback) => {
+export const parallelFilter = async (args, func) => {
+  const results = await Promise.all(args.map(func));
   const filteredList = [];
-  parallel(args.map((arg, i) => {
-    return (callback) => {
-      func(arg, (success) => {
-        if (success) {
-          filteredList[i] = arg;
-        }
-        callback();
-      });
-    };
-  }), () => {
-    callback(filteredList.filter(d => !!d));
+  results.forEach((pass, i) => {
+    filteredList[i] = args[i];
   });
+  return filteredList.filter(d => !!d);
 };
 
 /**

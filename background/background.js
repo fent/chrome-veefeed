@@ -42,11 +42,9 @@ let queueUrlMap = {};
 let openedVideos = {};
 let pausedTabs = {};
 
-const checkForUpdates = () => {
-  sources.getVideos(options.sources, (results) => {
-    allVideos = results;
-    updateVideos();
-  });
+const checkForUpdates = async () => {
+  allVideos = await sources.getVideos(options.sources);
+  updateVideos();
 };
 
 const mergeMatch = (source, username, video) => {
@@ -330,16 +328,15 @@ const markAsWatched = (url) => {
   });
 };
 
-const queueMenuClicked = (tabID, info) => {
+const queueMenuClicked = async (tabID, info) => {
   const url = info.linkUrl;
-  sources.getMetaForVideo(url, (video) => {
-    if (!video) { return; }
+  const video = await sources.getMetaForVideo(url);
+  if (!video) { return; }
 
-    // Keep the original URL, since it might contain things like timestamps.
-    video.url = url;
-    queueVideo(tabID, video);
-    afterQueue(tabID);
-  });
+  // Keep the original URL, since it might contain things like timestamps.
+  video.url = url;
+  queueVideo(tabID, video);
+  afterQueue(tabID);
 };
 
 const markAsPlaying = (tabID, url, title) => {

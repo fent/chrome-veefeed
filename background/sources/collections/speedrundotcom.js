@@ -2,9 +2,9 @@ import * as util from '../../util.js';
 
 
 let speedrundotcomKey = localStorage.getItem('speedrundotcomKey');
-export default (callback) => {
-  const getMetaForRun = (url, callback) => {
-    util.ajax(url, {
+export default async () => {
+  const getMetaForRun = (url) => {
+    return util.ajax(url, {
       cache: {
         transform: (response) => {
           if (!response.data.videos || !response.data.videos.links.length) {
@@ -18,16 +18,16 @@ export default (callback) => {
           };
         },
       },
-    }, callback);
+    });
   };
 
-  const addUsersToRun = (run, meta, callback) => {
-    if (!meta.users) { return callback(); }
-    util.parallelMap(meta.users, (user, callback) => {
+  const addUsersToRun = async (run, meta) => {
+    if (!meta.users) { return; }
+    const users = await Promise.all(meta.users.map(async (user) => {
       if (user.rel === 'guest') {
-        callback({ name: user.name });
+        return { name: user.name };
       } else {
-        util.ajax('http://www.speedrun.com/api/v1/users/' + user.id, {
+        return util.ajax('http://www.speedrun.com/api/v1/users/' + user.id, {
           cache: {
             transform: (response) => {
               return {
@@ -36,78 +36,68 @@ export default (callback) => {
               };
             }
           }
-        }, callback);
+        });
       }
-    }, (users) => {
-      run.col.users = users;
-      callback(!!users.filter(u => !!u).length);
-    });
+    }));
+    run.col.users = users;
+    return !!users.filter(u => !!u).length;
   };
 
-  const addMetaToVideo = (run, meta, callback) => {
+  const addMetaToVideo = async (run, meta) => {
     if (!run.game && meta.gameID) {
-      util.ajax('http://www.speedrun.com/api/v1/games/' + meta.gameID, {
-        cache: {
-          transform: (response) => {
-            return { name: response.data.names.international };
+      const game = await util.ajax(
+        'http://www.speedrun.com/api/v1/games/' + meta.gameID, {
+          cache: {
+            transform: (response) => {
+              return { name: response.data.names.international };
+            },
           },
-        },
-      }, (game) => {
-        run.game = game.name;
-        callback(true);
-      });
+        });
+      run.game = game.name;
+      return true;
     } else {
-      callback(true);
+      return true;
     }
   };
 
-  const addMetaToRun = (run, callback) => {
-    getMetaForRun(run.url, (meta) => {
-      if (!meta) { return callback(); }
-      run.url = meta.url;
-      run.desc = meta.desc;
-      util.parallel([
-        addUsersToRun.bind(null, run, meta),
-        addMetaToVideo.bind(null, run, meta)
-      ], (results) => { callback(results[0] && results[1]); });
-    });
-  };
-
-  const getNotifications = () => {
-    util.ajax('http://www.speedrun.com/api/v1/notifications', {
-      headers: { 'X-API-Key': speedrundotcomKey },
-    }, (results) => {
-      if (!results) { return callback(); }
-      const runs = results.data
-        .filter(noti => noti.item.rel === 'run')
-        .map((noti) => {
-          return {
-            col: {
-              url: noti.item.uri,
-            },
-            url: noti.links[0].uri,
-            title: noti.text,
-            timestamp: new Date(noti.created).getTime(),
-          };
-        });
-      util.parallelFilter(runs, addMetaToRun, callback);
-    });
+  const addMetaToRun = async (run) => {
+    const meta = await getMetaForRun(run.url);
+    if (!meta) { return; }
+    run.url = meta.url;
+    run.desc = meta.desc;
+    const results = await Promise.all([
+      addUsersToRun.bind(null, run, meta),
+      addMetaToVideo.bind(null, run, meta)
+    ]);
+    return results[0] && results[1];
   };
 
   if (!speedrundotcomKey) {
-    util.ajax('http://www.speedrun.com/settings', (body) => {
-      if (!body) { return callback(); }
-      const $code = body.getElementsByTagName('code')[0];
-      if (!$code) {
-        console.warn('Unable to retrieve API token from speedrun.com');
-        return callback();
-      }
-      const key = $code.textContent;
-      speedrundotcomKey = key;
-      localStorage.setItem('speedrundotcomKey', key);
-      getNotifications();
-    });
-  } else {
-    getNotifications();
+    const body = await util.ajax('http://www.speedrun.com/settings');
+    if (!body) { return; }
+    const $code = body.getElementsByTagName('code')[0];
+    if (!$code) {
+      console.warn('Unable to retrieve API token from speedrun.com');
+      return;
+    }
+    speedrundotcomKey = $code.textContent;
+    localStorage.setItem('speedrundotcomKey', speedrundotcomKey);
   }
+  const results = await util.ajax('http://www.speedrun.com/api/v1/notifications', {
+    headers: { 'X-API-Key': speedrundotcomKey },
+  });
+  if (!results) { return; }
+  const runs = results.data
+    .filter(noti => noti.item.rel === 'run')
+    .map((noti) => {
+      return {
+        col: {
+          url: noti.item.uri,
+        },
+        url: noti.links[0].uri,
+        title: noti.text,
+        timestamp: new Date(noti.created).getTime(),
+      };
+    });
+  return util.parallelFilter(runs, addMetaToRun);
 };

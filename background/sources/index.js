@@ -33,131 +33,120 @@ const sources = {
     speedrundotcom,
   },
 
-  getVideos: (options, callback) => {
-    const filterEnabled = (type, isHost) => {
-      return Object.keys(sources[type])
+  getVideos: async (options) => {
+    const fetchEnabledSources = async (type, isHost) => {
+      return await Promise.all(Object.keys(sources[type])
         .filter(source => options[source])
-        .map((source) => {
-          return (callback) => {
-            let fn = sources[type][source];
-            if (isHost) {
-              fn = fn.getAllVideos;
-            }
-            fn((videos) => {
-              videos = videos || cachedResults[type][source] || [];
-              cachedResults[type][source] = videos;
-              if (isHost) {
-                callback({ source, videos });
-              } else {
-                util.parallelFilter(videos, sources.addMetaToVideo, (videos) => {
-                  callback({ source, videos });
-                });
-              }
-            });
-          };
-        });
+        .map(async (source) => {
+          let fn = sources[type][source];
+          if (isHost) {
+            fn = fn.getAllVideos;
+          }
+          let videos = await fn();
+          // Fallback to cached videos from this source if getting videos fails.
+          videos = videos || cachedResults[type][source] || [];
+          cachedResults[type][source] = videos;
+          if (isHost) {
+            return { source, videos };
+          } else {
+            videos = await util.parallelFilter(videos, sources.addMetaToVideo);
+            return { source, videos };
+          }
+        }));
     };
 
     // First, get videos directly from where they're hosted,
     // in case any of them are included in collection sites.
-    util.parallel(filterEnabled('videos', true), (results) => {
-      const videos = [].concat(...results.map((result) => {
-        result.videos.forEach((video, i) => {
-          video.source = result.source;
-          video.index = i;
-        });
-        return result.videos;
-      }));
-      const videosMap = {};
-      videos.forEach((video) => {
-        videosMap[video.url] = video;
-        cachedVideos.push(video.url, video, true);
+    const sourceResults = await fetchEnabledSources('videos', true);
+    const videos = [].concat(...sourceResults.map((result) => {
+      result.videos.forEach((video, i) => {
+        video.source = result.source;
+        video.index = i;
       });
-      util.parallel(filterEnabled('collections', false), (results) => {
-        const colVideos = [].concat(...results.map((result) => {
-          result.videos.forEach((video, i) => {
-            const col = video.col || {};
-            delete video.col;
-            col.source = result.source;
-            video.collections = [col];
-            video.index = i;
-          });
-          return result.videos;
-        }));
-
-        // If anything from a collection site is already in the list of
-        // videos directly gathered from a hosting site, then merge them.
-        // But give preference to the site hosting the video, in case
-        // the user is following those channels.
-        // That way, direct channel subscriptions get priority.
-        colVideos.forEach((colVideo) => {
-          const video = videosMap[colVideo.url];
-          if (video) {
-            // Keep a reference of the collection title for filtering,
-            // since the video will have its own title.
-            colVideo.collections[0].title = colVideo.title;
-            if (video.collections) {
-              // It's possible that the same video could be posted in
-              // many collectioin sites.
-              video.collections.push(colVideo.collections[0]);
-            } else {
-              video.collections = colVideo.collections.slice();
-            }
-            video.desc = video.desc || colVideo.desc;
-            video.game = video.game || colVideo.game;
-          } else {
-            colVideo.source = sources.sourceFromURL(colVideo.url);
-            videosMap[colVideo.url] = colVideo;
-          }
-        });
-
-        const allVideos = [];
-        for (let url in videosMap) { allVideos.push(videosMap[url]); }
-        callback(allVideos);
-      });
+      return result.videos;
+    }));
+    const videosMap = new Map();
+    videos.forEach((video) => {
+      videosMap.set(video.url, video);
+      cachedVideos.push(video.url, video, true);
     });
+
+    const colResults = await fetchEnabledSources('collections', false);
+    const colVideos = [].concat(...colResults.map((result) => {
+      result.videos.forEach((video, i) => {
+        const col = video.col || {};
+        delete video.col;
+        col.source = result.source;
+        video.collections = [col];
+        video.index = i;
+      });
+      return result.videos;
+    }));
+
+    // If anything from a collection site is already in the list of
+    // videos directly gathered from a hosting site, then merge them.
+    // But give preference to the site hosting the video, in case
+    // the user is following those channels.
+    // That way, direct channel subscriptions get priority.
+    colVideos.forEach((colVideo) => {
+      const video = videosMap.get(colVideo.url);
+      if (video) {
+        // Keep a reference of the collection title for filtering,
+        // since the video will have its own title.
+        colVideo.collections[0].title = colVideo.title;
+        if (video.collections) {
+          // It's possible that the same video could be posted in
+          // many collectioin sites.
+          video.collections.push(colVideo.collections[0]);
+        } else {
+          video.collections = colVideo.collections.slice();
+        }
+        video.desc = video.desc || colVideo.desc;
+        video.game = video.game || colVideo.game;
+      } else {
+        colVideo.source = sources.sourceFromURL(colVideo.url);
+        videosMap.set(colVideo.url, colVideo);
+      }
+    });
+
+    return Array.from(videosMap.values());
   },
 
-  getMetaForVideo: (url, callback) => {
+  getMetaForVideo: async (url) => {
     if (shorteners.isShortened(url)) {
-      shorteners.getRealURL(url, (realurl) => {
-        if (realurl) {
-          sources.getMetaForVideo(realurl, callback);
-        } else {
-          callback();
-        }
-      });
+      const realurl = await shorteners.getRealURL(url);
+      if (realurl) {
+        return sources.getMetaForVideo(realurl);
+      }
 
     } else if (cachedVideos.has(url)) {
-      callback(cachedVideos.get(url));
+      return cachedVideos.get(url);
 
     } else {
       const source = sources.sourceFromURL(url);
       if (source) {
-        sources.videos[source].getVideo(url, callback);
+        return sources.videos[source].getVideo(url);
       } else {
         console.warn('Could not find source for URL: ' + url);
-        callback();
       }
     }
   },
 
-  addMetaToVideo: (video, callback) => {
-    sources.getMetaForVideo(video.url, (meta) => {
-      if (!meta) { return callback(null); }
-      video.url = meta.url;
-      video.thumbnail = meta.thumbnail;
-      video.length = meta.length;
+  addMetaToVideo: async (video) => {
+    const meta = await sources.getMetaForVideo(video.url);
+    if (!meta) { return false; }
+    video.url = meta.url;
+    video.thumbnail = meta.thumbnail;
+    video.length = meta.length;
 
-      // Views and title can update later, so don't include these when getting
-      // metainfo from cache.
-      ['game', 'title', 'views', 'user'].forEach((field) => {
-        if (meta[field] && !video[field]) {
-          video[field] = meta[field];
-        }
-      });
-      callback(true);
+    // Views and title can update later, so don't include these when getting
+    // metainfo from cache.
+    ['game', 'title', 'views', 'user'].forEach((field) => {
+      if (meta[field] && !video[field]) {
+        video[field] = meta[field];
+      }
     });
+    return true;
   },
 
   sourceFromURL: (url) => {
