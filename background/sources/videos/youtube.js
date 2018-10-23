@@ -15,8 +15,8 @@ export default {
     } else {
       throw Error('Could not get video ID of URL: ' + url);
     }
-    const meta = await util.ajax('https://www.youtube.com/get_video_info' +
-    '?ps=default&gl=US&hl=en&video_id=' + id, {
+    const meta = await util.ajax('https://www.youtube.com/get_video_info', {
+      data: { ps: 'default', gl: 'US', hl: 'en', video_id: id },
       cache: {
         transform: (response) => {
           if (response.status === 'fail') {
@@ -29,7 +29,7 @@ export default {
             user: { name: response.author },
           };
         },
-        ttl: 1800000,
+        ttl: 1000 * 60 * 30 // 30 min
       },
     });
     return {
@@ -46,8 +46,10 @@ export default {
     };
   },
   getAllVideos: async () => {
-    const body = await util.ajax('https://www.youtube.com/feed/subscriptions?flow=2',
-      { responseType: 'text' });
+    const body = await util.ajax('https://www.youtube.com/feed/subscriptions', {
+      data: { 'flow': 2 },
+      responseType: 'text',
+    });
     const key = 'window["ytInitialData"] = ';
     let response = body;
     response = response.slice(response.indexOf(key) + key.length);

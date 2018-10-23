@@ -18,6 +18,41 @@ const getTwitchToken = () => {
   });
 };
 
+const userLimit = 50;
+let recentUsers = [];
+const getUserImages = async (videos) => {
+  const token = await getTwitchToken();
+  const usernames = videos.map(video => video.channel.name);
+
+  // Use `.reverse()` since `util.uniq()` favors earlier entries,
+  // and we later truncate the list of usernames to the last `userLimit`.
+  recentUsers = util.uniq(recentUsers.concat(usernames).reverse())
+    .reverse().slice(-userLimit);
+
+  // Use a timeout to gather up recent users requested,
+  // to minimize API requests.
+  await util.sleep(250);
+  const userImages = await util.ajax('https://api.twitch.tv/helix/users', {
+    data: {
+      login: util.uniq(videos.map((video) => video.channel.name))
+    },
+    headers: { 'Authorization': `Bearer ${token}` },
+    cache: {
+      transform: (response) => response.data.map(user => ({
+        login: user.login,
+        profile_image_url: user.profile_image_url,
+      })),
+      ttl: 1000 * 60 * 60 * 24 // 24 hours
+    }
+  });
+  const usersMap = new Map();
+  for (let user of userImages) {
+    usersMap.set(user.login, user.profile_image_url);
+  }
+  return usersMap;
+};
+
+const limit = 50;
 export default {
   patterns: [
     '*://*.twitch.tv/*/v/*',
@@ -32,34 +67,40 @@ export default {
     const id = s[s.length - 1];
     return util.ajax('https://api.twitch.tv/kraken/videos/' + id, {
       cache: {
-        transform: (response) => ({
-          url       : response.url,
-          thumbnail : response.preview,
-          length    : response.length,
-          title     : response.title,
-          game      : response.game,
-          views     : response.views,
-          user      : {
-            url: 'https://www.twitch.tv/' + response.channel.name,
-            name: response.channel.display_name,
-          },
-        }),
-        ttl: 1800000,
+        transform: async (response) => {
+          const userImages = await getUserImages([response]);
+          return {
+            url       : response.url,
+            thumbnail : response.preview,
+            length    : response.length,
+            title     : response.title,
+            game      : response.game,
+            views     : response.views,
+            user      : {
+              url: 'https://www.twitch.tv/' + response.channel.name,
+              name: response.channel.display_name,
+              thumbnail: userImages.get(response.channel.name),
+            },
+          };
+        },
+        ttl: 1000 * 60 * 30 // 30 min
       },
       headers: { 'Authorization': `OAuth ${token}` },
     });
   },
   getAllVideos: async () => {
     const token = await getTwitchToken();
-    const result = await util.ajax('https://api.twitch.tv/kraken/videos/followed?' +
-    'limit=50&broadcast_type=highlight&offset=0&on_site=1', {
+    const result = await util.ajax('https://api.twitch.tv/kraken/videos/followed', {
+      data: { limit, broadcast_type: 'highlight', offset: 0 },
       headers: { 'Authorization': `OAuth ${token}` },
     });
+    const userImages = await getUserImages(result.videos);
     return result.videos.map((video) => {
       return {
         user: {
           url: 'https://www.twitch.tv/' + video.channel.name,
           name: video.channel.display_name,
+          thumbnail: userImages.get(video.channel.name),
         },
         url: video.url,
         thumbnail: video.preview,

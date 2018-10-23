@@ -11,6 +11,7 @@ import SizedMap from './SizedMap.js';
  * @param {Function} opts.cache.transform
  * @param {number} opts.cache.ttl
  * @param {string} opts.responseType
+ * @param {Object} opts.data
  * @return {Promise.<Object>}
  */
 export const ajax = async (url, opts = {}) => {
@@ -24,6 +25,21 @@ export const ajax = async (url, opts = {}) => {
   if (window.location.protocol.indexOf('http') === 0 &&
       url.indexOf('http') === 0) {
     parsed.protocol = window.location.protocol;
+    url = parsed.href;
+  }
+
+  if (opts.data) {
+    const params = new URLSearchParams(parsed.search);
+    for (let [key, value] of Object.entries(opts.data)) {
+      if (Array.isArray(value)) {
+        for (let ivalue of value) {
+          params.append(key, ivalue);
+        }
+      } else {
+        params.append(key, value);
+      }
+    }
+    parsed.search = params.toString();
     url = parsed.href;
   }
 
@@ -83,7 +99,7 @@ export const ajax = async (url, opts = {}) => {
   }
   if (opts.cache) {
     if (opts.cache.transform) {
-      data = opts.cache.transform(data);
+      data = await opts.cache.transform(data);
     }
     if (data) {
       cache.push(cacheRequestKey, data);
@@ -226,4 +242,22 @@ export const minimatch = (str) => {
     .replace(/[-[\]{}()+?.\\^$|]/g, '\\$&')
     .replace(/\*/g, '.*');
   return new RegExp('^' + exp + '$', 'i');
+};
+
+/**
+ * Returns an array of unique items.
+ *
+ * @param {Array.<Object>} arr
+ * @return {Array.<Object>}
+ */
+export const uniq = (arr) => {
+  return Array.from(new Set(arr));
+};
+
+/**
+ * @param {number} ms
+ * @return {Promise}
+ */
+export const sleep = (ms) => {
+  return new Promise(resolve => setTimeout(resolve, ms));
 };
