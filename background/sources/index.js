@@ -61,9 +61,15 @@ const sources = {
         }));
     };
 
-    // First, get videos directly from where they're hosted,
+    const [sourceResults, colResults] = await Promise.all([
+      fetchEnabledSources('videos', true),
+      fetchEnabledSources('collections', false)
+    ]);
+
+    // First, collect videos directly from where they're hosted,
     // in case any of them are included in collection sites.
-    const sourceResults = await fetchEnabledSources('videos', true);
+    // And if they are, that's one less API request we have to make to
+    // get that video's metadata.
     const videos = [].concat(...sourceResults.map((result) => {
       result.videos.forEach((video, i) => {
         video.source = result.source;
@@ -77,7 +83,6 @@ const sources = {
       cachedVideos.push(video.url, video, true);
     });
 
-    const colResults = await fetchEnabledSources('collections', false);
     const colVideos = [].concat(...colResults.map((result) => {
       result.videos.forEach((video, i) => {
         const col = video.col || {};
