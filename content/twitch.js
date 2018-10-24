@@ -1,7 +1,7 @@
-/* global chrome, getElement, setNextButton  */
+/* global chrome, getElement, setNextButton, videoEnded  */
 
 // Wait for player to load.
-getElement('.player', ($player) => {
+getElement('.player', () => {
   // Since Twitch VODs don't have a proper title at page load on the tab,
   // or even after the video loads, we get the title ourselves.
   getElement('title', ($title) => {
@@ -18,12 +18,10 @@ getElement('.player', ($player) => {
     let valuenow = parseFloat($slider.getAttribute('aria-valuenow'));
     if (valuemax && valuenow + 1 > valuemax) {
       observer.disconnect();
-      $player.setAttribute('data-ended', 'true');
       const $scroll = document.querySelector('main .simplebar-scroll-content');
       const $tip =
         document.querySelector('.qa-theatre-mode-button span.player-tip');
-      chrome.runtime.sendMessage({
-        ended: true,
+      videoEnded({
         scrollTop: $tip.getAttribute('data-tip') === 'Exit Theatre Mode'
           ? 0 : $scroll.scrollTop,
       });

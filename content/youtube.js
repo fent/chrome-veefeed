@@ -1,4 +1,4 @@
-/* global chrome, getElement, setNextButton */
+/* global chrome, getElement, setNextButton, videoEnded */
 
 getElement('.ytp-play-button', ($playButton) => {
   const observer = new MutationObserver(() => {
@@ -6,10 +6,7 @@ getElement('.ytp-play-button', ($playButton) => {
     // swirly replay arrow.
     if ($playButton.getAttribute('title') === 'Replay') {
       observer.disconnect();
-      chrome.runtime.sendMessage({
-        ended: true,
-        scrollTop: document.body.scrollTop,
-      });
+      videoEnded({ scrollTop: document.body.scrollTop });
     }
   });
   observer.observe($playButton, { attributes: true });
