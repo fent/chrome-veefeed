@@ -10,13 +10,22 @@
   overflow: visible !important;
 }
 
+/* Make the button bigger on Twitch */
+.qa-controls-bottom .veefeed-next-button {
+  margin-left: 4px;
+}
+
+.qa-controls-bottom .veefeed-next-button svg path {
+  transform: scale(1.35) translate(-5px, -5px)
+}
+
 .veefeed-next-button.veefeed-show {
   width: 3em !important;
   visibility: visible;
   transition: width 200ms;
 }
 
-/* On YouTube, its own next button will be hidden when veefeed's is shown. */
+/* Hide YouTube's own Next Video button when veefeed's is shown. */
 .veefeed-next-button + .ytp-next-button {
   transition: width 200ms, visibility 200ms step-end;
 }

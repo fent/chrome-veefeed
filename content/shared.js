@@ -7,8 +7,8 @@ chrome.runtime.sendMessage({ started: true }, {}, (response) => {
 });
 
 // Element may not be available right away when the page loads.
-window.getElement = (className, callback) => {
-  const search = () => document.getElementsByClassName(className)[0];
+window.getElement = (selector, callback) => {
+  const search = () => document.querySelector(selector);
   let maxAttempts = 10;
   let iid = setInterval(() => {
     const $el = search();

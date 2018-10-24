@@ -49,7 +49,7 @@
     },
     {
       "matches": [
-        "https://www.twitch.tv/*/v/*"
+        "https://www.twitch.tv/videos/*"
       ],
       "js": [
         "util/time.js",

@@ -1,27 +1,36 @@
 /* global chrome, getElement, setNextButton  */
 
-getElement('player', ($player) => {
-  // Since Twitch VODs don't hae a proper title at page load on the tab,
-  // or even after the video load, we get the title ourselves.
+// Wait for player to load.
+getElement('.player', ($player) => {
+  // Since Twitch VODs don't have a proper title at page load on the tab,
+  // or even after the video loads, we get the title ourselves.
   getElement('title', ($title) => {
     chrome.runtime.sendMessage({ title: $title.textContent.trim() });
   });
 
-  const $scroll = document.querySelector('#main_col .tse-scroll-content');
+  // Use the slider on the player to know when the video ends.
+  const $slider = document.querySelector('.js-player-slider');
+  let valuemax;
   const observer = new MutationObserver(() => {
-    // If the video has ended, not just paused, the player will have its
-    // `data-ended` attribute be equal to `true`.
-    if ($player.getAttribute('data-ended') === 'true') {
+    if (!valuemax || valuemax <= 0) {
+      valuemax = parseFloat($slider.getAttribute('aria-valuemax'));
+    }
+    let valuenow = parseFloat($slider.getAttribute('aria-valuenow'));
+    if (valuemax && valuenow + 1 > valuemax) {
       observer.disconnect();
+      $player.setAttribute('data-ended', 'true');
+      const $scroll = document.querySelector('main .simplebar-scroll-content');
+      const $tip =
+        document.querySelector('.qa-theatre-mode-button span.player-tip');
       chrome.runtime.sendMessage({
         ended: true,
-        scrollTop: $scroll.scrollTop,
+        scrollTop: $tip.getAttribute('data-tip') === 'Exit Theatre Mode'
+          ? 0 : $scroll.scrollTop,
       });
     }
   });
-  observer.observe($player, { attributes: true });
+  observer.observe($slider, { attributes: true });
 
-  const $playButton =
-    document.getElementsByClassName('js-control-playpause-button')[0];
+  const $playButton = document.querySelector('button.qa-pause-play-button');
   setNextButton($playButton, 'player-button');
 });
