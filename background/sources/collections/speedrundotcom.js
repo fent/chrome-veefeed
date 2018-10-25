@@ -1,7 +1,30 @@
 import * as util from '../../util.js';
 
 
-let speedrundotcomKey = localStorage.getItem('speedrundotcomKey');
+let cachedKey = localStorage.getItem('speedrundotcomKey');
+const getSpeedrundotcomKey = async () => {
+  if (cachedKey) {
+    return cachedKey;
+  } else {
+    const settings = await util.ajax('https://www.speedrun.com/settings');
+    const $username = settings.querySelector(
+      '.container.navbar-bottom .dropdown.user .username');
+    if (!$username) {
+      throw Error('Unable to get API token from speedrun.com, not logged in?');
+    }
+    const username = $username.textContent;
+    const apiPage = await util.ajax(
+      `https://www.speedrun.com/${username}/settings/api`);
+    const $code = apiPage.querySelector('code');
+    if (!$code) {
+      throw Error('Unable to get API token from speedrun.com');
+    }
+    cachedKey = $code.textContent;
+    localStorage.setItem('speedrundotcomKey', cachedKey);
+    return cachedKey;
+  }
+};
+
 export default async () => {
   const getMetaForRun = (url) => {
     return util.ajax(url, {
@@ -17,6 +40,7 @@ export default async () => {
             users: response.data.players,
           };
         },
+        ttl: 1000 * 60 * 30 // 30 min
       },
     });
   };
@@ -27,13 +51,25 @@ export default async () => {
       if (user.rel === 'guest') {
         return { name: user.name };
       } else {
-        return util.ajax('http://www.speedrun.com/api/v1/users/' + user.id, {
+        return util.ajax('https://www.speedrun.com/api/v1/users/' + user.id, {
           cache: {
-            transform: (response) => ({
-              url: response.data.weblink,
-              name: response.data.names.international,
-            })
-          }
+            transform: async (response) => {
+              const url = response.data.weblink;
+              const user = url.slice(url.lastIndexOf('/') + 1);
+              let thumbnail =
+                `https://www.speedrun.com/themes/user/${user}/image.png`;
+              const imageRes = await fetch(thumbnail, {
+                method: 'HEAD'
+              });
+              if (!imageRes.ok) { thumbnail = null; }
+              return {
+                url,
+                name: response.data.names.international,
+                thumbnail,
+              };
+            },
+            ttl: 1000 * 60 * 60 * 24 // 1day
+          },
         });
       }
     }));
@@ -44,11 +80,12 @@ export default async () => {
   const addMetaToVideo = async (run, meta) => {
     if (!run.game && meta.gameID) {
       const game = await util.ajax(
-        'http://www.speedrun.com/api/v1/games/' + meta.gameID, {
+        'https://www.speedrun.com/api/v1/games/' + meta.gameID, {
           cache: {
             transform: (response) => ({
               name: response.data.names.international
             }),
+            ttl: 1000 * 60 * 60 * 24 // 1day
           },
         });
       run.game = game.name;
@@ -63,23 +100,15 @@ export default async () => {
     run.url = meta.url;
     run.desc = meta.desc;
     const results = await Promise.all([
-      addUsersToRun.bind(null, run, meta),
-      addMetaToVideo.bind(null, run, meta)
+      addUsersToRun(run, meta),
+      addMetaToVideo(run, meta)
     ]);
     return results[0] && results[1];
   };
 
-  if (!speedrundotcomKey) {
-    const body = await util.ajax('http://www.speedrun.com/settings');
-    const $code = body.getElementsByTagName('code')[0];
-    if (!$code) {
-      throw Error('Unable to retrieve API token from speedrun.com');
-    }
-    speedrundotcomKey = $code.textContent;
-    localStorage.setItem('speedrundotcomKey', speedrundotcomKey);
-  }
-  const results = await util.ajax('http://www.speedrun.com/api/v1/notifications', {
-    headers: { 'X-API-Key': speedrundotcomKey },
+  const key = await getSpeedrundotcomKey();
+  const results = await util.ajax('https://www.speedrun.com/api/v1/notifications', {
+    headers: { 'X-API-Key': key },
   });
   const runs = results.data
     .filter(noti => noti.item.rel === 'run')
@@ -89,7 +118,7 @@ export default async () => {
           url: noti.item.uri,
         },
         url: noti.links[0].uri,
-        title: noti.text,
+        title: null,
         timestamp: new Date(noti.created).getTime(),
       };
     });

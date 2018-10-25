@@ -1,18 +1,18 @@
 import * as util from '../../util.js';
 
 
-let twitchToken = null;
+let cachedToken = null;
 const getTwitchToken = () => {
   return new Promise((resolve) => {
-    if (twitchToken) {
-      resolve(twitchToken);
+    if (cachedToken) {
+      resolve(cachedToken);
     } else {
       chrome.cookies.get({
         url: 'https://www.twitch.tv',
         name: 'auth-token',
       }, (cookie) => {
-        twitchToken = cookie && cookie.value;
-        resolve(twitchToken);
+        cachedToken = cookie && cookie.value;
+        resolve(cachedToken);
       });
     }
   });
@@ -42,7 +42,7 @@ const getUserImages = async (videos) => {
         login: user.login,
         profile_image_url: user.profile_image_url,
       })),
-      ttl: 1000 * 60 * 60 * 24 // 24 hours
+      ttl: 1000 * 60 * 60 * 24 // 1day
     }
   });
   const usersMap = new Map();
@@ -83,7 +83,7 @@ export default {
             },
           };
         },
-        ttl: 1000 * 60 * 30 // 30 min
+        ttl: 1000 * 60 * 30 // 30min
       },
       headers: { 'Authorization': `OAuth ${token}` },
     });
