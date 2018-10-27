@@ -33,9 +33,7 @@ const getUserImages = async (videos) => {
   // to minimize API requests.
   await util.sleep(250);
   const userImages = await util.ajax('https://api.twitch.tv/helix/users', {
-    data: {
-      login: util.uniq(videos.map((video) => video.channel.name))
-    },
+    data: { login: recentUsers },
     headers: { 'Authorization': `Bearer ${token}` },
     cache: {
       transform: (response) => response.data.map(user => ({

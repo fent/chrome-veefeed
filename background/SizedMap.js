@@ -3,7 +3,7 @@
  *
  * @constructor
  * @param {number} limit
- * @param {Array.<Object>|string?} list
+ * @param {!Array.<Object>|string} list
  * @param {number} ttl
  */
 export default class {
@@ -87,9 +87,23 @@ export default class {
   /**
    * Saves to local storage.
    */
-  _save() {
+  async _save() {
     if (!this._key || !this._shouldSave) { return; }
-    const store = this.saveList ? this.list : this.map;
+    let store;
+    if (this.saveList) {
+      store = await Promise.all(this.list);
+    } else {
+      store = {};
+      await Promise.all(Object.keys(this.map).map(async (key) => {
+        let item = Object.assign({}, this.map[key]);
+        if (this._ttl) {
+          item.v = await item.v;
+        } else {
+          item = await item;
+        }
+        store[key] = item;
+      }));
+    }
     localStorage.setItem(this._key, JSON.stringify(store));
     this._shouldSave = false;
   }

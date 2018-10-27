@@ -14,10 +14,10 @@ import SizedMap from './SizedMap.js';
  * @param {Object} opts.data
  * @return {Promise.<Object>}
  */
-export const ajax = async (url, opts = {}) => {
+export const ajax = (url, opts = {}) => {
   if (ajax.active >= ajax.max) {
     return new Promise((resolve) => {
-      return ajax.queue.push([resolve, url, opts]);
+      ajax.queue.push([resolve, url, opts]);
     });
   }
 
@@ -54,14 +54,24 @@ export const ajax = async (url, opts = {}) => {
     if (cache.has(cacheRequestKey)) {
       ajax.next();
       return cache.get(cacheRequestKey);
+    } else {
+      const req = request(url, opts);
+      // Store the promise in the cache in case other of the same requests
+      // are made before this one finishes.
+      cache.push(cacheRequestKey, req);
+      return req;
     }
   }
+  return request(url, opts);
+};
 
+const request = async (url, opts) => {
   ajax.active++;
   let responseType;
   const response = await fetch(url, {
     credentials: 'include',
     redirect: 'follow',
+    cache: 'force-cache',
     headers: opts.headers,
   });
   ajax.active--;
@@ -97,13 +107,8 @@ export const ajax = async (url, opts = {}) => {
     default:
       data = body;
   }
-  if (opts.cache) {
-    if (opts.cache.transform) {
-      data = await opts.cache.transform(data);
-    }
-    if (data) {
-      cache.push(cacheRequestKey, data);
-    }
+  if (opts.cache && opts.cache.transform) {
+    data = await opts.cache.transform(data);
   }
   return data || null;
 };
