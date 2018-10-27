@@ -48,6 +48,7 @@ const sources = {
             cachedResults[type][source] = videos;
           } catch (err) {
             console.warn(`Failed to get videos for ${source}: ${err.message}`);
+            console.error(err);
 
             // Fallback to cached videos from this source if getting videos fails.
             videos = cachedResults[type][source] || [];
@@ -150,6 +151,7 @@ const sources = {
       if (!meta) { return false; }
     } catch (err) {
       console.warn('Failed to get meta for video: ' + video.url);
+      console.error(err);
       return false;
     }
     video.url = meta.url;

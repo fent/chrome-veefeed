@@ -199,11 +199,7 @@ export const isSameVideo = (video1, video2) => {
  */
 export const parallelFilter = async (args, func) => {
   const results = await Promise.all(args.map(func));
-  const filteredList = [];
-  results.forEach((pass, i) => {
-    filteredList[i] = args[i];
-  });
-  return filteredList.filter(d => !!d);
+  return args.filter((arg, i) => results[i]);
 };
 
 /**

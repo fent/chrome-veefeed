@@ -97,6 +97,7 @@ export default async () => {
 
   const addMetaToRun = async (run) => {
     const meta = await getMetaForRun(run.url);
+    if (!meta) { return false; }
     run.url = meta.url;
     run.desc = meta.desc;
     const results = await Promise.all([
