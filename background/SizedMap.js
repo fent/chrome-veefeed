@@ -6,7 +6,7 @@
  * @param {!Array.<Object>|string} list
  * @param {number} ttl
  */
-export default class {
+export default class SizedMap {
   constructor(limit, list, ttl) {
     this.limit = limit;
     this._ttl = ttl;

@@ -81,7 +81,7 @@ export default {
             },
           };
         },
-        ttl: 1000 * 60 * 30 // 30min
+        ttl: 1000 * 60 * 60 // 1hr
       },
       headers: { 'Authorization': `OAuth ${token}` },
     });

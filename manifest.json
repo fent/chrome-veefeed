@@ -20,6 +20,8 @@
     "https://t.co/",
     "contextMenus",
     "cookies",
+    "webRequest",
+    "webRequestBlocking",
     "notifications",
     "storage"
   ],

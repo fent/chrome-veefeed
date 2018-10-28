@@ -71,7 +71,6 @@ const request = async (url, opts) => {
   const response = await fetch(url, {
     credentials: 'include',
     redirect: 'follow',
-    cache: 'force-cache',
     headers: opts.headers,
   });
   ajax.active--;

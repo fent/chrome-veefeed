@@ -1,49 +1,67 @@
 import * as util from '../../util.js';
+import SizedMap from '../../SizedMap.js';
 
+import ytdl from '../../../lib/ytdl-core.min.js';
+const ytdlCache = new SizedMap(100, 'cache-youtube', 1000 * 60 * 60); // 1hr
+
+
+// ytdl-core requires the User-Agent header to be empty to scrape the watch
+// page correctly. XMLHttpRequest doesn't allow removing this header,
+// so we have to use the `webRequest` API.
+// Removing the header from the list of headers doesn't work either,
+// we have to set it to a blank value.
+chrome.webRequest.onBeforeSendHeaders.addListener((details) => {
+  let header = details.requestHeaders.find(h => h.name === 'User-Agent');
+  if (header) { header.value = ''; }
+  return { requestHeaders: details.requestHeaders };
+}, {
+  urls: [
+    'https://www.youtube.com/watch?v=*',
+    'https://www.youtube.com/get_video_info*'
+  ],
+  types: ['xmlhttprequest'],
+}, ['blocking', 'requestHeaders']);
 
 export default {
   patterns: [
     '*://www.youtube.com/watch?v=*',
     '*://m.youtube.com/watch?v=*',
     '*://youtu.be/*',
+    '*://music.youtube.com/watch?v=*',
+    '*://gaming.youtube.com/watch?v=*',
   ],
   getVideo: async (url) => {
-    const r = /(?:v=|youtu\.be\/)([^?&$]+)/.exec(url);
-    let id;
-    if (r) {
-      id = r[1];
-    } else {
-      throw Error('Could not get video ID of URL: ' + url);
+    const id = ytdl.getURLVideoID(url);
+    if (ytdlCache.has(id)) {
+      return id;
     }
-    const meta = await util.ajax('https://www.youtube.com/get_video_info', {
-      data: { ps: 'default', gl: 'US', hl: 'en', video_id: id },
-      cache: {
-        transform: (response) => {
-          if (response.status === 'fail') {
-            throw Error('failed to get video info: ' + response.reason);
-          }
-          return {
-            length: parseInt(response.length_seconds, 10),
-            title: response.title,
-            views: parseInt(response.view_count, 10),
-            user: { name: response.author },
-          };
-        },
-        ttl: 1000 * 60 * 30 // 30 min
-      },
-    });
-    return {
+    const info = await ytdl.getBasicInfo(url);
+    const meta = {
       // Canonical YouTube URL.
-      url: 'https://www.youtube.com/watch?v=' + id,
+      url: info.video_url,
+      length: parseInt(info.length_seconds, 10),
+      title: info.title,
+      views: parseInt(info.view_count, 10),
+      user: {
+        url: info.author.channel_url,
+        name: info.author.name,
+        thumbnail: info.author.avatar,
+        verified: info.author.verified,
+      },
 
       // Using medium quality gives a screenshot without black bars.
-      thumbnail: 'https://i.ytimg.com/vi/' + id +
+      thumbnail: 'https://i.ytimg.com/vi/' + info.video_id +
         '/mqdefault.jpg?custom=true&w=196&h=110&stc=true&jpg444=true&' +
         'jpgq=90&sp=68',
 
-      game: null,
-      ...meta,
+      game: info.media && info.media.game ? {
+        name: info.media.game,
+        url: info.media.game_url,
+        thumbnail: info.media.image,
+      } : null,
     };
+    ytdlCache.push(id, meta);
+    return meta;
   },
   getAllVideos: async () => {
     const body = await util.ajax('https://www.youtube.com/feed/subscriptions', {
@@ -110,8 +128,7 @@ export default {
           url: videoUrl,
           thumbnail,
           title: item.title.simpleText,
-          desc:
-            item.descriptionSnippet && item.descriptionSnippet.simpleText,
+          desc: item.descriptionSnippet && item.descriptionSnippet.simpleText,
           length: length ? util.timeToSeconds(length.simpleText) : null,
           views: views ?  parseInt(views.replace(/,/g, ''), 10) : null,
           timestamp,
