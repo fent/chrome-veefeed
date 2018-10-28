@@ -132,7 +132,7 @@ ajax.next = () => {
 export const relativeToTimestamp = (str) => {
   const r = /(\d+)\s+(second|minute|hour|day)s?/.exec(str);
   if (!r) { return null; }
-  const n = parseInt(r[1], 10);
+  const n = parseInt(r[1]);
   const multiplier = {
     second: 1,
     minute: 60,

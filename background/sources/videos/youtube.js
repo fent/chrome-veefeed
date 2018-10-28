@@ -39,9 +39,9 @@ export default {
     const meta = {
       // Canonical YouTube URL.
       url: info.video_url,
-      length: parseInt(info.length_seconds, 10),
+      length: parseInt(info.length_seconds),
       title: info.title,
-      views: parseInt(info.view_count, 10),
+      views: parseInt(info.view_count),
       user: {
         url: info.author.channel_url,
         name: info.author.name,
@@ -111,7 +111,7 @@ export default {
         const timestamp = item.publishedTimeText ?
           util.relativeToTimestamp(item.publishedTimeText.simpleText) :
           item.upcomingEventData ?
-            parseInt(item.upcomingEventData.startTime, 10) * 1000 : null;
+            parseInt(item.upcomingEventData.startTime) * 1000 : null;
         let views = item.viewCountText;
         views = views && views.simpleText ?  views.simpleText :
           views && views.runs ? views.runs[0].text : null;
@@ -130,7 +130,7 @@ export default {
           title: item.title.simpleText,
           desc: item.descriptionSnippet && item.descriptionSnippet.simpleText,
           length: length ? util.timeToSeconds(length.simpleText) : null,
-          views: views ?  parseInt(views.replace(/,/g, ''), 10) : null,
+          views: views ?  parseInt(views.replace(/,/g, '')) : null,
           timestamp,
           live: item.badges && timestamp < Date.now() &&
             item.badges.some((badge) => {
