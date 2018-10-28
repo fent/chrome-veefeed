@@ -202,13 +202,13 @@ const renderGroupVideo = (group, video) => {
 
   const userView = (user) => {
     if (!user) { return null; }
-    return m('span.user', [
+    return m((user.url ? 'a' : 'span') + '.user', {
+      href: user.url || '#',
+      target: '_blank',
+    }, [
       user.thumbnail ?
         m('img.lazy', { 'data-src': user.thumbnail }) : null,
-      m((user.url ? 'a' : 'span') + '.name', {
-        href: user.url || '#',
-        target: '_blank',
-      }, user.name),
+      m('span.name', user.name),
       user.verified ?
         m('span.verified', { 'data-title': 'Verified' }) : null,
     ]);
