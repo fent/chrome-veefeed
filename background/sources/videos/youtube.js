@@ -102,7 +102,7 @@ export default {
         const videoUrl = 'https://www.youtube.com/watch?v=' + item.videoId;
 
         // YouTube videos sometimes don't have thumbnails loaded until
-        // the page is scrolle down.
+        // the page is scrolled down.
         const thumbnail = 'https://i.ytimg.com/vi/' + item.videoId +
           '/mqdefault.jpg?custom=true&w=196&h=110&stc=true&jpg444=true&' +
           'jpgq=90&sp=68';

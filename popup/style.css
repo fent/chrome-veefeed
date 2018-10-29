@@ -291,7 +291,6 @@ a:hover {
   width: 392px;
   height: 110px;
   margin: 4px 0;
-  overflow: hidden;
 }
 
 .close {
@@ -340,6 +339,10 @@ a:hover {
   background-repeat: no-repeat;
   background-size: cover;
   margin-right: 4px;
+}
+
+.source {
+  position: relative;
 }
 
 .favicon.source-youtube {
@@ -493,4 +496,15 @@ a.close[data-title]:hover:after {
 
 .queue-all.video-is-playing .play-icon {
   display: none;
+}
+
+.mouseover-link {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  padding: 2px;
+  background: rgba(25, 25, 25, 0.75);
+  color: #f3f2e1;
+  font-size: 14px;
+  z-index: 99;
 }

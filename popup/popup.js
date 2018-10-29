@@ -126,7 +126,7 @@ const renderContent = () => {
     if (showTabs) {
       const $tab = m('a.tab', {
         className: group.selected && 'selected',
-        onclick: () => {
+        onclick() {
           // Remember the scroll position of the last selected group.
           const selectedGroup = groups.filter(group => group.selected)[0];
           if (selectedGroup) {
@@ -200,10 +200,29 @@ const renderGroupVideo = (group, video) => {
     openVideo(video, inNewTab);
   };
 
+  const link = (selector, opts, children) => {
+    if (!opts.href) { return m(selector, { href: '#', ...opts}, children); }
+    let url = opts.href.replace(/^https?:\/\/(www\.)?/, '');
+    if (opts.target === '_blank') { url += ' ⇗'; }
+    let el;
+    return m(selector, {
+      onmouseenter() {
+        el = document.createElement('div');
+        el.className = 'mouseover-link';
+        el.textContent = url;
+        document.body.append(el);
+      },
+      onmouseleave() {
+        if (el) { el.remove(); }
+      },
+      ...opts
+    }, children);
+  };
+
   const userView = (user) => {
     if (!user) { return null; }
-    return m((user.url ? 'a' : 'span') + '.user', {
-      href: user.url || '#',
+    return link((user.url ? 'a' : 'span') + '.user', {
+      href: user.url,
       target: '_blank',
     }, [
       user.image ?
@@ -214,11 +233,26 @@ const renderGroupVideo = (group, video) => {
     ]);
   };
 
+  const gameView = (game) => {
+    // Fallback to Twitch gaming if there is a `game.name`,
+    // but no `game.url` or `game.thumbnail`.
+    const url = game.url || 'https://www.twitch.tv/directory/game/' +
+      encodeURIComponent(game.name) + '/videos/week';
+    const image = game.image ||
+      'http://static-cdn.jtvnw.net/ttv-boxart/' +
+      encodeURIComponent(game.name) + '-138x190.jpg';
+    return link('a.game', {
+      href: url,
+      target: '_blank',
+      'data-title': game.name,
+    }, m('img.lazy', { 'data-src': image }));
+  };
+
   const sourceView = (source) => {
     return m('span.source', [
-      m((source.url ? 'a' : 'span') + '.favicon', {
+      link((source.url ? 'a' : 'span') + '.favicon', {
         className: 'source-' + source.source,
-        href: source.url || '#',
+        href: source.url,
         target: '_blank',
       })
     ].concat(source.users ?
@@ -232,26 +266,16 @@ const renderGroupVideo = (group, video) => {
   if (video.silentQueued) { vidClass += '.silent-queued'; }
   if (video.playing) { vidClass += '.playing'; }
   const $video = m('li.video' + vidClass, [
-    m('a.left-side', { href: video.url, disabled: true }, [
+    link('a.left-side', { href: video.url, disabled: true }, [
       m('img.lazy', {
         'data-src': video.thumbnail || '',
         onclick: open.bind(null, false),
       }),
-      video.game ?
-        m('a.game', {
-          href: video.game.url || 'https://www.twitch.tv/directory/game/' +
-            encodeURIComponent(video.game.name) + '/videos/week',
-          'data-title': video.game.name,
-          target: '_blank',
-        }, m('img.lazy', {
-          'data-src': video.game.image ||
-            'http://static-cdn.jtvnw.net/ttv-boxart/' +
-            encodeURIComponent(video.game.name) + '-138x190.jpg',
-        })) : null,
+      video.game ? gameView(video.game) : null,
       video.length && m('span.length', formatVideoLength(video.length)),
       openedVideo && openedVideo.playing && m('span.queue', {
         'data-title': 'Add to Queue',
-        onclick: () => {
+        onclick() {
           const message = {
             tabID: tabID,
             video: video,
@@ -309,7 +333,7 @@ const renderGroupVideo = (group, video) => {
       group.removable && !video.watched && m('a.close', {
         href: '#',
         'data-title': 'Mark as Watched',
-        onclick: (e) => {
+        onclick(e) {
           chrome.runtime.sendMessage({
             watched: true,
             url: video.url,
@@ -348,7 +372,7 @@ const renderGroupVideo = (group, video) => {
           e.preventDefault();
         },
       }, m.trust('&times;')),
-      m('a.title', {
+      link('a.title', {
         href: video.url,
         onclick: open.bind(null, false)
       }, video.title),
@@ -391,7 +415,7 @@ const renderVideos = (group) => {
 
   group.$queueAll = m('div.queue-all', {
     className: openedVideo && openedVideo.playing && 'video-is-playing',
-    onclick: () => {
+    onclick() {
       if (openedVideo && openedVideo.playing) {
         chrome.runtime.sendMessage({
           queueAll: true,
