@@ -55,7 +55,7 @@ export default async () => {
       desc: 'Previous Record: ' + $previousRecord.outerHTML +
         ' by ' + $previousUser.outerHTML + '<br />' +
         'Time Saved: ' + timeSaved,
-      game: game,
+      game: { name: game },
     });
   }
   return items;

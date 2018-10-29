@@ -206,8 +206,8 @@ const renderGroupVideo = (group, video) => {
       href: user.url || '#',
       target: '_blank',
     }, [
-      user.thumbnail ?
-        m('img.lazy', { 'data-src': user.thumbnail }) : null,
+      user.image ?
+        m('img.lazy', { 'data-src': user.image }) : null,
       m('span.name', user.name),
       user.verified ?
         m('span.verified', { 'data-title': 'Verified' }) : null,
@@ -239,13 +239,14 @@ const renderGroupVideo = (group, video) => {
       }),
       video.game ?
         m('a.game', {
-          href: 'https://www.twitch.tv/directory/game/' +
-            encodeURIComponent(video.game) + '/videos/week',
-          'data-title': video.game,
+          href: video.game.url || 'https://www.twitch.tv/directory/game/' +
+            encodeURIComponent(video.game.name) + '/videos/week',
+          'data-title': video.game.name,
           target: '_blank',
         }, m('img.lazy', {
-          'data-src': 'http://static-cdn.jtvnw.net/ttv-boxart/' +
-            encodeURIComponent(video.game) + '-138x190.jpg',
+          'data-src': video.game.image ||
+            'http://static-cdn.jtvnw.net/ttv-boxart/' +
+            encodeURIComponent(video.game.name) + '-138x190.jpg',
         })) : null,
       video.length && m('span.length', formatVideoLength(video.length)),
       openedVideo && openedVideo.playing && m('span.queue', {

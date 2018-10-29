@@ -45,7 +45,7 @@ export default {
       user: {
         url: info.author.channel_url,
         name: info.author.name,
-        thumbnail: info.author.avatar,
+        image: info.author.avatar,
         verified: info.author.verified,
       },
 
@@ -57,7 +57,7 @@ export default {
       game: info.media && info.media.game ? {
         name: info.media.game,
         url: info.media.game_url,
-        thumbnail: info.media.image,
+        image: info.media.image,
       } : null,
     };
     ytdlCache.push(id, meta);
@@ -119,7 +119,7 @@ export default {
         return {
           user: {
             url: userUrl,
-            thumbnail: item.channelThumbnail.thumbnails[0].url,
+            image: item.channelThumbnail.thumbnails[0].url,
             name: user.text,
             verified: item.ownerBadges && item.ownerBadges.some((badge) => {
               badge.tooltip == 'Verified';

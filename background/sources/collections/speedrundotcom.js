@@ -56,16 +56,16 @@ export default async () => {
             transform: async (response) => {
               const url = response.data.weblink;
               const user = url.slice(url.lastIndexOf('/') + 1);
-              let thumbnail =
+              let image =
                 `https://www.speedrun.com/themes/user/${user}/image.png`;
-              const imageRes = await fetch(thumbnail, {
+              const imageRes = await fetch(image, {
                 method: 'HEAD'
               });
-              if (!imageRes.ok) { thumbnail = null; }
+              if (!imageRes.ok) { image = null; }
               return {
                 url,
                 name: response.data.names.international,
-                thumbnail,
+                image,
               };
             },
             ttl: 1000 * 60 * 60 * 24 // 1day
@@ -77,18 +77,19 @@ export default async () => {
     return !!users.filter(u => !!u).length;
   };
 
-  const addMetaToVideo = async (run, meta) => {
+  const addGameToVideo = async (run, meta) => {
     if (!run.game && meta.gameID) {
-      const game = await util.ajax(
+      run.game = await util.ajax(
         'https://www.speedrun.com/api/v1/games/' + meta.gameID, {
           cache: {
             transform: (response) => ({
-              name: response.data.names.international
+              name: response.data.names.international,
+              url: response.data.weblink,
+              image: response.data.assets['cover-small'].uri,
             }),
             ttl: 1000 * 60 * 60 * 24 // 1day
           },
         });
-      run.game = game.name;
       return true;
     } else {
       return true;
@@ -102,7 +103,7 @@ export default async () => {
     run.desc = meta.desc;
     const results = await Promise.all([
       addUsersToRun(run, meta),
-      addMetaToVideo(run, meta)
+      addGameToVideo(run, meta)
     ]);
     return results[0] && results[1];
   };

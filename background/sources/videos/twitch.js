@@ -72,12 +72,12 @@ export default {
             thumbnail : response.preview,
             length    : response.length,
             title     : response.title,
-            game      : response.game,
+            game      : { name: response.game },
             views     : response.views,
             user      : {
               url: 'https://www.twitch.tv/' + response.channel.name,
               name: response.channel.display_name,
-              thumbnail: userImages.get(response.channel.name),
+              image: userImages.get(response.channel.name),
             },
           };
         },
@@ -98,7 +98,7 @@ export default {
         user: {
           url: 'https://www.twitch.tv/' + video.channel.name,
           name: video.channel.display_name,
-          thumbnail: userImages.get(video.channel.name),
+          image: userImages.get(video.channel.name),
         },
         url: video.url,
         thumbnail: video.preview,
@@ -107,7 +107,7 @@ export default {
         timestamp: new Date(video.created_at).getTime(),
         views: video.views,
         desc: video.description,
-        game: video.game,
+        game: { name: video.game },
       };
     });
   },
