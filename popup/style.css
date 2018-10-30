@@ -502,9 +502,10 @@ a.close[data-title]:hover:after {
   position: fixed;
   left: 0;
   bottom: 0;
-  padding: 2px;
+  padding: 2px 3px;
   background: rgba(25, 25, 25, 0.75);
   color: #f3f2e1;
   font-size: 14px;
+  line-height: 15px;
   z-index: 99;
 }
