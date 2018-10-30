@@ -202,7 +202,7 @@ const renderGroupVideo = (group, video) => {
 
   const link = (selector, opts, children) => {
     if (!opts.href) { return m(selector, { href: '#', ...opts}, children); }
-    let url = opts.href.replace(/^https?:\/\/(www\.)?/, '');
+    let url = decodeURIComponent(opts.href.replace(/^https?:\/\/(www\.)?/, ''));
     if (opts.target === '_blank') { url += ' ⇗'; }
     let el;
     return m(selector, {
