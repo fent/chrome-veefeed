@@ -1,8 +1,13 @@
 import * as util from '../../util.js';
 
 
+const RECORDS_PAGE = 'https://haloruns.com/records?recent';
+const resolveLink = ($link) => {
+  return new URL($link.getAttribute('href'), RECORDS_PAGE).href;
+};
+
 export default async () => {
-  const body = await util.ajax('https://haloruns.com/records?recent');
+  const body = await util.ajax(RECORDS_PAGE);
   let $items = body.getElementById('recentWRTable');
   if (!$items) {
     throw Error('Error retrieving videos');
@@ -37,16 +42,15 @@ export default async () => {
     let $newUser = $col4.children[1].children[0];
     let timeSaved = $col5.textContent.replace(' : ', ':');
 
-    let url = $newRecord.href;
     items.push({
       col: {
-        url: $level.href,
+        url: resolveLink($level),
         users: [{
-          url: $newUser.href,
+          url: resolveLink($newUser),
           name: $newUser.textContent,
         }],
       },
-      url: url,
+      url: resolveLink($newRecord),
       thumbnail: null,
       length: util.timeToSeconds($newRecord.textContent),
       title: game + ' ' + difficulty + ' - ' + $level.textContent +
