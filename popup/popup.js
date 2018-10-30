@@ -237,7 +237,7 @@ const renderGroupVideo = (group, video) => {
     // Fallback to Twitch gaming if there is a `game.name`,
     // but no `game.url` or `game.thumbnail`.
     const url = game.url || 'https://www.twitch.tv/directory/game/' +
-      encodeURIComponent(game.name) + '/videos/week';
+      encodeURIComponent(game.name) + '/';
     const image = game.image ||
       'http://static-cdn.jtvnw.net/ttv-boxart/' +
       encodeURIComponent(game.name) + '-138x190.jpg';
