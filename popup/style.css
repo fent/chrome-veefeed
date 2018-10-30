@@ -499,7 +499,7 @@ a.close[data-title]:hover:after {
 }
 
 .mouseover-link {
-  position: absolute;
+  position: fixed;
   left: 0;
   bottom: 0;
   padding: 2px;
