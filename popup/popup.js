@@ -200,30 +200,10 @@ const renderGroupVideo = (group, video) => {
     openVideo(video, inNewTab);
   };
 
-  const link = (selector, opts, children) => {
-    if (!opts.href) { return m(selector, { href: '#', ...opts}, children); }
-    let url = decodeURIComponent(opts.href.replace(/^https?:\/\/(www\.)?/, ''));
-    if (opts.target === '_blank') { url += ' ⇗'; }
-    let el;
-    return m(selector, {
-      onmouseenter(e) {
-        e.stopPropagation();
-        el = document.createElement('div');
-        el.className = 'mouseover-link';
-        el.textContent = url;
-        document.body.append(el);
-      },
-      onmouseleave() {
-        if (el) { el.remove(); }
-      },
-      ...opts
-    }, children);
-  };
-
   const userView = (user) => {
     if (!user) { return null; }
-    return link((user.url ? 'a' : 'span') + '.user', {
-      href: user.url,
+    return m((user.url ? 'a' : 'span') + '.user', {
+      href: user.url || '#',
       target: '_blank',
     }, [
       user.image ?
@@ -242,7 +222,7 @@ const renderGroupVideo = (group, video) => {
     const image = game.image ||
       'http://static-cdn.jtvnw.net/ttv-boxart/' +
       encodeURIComponent(game.name) + '-138x190.jpg';
-    return link('a.game', {
+    return m('a.game', {
       href: url,
       target: '_blank',
       'data-title': game.name,
@@ -251,9 +231,9 @@ const renderGroupVideo = (group, video) => {
 
   const sourceView = (source) => {
     return m('span.source', [
-      link((source.url ? 'a' : 'span') + '.favicon', {
+      m((source.url ? 'a' : 'span') + '.favicon', {
         className: 'source-' + source.source,
-        href: source.url,
+        href: source.url || '#',
         target: '_blank',
       })
     ].concat(source.users ?
@@ -267,7 +247,7 @@ const renderGroupVideo = (group, video) => {
   if (video.silentQueued) { vidClass += '.silent-queued'; }
   if (video.playing) { vidClass += '.playing'; }
   const $video = m('li.video' + vidClass, [
-    link('a.left-side', { href: video.url, disabled: true }, [
+    m('a.left-side', { href: video.url, disabled: true }, [
       m('img.lazy', {
         'data-src': video.thumbnail || '',
         onclick: open.bind(null, false),
@@ -373,7 +353,7 @@ const renderGroupVideo = (group, video) => {
           e.preventDefault();
         },
       }, m.trust('&times;')),
-      link('a.title', {
+      m('a.title', {
         href: video.url,
         onclick: open.bind(null, false)
       }, video.title),
@@ -401,8 +381,28 @@ const renderGroupVideo = (group, video) => {
     ])
   ]);
 
+  hoverLinks($video);
   video.$video = $video;
   return $video;
+};
+
+const hoverLinks = ($video) => {
+  for (let $link of $video.querySelectorAll('a')) {
+    let url = decodeURIComponent($link.href)
+      .replace(/^https?:\/\/(www\.)?/, '');
+    if ($link.target === '_blank') { url += ' ⇗'; }
+    let el;
+    $link.addEventListener('mouseenter', (e) => {
+      e.stopPropagation();
+      el = document.createElement('div');
+      el.className = 'mouseover-link';
+      el.textContent = url;
+      document.body.append(el);
+    });
+    $link.addEventListener('mouseleave', () => {
+      if (el) { el.remove(); }
+    });
+  }
 };
 
 const renderVideos = (group) => {
