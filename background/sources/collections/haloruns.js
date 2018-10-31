@@ -5,6 +5,13 @@ const RECORDS_PAGE = 'https://haloruns.com/records?recent';
 const resolveLink = ($link) => {
   return new URL($link.getAttribute('href'), RECORDS_PAGE).href;
 };
+const embedLink = ($link) => {
+  const $a = document.createElement('a');
+  $a.href = resolveLink($link);
+  $a.target = '_blank';
+  $a.textContent = $link.textContent;
+  return $a.outerHTML;
+};
 
 export default async () => {
   const body = await util.ajax(RECORDS_PAGE);
@@ -56,8 +63,8 @@ export default async () => {
       title: game + ' ' + difficulty + ' - ' + $level.textContent +
         ' (' + $newRecord.textContent.replace(/ /g, '') + ')',
       timestamp: date.getTime(),
-      desc: 'Previous Record: ' + $previousRecord.outerHTML +
-        ' by ' + $previousUser.outerHTML + '<br />' +
+      desc: 'Previous Record: ' + embedLink($previousRecord) +
+        ' by ' + embedLink($previousUser) + '<br />' +
         'Time Saved: ' + timeSaved,
       game: { name: game },
     });
