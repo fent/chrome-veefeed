@@ -430,7 +430,7 @@ const renderVideos = (group) => {
             if (g.video.$video) {
               g.video.$video.classList.toggle('queued');
             }
-            setTimeout(() => {
+            requestAnimationFrame(() => {
               getQueue();
               sortVideos(g.group);
               setVideoPositions(g.group);
@@ -464,7 +464,7 @@ const renderVideos = (group) => {
   group.$videos = m('ul',
     group.videos.slice(0, 6).map(renderGroupVideo.bind(null, group)));
 
-  setTimeout(() => {
+  requestAnimationFrame(() => {
     for (let video of group.videos.slice(6)) {
       group.$videos.append(renderGroupVideo(group, video));
     }
