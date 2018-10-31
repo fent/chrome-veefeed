@@ -206,7 +206,8 @@ const renderGroupVideo = (group, video) => {
     if (opts.target === '_blank') { url += ' ⇗'; }
     let el;
     return m(selector, {
-      onmouseenter() {
+      onmouseenter(e) {
+        e.stopPropagation();
         el = document.createElement('div');
         el.className = 'mouseover-link';
         el.textContent = url;
