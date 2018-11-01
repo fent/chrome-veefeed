@@ -386,21 +386,20 @@ const renderGroupVideo = (group, video) => {
   return $video;
 };
 
+let $hoverLink = document.createElement('div');
+$hoverLink.className = 'mouseover-link';
 const hoverLinks = ($video) => {
   for (let $link of $video.querySelectorAll('a')) {
     let url = decodeURIComponent($link.href)
       .replace(/^https?:\/\/(www\.)?/, '');
     if ($link.target === '_blank') { url += ' ⇗'; }
-    let el;
-    $link.addEventListener('mouseenter', (e) => {
+    $link.addEventListener('mouseover', (e) => {
       e.stopPropagation();
-      el = document.createElement('div');
-      el.className = 'mouseover-link';
-      el.textContent = url;
-      document.body.append(el);
+      $hoverLink.textContent = url;
+      document.body.append($hoverLink);
     });
     $link.addEventListener('mouseleave', () => {
-      if (el) { el.remove(); }
+      $hoverLink.remove();
     });
   }
 };
