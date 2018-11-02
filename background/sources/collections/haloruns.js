@@ -5,8 +5,9 @@ const RECORDS_PAGE = 'https://haloruns.com/records?recent';
 const resolveLink = ($link) => {
   return new URL($link.getAttribute('href'), RECORDS_PAGE).href;
 };
+
+const $a = document.createElement('a');
 const embedLink = ($link) => {
-  const $a = document.createElement('a');
   $a.href = resolveLink($link);
   $a.target = '_blank';
   $a.textContent = $link.textContent;
