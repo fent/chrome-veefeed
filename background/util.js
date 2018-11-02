@@ -261,3 +261,20 @@ export const uniq = (arr) => {
 export const sleep = (ms) => {
   return new Promise(resolve => setTimeout(resolve, ms));
 };
+
+/**
+ * Converts urls in a string, that are not already html links, to html links.
+ *
+ * @param {string} str
+ * @return {string}
+ */
+const $a = document.createElement('a');
+export const embedLinks = (str) => {
+  return str.replace(/(href=")?(https?:\/\/[^"'()[\]{} ]+)/g, (m, p1, url) => {
+    if (p1) return m;
+    $a.href = url;
+    $a.target = '_blank';
+    $a.textContent = url;
+    return $a.outerHTML;
+  });
+};

@@ -45,7 +45,17 @@ const sources = {
           let videos;
           try {
             videos = await fn();
+            for (let video of videos) {
+              // Add links to video description.
+              if (video.desc) {
+                video.desc = util.embedLinks(video.desc);
+              }
+            }
+            if (!isHost) {
+              videos = await util.parallelFilter(videos, sources.addMetaToVideo);
+            }
             cachedResults[type][source] = videos;
+
           } catch (err) {
             console.warn(`Failed to get videos for ${source}: ${err.message}`);
             console.error(err);
@@ -53,12 +63,8 @@ const sources = {
             // Fallback to cached videos from this source if getting videos fails.
             videos = cachedResults[type][source] || [];
           }
-          if (isHost) {
-            return { source, videos };
-          } else {
-            videos = await util.parallelFilter(videos, sources.addMetaToVideo);
-            return { source, videos };
-          }
+
+          return { source, videos };
         }));
     };
 
@@ -165,6 +171,7 @@ const sources = {
         video[field] = meta[field];
       }
     });
+
     return true;
   },
 
