@@ -119,7 +119,8 @@ export default {
         return {
           user: {
             url: userUrl,
-            image: item.channelThumbnail.thumbnails[0].url,
+            image: item.channelThumbnailSupportedRenderers
+              .channelThumbnailWithLinkRenderer.thumbnail.thumbnails[0].url,
             name: user.text,
             verified: item.ownerBadges && item.ownerBadges.some((badge) => {
               badge.tooltip == 'Verified';
