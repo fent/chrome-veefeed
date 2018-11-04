@@ -396,6 +396,11 @@ const hoverLinks = ($video) => {
     $link.addEventListener('mouseover', (e) => {
       e.stopPropagation();
       $hoverLink.textContent = url;
+      // Place the link on the right side if the mouse is close to
+      // the lower left side of the window.
+      $hoverLink.classList.toggle('right',
+        window.innerHeight - e.clientY < VIDEO_HEIGHT &&
+        e.clientX < window.innerWidth / 2);
       document.body.append($hoverLink);
     });
     $link.addEventListener('mouseleave', () => {
