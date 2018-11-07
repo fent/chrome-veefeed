@@ -33,7 +33,7 @@ export default {
   getVideo: async (url) => {
     const id = ytdl.getURLVideoID(url);
     if (ytdlCache.has(id)) {
-      return id;
+      return ytdlCache.get(id);
     }
     const info = await ytdl.getBasicInfo(url);
     const meta = {
