@@ -35,14 +35,14 @@ const sources = {
 
   getVideos: async (options) => {
     const fetchEnabledSources = async (type, isHost) => {
-      return await Promise.all(Object.keys(sources[type])
+      return Promise.all(Object.keys(sources[type])
         .filter(source => options[source])
         .map(async (source) => {
           let fn = sources[type][source];
           if (isHost) {
             fn = fn.getAllVideos;
           }
-          let videos;
+          let videos, success = false;
           try {
             videos = await fn();
             for (let video of videos) {
@@ -51,20 +51,18 @@ const sources = {
                 video.desc = util.embedLinks(video.desc);
               }
             }
-            if (!isHost) {
-              videos = await util.parallelFilter(videos, sources.addMetaToVideo);
-            }
             cachedResults[type][source] = videos;
+            success = true;
 
           } catch (err) {
             console.warn(`Failed to get videos for ${source}: ${err.message}`);
             console.error(err);
 
-            // Fallback to cached videos from this source if getting videos fails.
+            // Fallback to cached videos from this source if fetching videos fails.
             videos = cachedResults[type][source] || [];
           }
 
-          return { source, videos };
+          return { source, videos, success };
         }));
     };
 
@@ -84,48 +82,49 @@ const sources = {
       });
       return result.videos;
     }));
+
     const videosMap = new Map();
     videos.forEach((video) => {
       videosMap.set(video.url, video);
       cachedVideos.push(video.url, video, true);
     });
 
-    const colVideos = [].concat(...colResults.map((result) => {
-      result.videos.forEach((video, i) => {
-        const col = video.col || {};
-        delete video.col;
-        col.source = result.source;
-        video.collections = [col];
-        video.index = i;
-      });
-      return result.videos;
-    }));
-
-    // If anything from a collection site is already in the list of
-    // videos directly gathered from a hosting site, then merge them.
-    // But give preference to the site hosting the video, in case
-    // the user is following those channels.
-    // That way, direct channel subscriptions get priority.
-    colVideos.forEach((colVideo) => {
-      const video = videosMap.get(colVideo.url);
-      if (video) {
-        // Keep a reference of the collection title for filtering,
-        // since the video will have its own title.
-        colVideo.collections[0].title = colVideo.title;
-        if (video.collections) {
-          // It's possible that the same video could be posted in
-          // many collectioin sites.
-          video.collections.push(colVideo.collections[0]);
-        } else {
-          video.collections = colVideo.collections.slice();
-        }
-        video.desc = video.desc || colVideo.desc;
-        video.game = video.game || colVideo.game;
-      } else {
-        colVideo.source = sources.sourceFromURL(colVideo.url);
-        videosMap.set(colVideo.url, colVideo);
+    await Promise.all(colResults.map(async ({videos, source, success}) => {
+      if (success) {
+        videos = await util.parallelFilter(videos, sources.addMetaToVideo);
       }
-    });
+      videos.forEach((colVideo, i) => {
+        const col = colVideo.col || {};
+        delete colVideo.col;
+        col.source = source;
+        colVideo.collections = [col];
+        colVideo.index = i;
+
+        // If anything from a collection site is already in the list of
+        // videos directly gathered from a hosting site, then merge them.
+        // But give preference to the site hosting the video, in case
+        // the user is following those channels.
+        // That way, direct channel subscriptions get priority.
+        const video = videosMap.get(colVideo.url);
+        if (video) {
+          // Keep a reference of the collection title for filtering,
+          // since the video will have its own title.
+          colVideo.collections[0].title = colVideo.title;
+          if (video.collections) {
+            // It's possible that the same video could be posted in
+            // many collectioin sites.
+            video.collections.push(colVideo.collections[0]);
+          } else {
+            video.collections = colVideo.collections.slice();
+          }
+          video.desc = video.desc || colVideo.desc;
+          video.game = video.game || colVideo.game;
+        } else {
+          colVideo.source = sources.sourceFromURL(colVideo.url);
+          videosMap.set(colVideo.url, colVideo);
+        }
+      });
+    }));
 
     return Array.from(videosMap.values());
   },
