@@ -113,14 +113,17 @@ export default {
           item.upcomingEventData ?
             parseInt(item.upcomingEventData.startTime) * 1000 : null;
         let views = item.viewCountText;
-        views = views && views.simpleText ?  views.simpleText :
+        views = views && views.simpleText ? views.simpleText :
           views && views.runs ? views.runs[0].text : null;
 
         return {
           user: {
             url: userUrl,
-            image: item.channelThumbnailSupportedRenderers
-              .channelThumbnailWithLinkRenderer.thumbnail.thumbnails[0].url,
+            image: (
+              item.channelThumbnail ||
+              item.channelThumbnailSupportedRenderers
+                .channelThumbnailWithLinkRenderer.thumbnail
+            ).thumbnails[0].url,
             name: user.text,
             verified: item.ownerBadges && item.ownerBadges.some((badge) => {
               badge.tooltip == 'Verified';
