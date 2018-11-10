@@ -52,7 +52,7 @@ export const ajax = (url, opts = {}) => {
     cache = ajax.cache[parsed.host];
     cacheRequestKey = parsed.pathname + parsed.search;
     if (cache.has(cacheRequestKey)) {
-      ajax.next();
+      setTimeout(ajax.next);
       return cache.get(cacheRequestKey);
     } else {
       const req = request(url, opts);
