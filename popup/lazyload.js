@@ -7,7 +7,10 @@
 
 const loadImage = ($img, fn) => {
   const img = new Image();
-  const src = $img.getAttribute('data-src');
+  let src = $img.getAttribute('data-src');
+  if (/^\/\//.test(src)) {
+    src = 'https:' + src;
+  }
   img.onload = () => {
     $img.src = src;
     $img.classList.remove('lazy');
