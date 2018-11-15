@@ -1,7 +1,5 @@
 /* global chrome, formatVideoLength, timeAgo, formatTime, m */
 
-import lazyload from './lazyload.js';
-
 const removeChildClasses = ($node, className) => {
   for (let $child of $node.children) {
     $child.classList.remove(className);
@@ -207,7 +205,7 @@ const renderGroupVideo = (group, video) => {
       target: '_blank',
     }, [
       user.image ?
-        m('img.lazy', { 'data-src': user.image }) : null,
+        m('img.lazyload', { 'data-src': user.image }) : null,
       m('span.name', user.name),
       user.verified ?
         m('span.verified', { 'data-title': 'Verified' }) : null,
@@ -226,7 +224,7 @@ const renderGroupVideo = (group, video) => {
       href: url,
       target: '_blank',
       'data-title': game.name,
-    }, m('img.lazy', { 'data-src': image }));
+    }, m('img.lazyload', { 'data-src': image }));
   };
 
   const sourceView = (source) => {
@@ -248,7 +246,7 @@ const renderGroupVideo = (group, video) => {
   if (video.playing) { vidClass += '.playing'; }
   const $video = m('li.video' + vidClass, [
     m('a.left-side', { href: video.url, disabled: true }, [
-      m('img.lazy', {
+      m('img.lazyload', {
         'data-src': video.thumbnail || '',
         onclick: open.bind(null, false),
       }),
@@ -472,12 +470,10 @@ const renderVideos = (group) => {
     for (let video of group.videos.slice(6)) {
       group.$videos.append(renderGroupVideo(group, video));
     }
-    lazyload.addImages(group.$videos);
     setVideoPositions(group);
   });
 
   group.$container = m('div.videos.selected');
-  lazyload.addImages(group.$videos);
   setVideoPositions(group);
   group.$container.appendChild(group.$queueAll);
   group.$container.appendChild(group.$videos);
@@ -563,5 +559,4 @@ const setVideoPositions = (group) => {
     }
   });
 
-  lazyload.processScroll();
 };
