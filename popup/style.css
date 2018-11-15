@@ -515,3 +515,13 @@ a.close[data-title]:hover:after {
   right: 0;
   max-width: 50%;
 }
+
+.lazyload,
+.lazyloading {
+  opacity: 0;
+}
+
+.lazyloaded {
+  opacity: 1;
+  transition: opacity 200ms;
+}
