@@ -150,7 +150,7 @@ const updateVideos = () => {
 
     if (options.play_sound && newVideos.length) {
       const audio = new Audio();
-      audio.src = 'options/bower_components/chrome-options/sounds/' +
+      audio.src = 'options/node_modules/chrome-options/sounds/' +
         options.play_sound + '.wav';
       audio.play();
     }
