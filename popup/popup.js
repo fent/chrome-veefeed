@@ -525,7 +525,7 @@ const sortVideos = (group) => {
     if (playing !== 0) { return playing; }
     const queued = !!b.queued - !!a.queued;
     if (queued !== 0) { return queued; }
-    if (a.queued && b.queued) {
+    if (a.queued && b.queued && queue) {
       return queue[a.url] - queue[b.url];
     } else {
       const watched = !!a.watched - !!b.watched;
