@@ -42,34 +42,35 @@ export default async () => {
       game += ': Guardians';
     }
     let difficulty = gameSplit[gameSplit.length - 1];
-    let $previousRecord, $previousUser;
+    let $previousRecord, $previousUsers;
     if ($col3.children.length) {
       $previousRecord = $col3.children[0];
       $previousRecord.textContent =
         $previousRecord.textContent.replace(/ /g, '');
-      $previousUser = $col3.children[1].children[0];
+      $previousUsers = $col3.children[1].querySelectorAll('a');
     }
     let $newRecord = $col4.children[0];
-    let $newUser = $col4.children[1].children[0];
+    let $newUsers = $col4.children[1].querySelectorAll('a');
     let timeSaved = $col5.textContent.replace(' : ', ':');
 
     items.push({
       col: {
         url: resolveLink($level),
-        users: [{
-          url: resolveLink($newUser),
-          name: $newUser.textContent,
-        }],
+        users: Array.from($newUsers, $user => ({
+          url: resolveLink($user),
+          name: $user.textContent,
+        })),
       },
       url: resolveLink($newRecord),
       thumbnail: null,
       length: util.timeToSeconds($newRecord.textContent),
-      title: game + ' ' + difficulty + ' - ' + $level.textContent +
-        ' (' + $newRecord.textContent.replace(/ /g, '') + ')',
+      title: `${game} ${difficulty} - ${$level.textContent}` +
+        ` - ${$newUsers.length > 1 ? 'Co-op' : 'Solo'}` +
+        ` (${$newRecord.textContent.replace(/ /g, '')})`,
       timestamp: date.getTime(),
       desc: $previousRecord ?
         'Previous Record: ' + embedLink($previousRecord) +
-        ' by ' + embedLink($previousUser) + '<br />' +
+        ' by ' + Array.from($previousUsers, embedLink).join(', ') + '<br />' +
         'Time Saved: ' + timeSaved : null,
       game: { name: game },
     });

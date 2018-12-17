@@ -361,10 +361,15 @@ a:hover {
   background-image: url(https://www.speedrun.com/themes/Default/favicon.png);
 }
 
+.user + .user:before {
+  content: ', ';
+  color: #bbb;
+}
+
 .user img {
   width: 12px;
   height: 12px;
-  margin-right: 4px;
+  margin-right: 2px;
 }
 
 .user .name {
