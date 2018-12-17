@@ -42,10 +42,13 @@ export default async () => {
       game += ': Guardians';
     }
     let difficulty = gameSplit[gameSplit.length - 1];
-    let $previousRecord = $col3.children[0];
-    $previousRecord.textContent =
-      $previousRecord.textContent.replace(/ /g, '');
-    let $previousUser = $col3.children[1].children[0];
+    let $previousRecord, $previousUser;
+    if ($col3.children.length) {
+      $previousRecord = $col3.children[0];
+      $previousRecord.textContent =
+        $previousRecord.textContent.replace(/ /g, '');
+      $previousUser = $col3.children[1].children[0];
+    }
     let $newRecord = $col4.children[0];
     let $newUser = $col4.children[1].children[0];
     let timeSaved = $col5.textContent.replace(' : ', ':');
@@ -64,9 +67,10 @@ export default async () => {
       title: game + ' ' + difficulty + ' - ' + $level.textContent +
         ' (' + $newRecord.textContent.replace(/ /g, '') + ')',
       timestamp: date.getTime(),
-      desc: 'Previous Record: ' + embedLink($previousRecord) +
+      desc: $previousRecord ?
+        'Previous Record: ' + embedLink($previousRecord) +
         ' by ' + embedLink($previousUser) + '<br />' +
-        'Time Saved: ' + timeSaved,
+        'Time Saved: ' + timeSaved : null,
       game: { name: game },
     });
   }
