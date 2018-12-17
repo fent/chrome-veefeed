@@ -41,7 +41,7 @@ export default {
       url: info.video_url,
       length: parseInt(info.length_seconds),
       title: info.title,
-      views: parseInt(info.view_count),
+      views: info.player_response.videoDetails.viewCount,
       user: {
         url: info.author.channel_url,
         name: info.author.name,
