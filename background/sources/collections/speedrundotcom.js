@@ -97,15 +97,20 @@ export default async () => {
   };
 
   const addMetaToRun = async (run) => {
-    const meta = await getMetaForRun(run.url);
-    if (!meta) { return false; }
-    run.url = meta.url;
-    run.desc = meta.desc;
-    const results = await Promise.all([
-      addUsersToRun(run, meta),
-      addGameToVideo(run, meta)
-    ]);
-    return results[0] && results[1];
+    try {
+      const meta = await getMetaForRun(run.url);
+      if (!meta) { return false; }
+      run.url = meta.url;
+      run.desc = meta.desc;
+      const results = await Promise.all([
+        addUsersToRun(run, meta),
+        addGameToVideo(run, meta)
+      ]);
+      return results[0] && results[1];
+    } catch (err) {
+      console.warn('Failed to get the run', run.url);
+      return false;
+    }
   };
 
   const key = await getSpeedrundotcomKey();
