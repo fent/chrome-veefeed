@@ -15,5 +15,4 @@ const $button = get([
 
 if ($button && getComputedStyle($button).display !== 'none') {
   $button.click();
-  true;
 }

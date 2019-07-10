@@ -126,7 +126,7 @@ export default {
             ).thumbnails[0].url,
             name: user.text,
             verified: item.ownerBadges && item.ownerBadges.some((badge) => {
-              badge.tooltip == 'Verified';
+              return badge.tooltip == 'Verified';
             }),
           },
           url: videoUrl,
