@@ -68,10 +68,11 @@ export default {
       data: { 'flow': 2 },
       responseType: 'text',
     });
-    const key = 'window["ytInitialData"] = ';
+    const key = 'window["ytInitialData"] = JSON.parse("';
     let response = body;
     response = response.slice(response.indexOf(key) + key.length);
-    response = response.slice(0, response.indexOf('}}};') + 3);
+    response = response.slice(0, response.indexOf('");\n'));
+    response = response.replace(/\\([\\"])/g, '$1');
     try {
       response = JSON.parse(response);
     } catch (err) {
