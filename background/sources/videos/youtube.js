@@ -68,11 +68,15 @@ export default {
       data: { 'flow': 2 },
       responseType: 'text',
     });
-    const key = 'window["ytInitialData"] = JSON.parse("';
-    let response = body;
-    response = response.slice(response.indexOf(key) + key.length);
-    response = response.slice(0, response.indexOf('");\n'));
-    response = response.replace(/\\([\\"])/g, '$1');
+    let match = /window\["ytInitialData"\] = (JSON\.parse\(")?(.+?)(?:"\))?;\n/
+      .exec(body);
+    if (!match) {
+      throw Error('Unable to find youtube data');
+    }
+    let response = match[2];
+    if (match[1]) {
+      response = response.replace(/\\([\\"])/g, '$1');
+    }
     try {
       response = JSON.parse(response);
     } catch (err) {
