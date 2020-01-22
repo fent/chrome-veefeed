@@ -24,11 +24,11 @@ chrome.webRequest.onBeforeSendHeaders.addListener((details) => {
 
 export default {
   patterns: [
-    '*://www.youtube.com/watch?v=*',
-    '*://m.youtube.com/watch?v=*',
+    '*://www.youtube.com/watch?*v=*',
+    '*://m.youtube.com/watch?*v=*',
     '*://youtu.be/*',
-    '*://music.youtube.com/watch?v=*',
-    '*://gaming.youtube.com/watch?v=*',
+    '*://music.youtube.com/watch?*v=*',
+    '*://gaming.youtube.com/watch?*v=*',
   ],
   getVideo: async (url) => {
     const id = ytdl.getURLVideoID(url);
