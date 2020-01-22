@@ -270,7 +270,7 @@ export const sleep = (ms) => {
  */
 const $a = document.createElement('a');
 export const embedLinks = (str) => {
-  return str.replace(/(href=")?(https?:\/\/[^"'()[\]{} ]+)/g, (m, p1, url) => {
+  return str.replace(/(href=")?(https?:\/\/[^"'()[\]{} \n]+)/g, (m, p1, url) => {
     if (p1) return m;
     $a.href = url;
     $a.target = '_blank';
