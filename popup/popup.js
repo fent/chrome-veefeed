@@ -388,8 +388,13 @@ let $hoverLink = document.createElement('div');
 $hoverLink.className = 'mouseover-link';
 const hoverLinks = ($video) => {
   for (let $link of $video.querySelectorAll('a')) {
-    let url = decodeURIComponent($link.href)
-      .replace(/^https?:\/\/(www\.)?/, '');
+    let href = $link.href;
+    try {
+      href = decodeURIComponent(href);
+    } catch (err) {
+      // do nothing
+    }
+    let url = href.replace(/^https?:\/\/(www\.)?/, '');
     if ($link.target === '_blank') { url += ' ⇗'; }
     $link.addEventListener('mouseover', (e) => {
       e.stopPropagation();
