@@ -278,3 +278,22 @@ export const embedLinks = (str) => {
     return $a.outerHTML;
   });
 };
+
+
+/**
+ * Displays an error in the console, and displays a browser notification..
+ *
+ * @param {Error} err
+ * @param {string} message
+ */
+export const errNotify = (err, message) => {
+  console.warn(message);
+  console.error(err);
+  chrome.notifications.create('veefeed' + Date.now(), {
+    type: 'basic',
+    title: 'Veefeed Error',
+    message: message,
+    contextMessage: err.message.slice(),
+    eventTime: Date.now(),
+  });
+};

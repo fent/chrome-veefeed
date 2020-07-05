@@ -55,8 +55,7 @@ const sources = {
             success = true;
 
           } catch (err) {
-            console.warn(`Failed to get videos for ${source}: ${err.message}`);
-            console.error(err);
+            util.errNotify(err, `Failed to get videos for ${source}: ${err.message}`);
 
             // Fallback to cached videos from this source if fetching videos fails.
             videos = cachedResults[type][source] || [];
@@ -155,8 +154,7 @@ const sources = {
       meta = await sources.getMetaForVideo(video.url);
       if (!meta) { return false; }
     } catch (err) {
-      console.warn('Failed to get meta for video: ' + video.url);
-      console.error(err);
+      util.errNotify(err, 'Failed to get meta for video: ' + video.url);
       return false;
     }
     video.url = meta.url;
