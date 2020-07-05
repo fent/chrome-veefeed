@@ -4,24 +4,6 @@ import SizedMap from '../../SizedMap.js';
 import ytdl from '../../../lib/ytdl-core.min.js';
 const ytdlCache = new SizedMap(100, 'cache-youtube', 1000 * 60 * 60); // 1hr
 
-
-// ytdl-core requires the User-Agent header to be empty to scrape the watch
-// page correctly. XMLHttpRequest doesn't allow removing this header,
-// so we have to use the `webRequest` API.
-// Removing the header from the list of headers doesn't work either,
-// we have to set it to a blank value.
-chrome.webRequest.onBeforeSendHeaders.addListener((details) => {
-  let header = details.requestHeaders.find(h => h.name === 'User-Agent');
-  if (header) { header.value = ''; }
-  return { requestHeaders: details.requestHeaders };
-}, {
-  urls: [
-    'https://www.youtube.com/watch?v=*',
-    'https://www.youtube.com/get_video_info*'
-  ],
-  types: ['xmlhttprequest'],
-}, ['blocking', 'requestHeaders']);
-
 export default {
   patterns: [
     '*://www.youtube.com/watch?*v=*',
@@ -39,9 +21,9 @@ export default {
     const meta = {
       // Canonical YouTube URL.
       url: info.video_url,
-      length: parseInt(info.length_seconds),
-      title: info.title,
-      views: info.player_response.videoDetails.viewCount,
+      length: parseInt(info.videoDetails.lengthSeconds),
+      title: info.videoDetails.title,
+      views: info.videoDetails.viewCount,
       user: {
         url: info.author.channel_url,
         name: info.author.name,
@@ -50,14 +32,14 @@ export default {
       },
 
       // Using medium quality gives a screenshot without black bars.
-      thumbnail: 'https://i.ytimg.com/vi/' + info.video_id +
+      thumbnail: 'https://i.ytimg.com/vi/' + info.videoDetails.videoId +
         '/mqdefault.jpg?custom=true&w=196&h=110&stc=true&jpg444=true&' +
         'jpgq=90&sp=68',
 
       game: info.media && info.media.game ? {
         name: info.media.game,
         url: info.media.game_url,
-        image: info.media.image,
+        image: info.media.thumbnails[0],
       } : null,
     };
     ytdlCache.push(id, meta);
