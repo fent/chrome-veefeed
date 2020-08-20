@@ -20,7 +20,7 @@
 }
 
 ._veefeed-next-button._veefeed-show {
-  width: 3em !important;
+  width: 36px !important;
   visibility: visible;
   transition: width 200ms;
 }
@@ -36,11 +36,6 @@
 }
 
 ._veefeed-next-button svg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 3em;
-  height: 3em;
   fill: #fff;
 }
 
@@ -113,4 +108,8 @@ body._veefeed-ended ._veefeed-next-video,
 
 body._veefeed-queued-video .recommendations-overlay {
   display: none;
+}
+
+.ytp-exp-bottom-control-flexbox .ytp-left-controls {
+  overflow: visible !important;
 }
