@@ -149,6 +149,7 @@ export const relativeToTimestamp = (str) => {
  * @return {number}
  */
 export const timeToSeconds = (str) => {
+  if (!str) { return null; }
   const s = str.split(':');
   return s.length === 2 ?
     ~~s[0] * 60 + ~~s[1] :

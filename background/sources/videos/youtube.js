@@ -65,6 +65,10 @@ export default {
       throw Error('Error parsing videos: ' + err.message);
     }
 
+    const getItemText = item => {
+      return item && (item.simpleText || item.runs && item.runs[0] && item.runs[0].text) || null;
+    };
+
     return response
       .contents
       .twoColumnBrowseResultsRenderer
@@ -94,16 +98,13 @@ export default {
           '/mqdefault.jpg?custom=true&w=196&h=110&stc=true&jpg444=true&' +
           'jpgq=90&sp=68';
 
-        const length = item.lengthText;
         const timestamp = item.publishedTimeText ?
-          util.relativeToTimestamp(item.publishedTimeText.simpleText) :
+          util.relativeToTimestamp(getItemText(item.publishedTimeText)) :
           item.upcomingEventData ?
             parseInt(item.upcomingEventData.startTime) * 1000 : null;
-        let views = item.viewCountText;
-        views = views && views.simpleText ? views.simpleText :
-          views && views.runs ? views.runs[0].text : null;
+        let views = getItemText(item.viewCountText);
 
-        return {
+        const parsedItem = {
           user: {
             url: userUrl,
             image: (
@@ -118,10 +119,10 @@ export default {
           },
           url: videoUrl,
           thumbnail,
-          title: item.title.simpleText,
-          desc: item.descriptionSnippet && item.descriptionSnippet.simpleText,
-          length: length ? util.timeToSeconds(length.simpleText) : null,
-          views: views ?  parseInt(views.replace(/,/g, '')) : null,
+          title: getItemText(item.title),
+          desc: getItemText(item.descriptionSnippet),
+          length: util.timeToSeconds(getItemText(item.lengthText)),
+          views: views ? parseInt(views.replace(/,/g, '')) : null,
           timestamp,
           live: item.badges && timestamp < Date.now() &&
             item.badges.some((badge) => {
@@ -134,6 +135,7 @@ export default {
             }),
           watched: item.isWatched,
         };
+        return parsedItem;
       });
   },
 };
