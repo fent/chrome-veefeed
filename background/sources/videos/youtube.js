@@ -50,7 +50,7 @@ export default {
       data: { 'flow': 2 },
       responseType: 'text',
     });
-    let match = /window\["ytInitialData"\] = (JSON\.parse\(")?(.+?)(?:"\))?;\n/
+    let match = /ytInitialData(?:["']\])?\s*=\s*(JSON\.parse\(")?(.+?)(?:"\))?;(?:<\/script>|\n)/
       .exec(body);
     if (!match) {
       throw Error('Unable to find youtube data');
