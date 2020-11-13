@@ -25,10 +25,10 @@ export default {
       title: info.videoDetails.title,
       views: info.videoDetails.viewCount,
       user: {
-        url: info.author.channel_url,
-        name: info.author.name,
-        image: info.author.avatar,
-        verified: info.author.verified,
+        url: info.videoDetails.author.channel_url,
+        name: info.videoDetails.author.name,
+        image: info.videoDetails.author.avatar,
+        verified: info.videoDetails.author.verified,
       },
 
       // Using medium quality gives a screenshot without black bars.
@@ -36,10 +36,10 @@ export default {
         '/mqdefault.jpg?custom=true&w=196&h=110&stc=true&jpg444=true&' +
         'jpgq=90&sp=68',
 
-      game: info.media && info.media.game ? {
-        name: info.media.game,
-        url: info.media.game_url,
-        image: info.media.thumbnails[0],
+      game: info.videoDetails.media && info.videoDetails.media.game ? {
+        name: info.videoDetails.media.game,
+        url: info.videoDetails.media.game_url,
+        image: info.videoDetails.media.thumbnails[0],
       } : null,
     };
     ytdlCache.push(id, meta);
